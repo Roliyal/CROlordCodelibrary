@@ -1,4 +1,3 @@
-[root@iZj6cbejcl18nxdzxk01baZ jenkins]# cat docker-compose-jenkins.yaml
   version: '3'
 
   services:
