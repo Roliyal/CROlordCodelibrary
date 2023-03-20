@@ -24,7 +24,7 @@ import AuthService from '@/services/auth.js'
 export default {
   name: 'LoginForm',
 
-  data () {
+  data() {
     return {
       user: {
         username: '',
@@ -34,9 +34,9 @@ export default {
   },
 
   methods: {
-    login () {
+    login() {
       AuthService.login(this.user)
-        .then(response => {
+        .then(() => {
           this.$router.push('/game')
         })
         .catch(error => {
