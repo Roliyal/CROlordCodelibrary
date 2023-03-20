@@ -91,6 +91,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+
 		c.Next()
 	}
 }
