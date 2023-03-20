@@ -1,48 +1,78 @@
 <template>
   <div class="login-form">
-    <h1>Login</h1>
-
+    <h2>Login Form</h2>
     <form @submit.prevent="login">
-      <label>
-        Username:
-        <input type="text" v-model="user.username" />
-      </label>
-
-      <label>
-        Password:
-        <input type="password" v-model="user.password" />
-      </label>
-
+      <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username" v-model="username" required>
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" v-model="password" required>
+      </div>
       <button type="submit">Login</button>
     </form>
   </div>
 </template>
 
 <script>
-import AuthService from '@/services/auth.js'
+import AuthService from "../services/auth";
 
 export default {
-  name: 'LoginForm',
-
+  name: "LoginForm",
   data() {
     return {
-      user: {
-        username: '',
-        password: ''
-      }
-    }
+      username: "",
+      password: "",
+    };
   },
-
   methods: {
-    login() {
-      AuthService.login(this.user)
-        .then(() => {
-          this.$router.push('/game')
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    }
-  }
-}
+    async login() {
+      try {
+        await AuthService.login(this.username, this.password);
+        this.$router.push("/game");
+      } catch (error) {
+        console.log(error);
+      }
+    },
+  },
+};
 </script>
+
+<style scoped>
+.login-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+div {
+  margin: 10px 0;
+}
+
+input {
+  padding: 5px;
+  margin-left: 5px;
+}
+
+button {
+  padding: 10px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #3f51b5;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2c3e50;
+}
+</style>

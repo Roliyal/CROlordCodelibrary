@@ -1,22 +1,22 @@
-import axios from 'axios'
+import axios from 'axios';
 
-const API_URL = 'http://localhost:8080'
+const API_URL = 'http://localhost:8000';
 
-class GameService {
-  getScoreboard () {
-    return axios.get(`${API_URL}/scoreboard`)
+export default {
+  getGame: function(token) {
+    return axios.get(`${API_URL}/game`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  },
+  saveScore: function(token, score) {
+    return axios.post(`${API_URL}/game`, {
+      score: score
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
   }
-
-  saveScore (score) {
-    const token = JSON.parse(localStorage.getItem('token'))
-
-    return axios
-      .post(`${API_URL}/score`, score, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-  }
-}
-
-export default new GameService()
+};

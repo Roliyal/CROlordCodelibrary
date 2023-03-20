@@ -1,30 +1,14 @@
-import axios from 'axios'
+export default {
+  async login(username, password) {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ username, password }),
+    });
 
-const API_URL = 'http://localhost:8080'
 
-class AuthService {
-  login (user) {
-    return axios
-      .post(`${API_URL}/login`, {
-        username: user.username,
-        password: user.password
-      })
-      .then(response => {
-        if (response.data.token) {
-          localStorage.setItem('token', JSON.stringify(response.data.token))
-        }
-
-        return response.data
-      })
-  }
-
-  logout () {
-    localStorage.removeItem('token')
-  }
-
-  getToken () {
-    return JSON.parse(localStorage.getItem('token'))
-  }
-}
-
-export default new AuthService()
+    if (!response.ok) {
+      throw new Error("登录失败");
+    }
+  },
+};

@@ -1,22 +1,14 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import LoginForm from '@/components/LoginForm.vue'
-import GamePage from '@/components/GamePage.vue'
+import LoginForm from '../components/LoginForm.vue'
+import GamePage from '../components/GamePage.vue'
+import auth from '../services/auth'
 
 Vue.use(VueRouter)
 
 const routes = [
-  {
-    path: '/',
-    name: 'LoginForm',
-    component: LoginForm
-  },
-  {
-    path: '/game',
-    name: 'GamePage',
-    component: GamePage,
-    meta: { requiresAuth: true }
-  }
+  { path: '/', component: LoginForm },
+  { path: '/game', component: GamePage, meta: { requiresAuth: true } }
 ]
 
 const router = new VueRouter({
@@ -24,10 +16,7 @@ const router = new VueRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const isAuthenticated = localStorage.getItem('token')
-
-  if (requiresAuth && !isAuthenticated) {
+  if (to.meta.requiresAuth && !auth.isAuthenticated()) {
     next('/')
   } else {
     next()

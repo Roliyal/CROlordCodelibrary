@@ -1,44 +1,31 @@
+<!-- src/components/GamePage.vue -->
 <template>
   <div class="game-page">
-    <h1>Game</h1>
-
+    <h2>Click the Button!</h2>
     <p>Score: {{ score }}</p>
-
-    <button @click="incrementScore">Click me!</button>
+    <button @click="incrementScore">Click Me!</button>
   </div>
 </template>
 
 <script>
-import GameService from '@/services/game.js'
+import GameService from "../services/game";
 
 export default {
-  name: 'GamePage',
-
-  data () {
+  name: "GamePage",
+  data() {
     return {
-      score: 0
-    }
+      score: 0,
+    };
   },
-
   methods: {
-    incrementScore () {
-      this.score++
-
-      GameService.saveScore({ score: this.score })
-        .catch(error => {
-          console.log(error)
-        })
-    }
+    async incrementScore() {
+      this.score++;
+      await GameService.saveScore(this.score);
+    },
   },
-
-  created () {
-    GameService.getScoreboard()
-      .then(response => {
-        console.log(response.data)
-      })
-      .catch(error => {
-        console.log(error)
-      })
-  }
-}
+};
 </script>
+
+<style scoped>
+.game-page {
+  display:
