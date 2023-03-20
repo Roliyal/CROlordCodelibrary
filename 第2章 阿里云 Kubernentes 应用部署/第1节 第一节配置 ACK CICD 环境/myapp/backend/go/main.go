@@ -19,7 +19,6 @@ type GameResult struct {
     CreatedAt time.Time `json:"created_at"`
 }
 
-
 func main() {
     // 初始化 Gin 框架
     r := gin.Default()
