@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/gorilla/mux"
+	"log"
+	"net/http"
 )
 
 func main() {
 	router := mux.NewRouter()
 
 	// Serve static files from the "frontend" directory
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("../frontend/dist")))
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend")))
 
 	// Login endpoint
 	router.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
@@ -33,9 +33,9 @@ func main() {
 	}).Methods("POST")
 
 	// Start server
-	fmt.Println("Server started on port 8000")
-	err := http.ListenAndServe(":8000", router)
+	log.Println("Server started on port 8080")
+	err := http.ListenAndServe(":8080", router)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
