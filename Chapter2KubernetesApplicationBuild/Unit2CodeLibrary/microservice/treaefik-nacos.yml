@@ -1,0 +1,25 @@
+# traefik.yaml
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: true
+
+log:
+  level: DEBUG
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  nacos:
+    watch: true
+    refreshInterval: "15s"
+    defaultWeight: 1
+    endpoints:
+      - "http://mse-c00253114-p.nacos-ans.mse.aliyuncs.com:8848"
+    username: "nacos"
+    password: "nacos"
+    prefix: "traefik"
+
+api:
+  insecure: true
