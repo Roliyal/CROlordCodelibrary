@@ -1,4 +1,4 @@
-# traefik.yaml
+# traefik.yaml nacos
 global:
   checkNewVersion: true
   sendAnonymousUsage: true
