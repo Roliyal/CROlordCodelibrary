@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +31,9 @@ func main() {
 	}
 
 	http.HandleFunc("/scoreboard", func(w http.ResponseWriter, r *http.Request) {
+		// Add CORS support
+		enableCors(&w)
+
 		data, err := getScoreboardData(db)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -69,4 +71,11 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("Server ListenAndServe: %v", err)
 	}
+}
+
+// Enable CORS support
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }

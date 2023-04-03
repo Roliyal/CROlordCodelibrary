@@ -4,15 +4,33 @@
     <p>在这里查看您的战绩！</p>
     <!-- 展示战绩的具体实现 -->
     <button @click="fetchScoreboardData">获取战绩</button>
+    <ul class="scoreboard-list">
+      <li v-for="(score, index) in scores" :key="index">
+        {{ score.username }} - {{ score.score }}
+      </li>
+    </ul>
   </div>
 </template>
 
 <script>
 export default {
+  data() {
+    return {
+      scores: [],
+    };
+  },
   methods: {
     async fetchScoreboardData() {
-      // 在此处添加API调用以获取战绩数据
-      console.log("获取战绩数据");
+      try {
+        const response = await fetch("http://localhost:8085/scoreboard");
+        if (response.ok) {
+          this.scores = await response.json();
+        } else {
+          console.error("Error fetching scoreboard data:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching scoreboard data:", error);
+      }
     },
   },
 };
@@ -49,5 +67,17 @@ button {
 
 button:hover {
   background-color: #45a049;
+}
+
+.scoreboard-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.scoreboard-list li {
+  padding: 10px;
+  background-color: #f1f1f1;
+  margin-bottom: 10px;
+  border-radius: 5px;
 }
 </style>
