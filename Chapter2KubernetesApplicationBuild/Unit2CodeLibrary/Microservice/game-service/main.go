@@ -26,11 +26,13 @@ func main() {
 	defer closeDatabase()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/game", guessHandler)
+	http.HandleFunc("/game", guessHandler)
 
 	fmt.Println("Starting server on port 8084")
 	log.Fatal(http.ListenAndServe(":8084", corsMiddleware(mux)))
 }
+
+// Rest of the code...
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

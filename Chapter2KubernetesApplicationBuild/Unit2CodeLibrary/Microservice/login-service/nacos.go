@@ -2,12 +2,11 @@ package main
 
 import (
 	"github.com/nacos-group/nacos-sdk-go/clients"
-	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"log"
 )
 
-var configClient *config_client.ConfigClient
 var namingClient naming_client.INamingClient
 
 func initNacos() {
@@ -26,27 +25,13 @@ func initNacos() {
 		},
 	}
 
-	iClient, err := clients.CreateConfigClient(map[string]interface{}{
-		constant.KEY_SERVER_CONFIGS: serverConfigs,
-		constant.KEY_CLIENT_CONFIG:  clientConfig,
-		constant.KEY_USERNAME:       "nacos",
-		constant.KEY_PASSWORD:       "nacos",
+	// New naming client
+	nc, err := clients.CreateNamingClient(map[string]interface{}{
+		"serverConfigs": serverConfigs,
+		"clientConfig":  clientConfig,
 	})
-
 	if err != nil {
-		panic("failed to connect to Nacos")
+		log.Fatalf("Failed to create Nacos client: %v", err)
 	}
-
-	configClient = iClient.(*config_client.ConfigClient)
-
-	nClient, err := clients.CreateNamingClient(map[string]interface{}{
-		constant.KEY_SERVER_CONFIGS: serverConfigs,
-		constant.KEY_CLIENT_CONFIG:  clientConfig,
-	})
-
-	if err != nil {
-		panic("failed to connect to Nacos")
-	}
-
-	namingClient = nClient
+	namingClient = nc
 }

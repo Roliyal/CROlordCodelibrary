@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"io/ioutil"
+	"net/http"
 )
 
 var db *gorm.DB
@@ -63,11 +68,11 @@ func deleteGame(game *Game) {
 
 func getUserFromAuthToken(authToken string) (*User, error) {
 	// Call the login service to get the user ID from the auth token.
-	// Replace the URL with the actual URL of your login service.
 	userID, err := getUserIDFromLoginService(authToken)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("User ID from login service: %d\n", userID) // 添加这行代码
 
 	var user User
 	if err := db.First(&user, userID).Error; err != nil {
@@ -77,9 +82,29 @@ func getUserFromAuthToken(authToken string) (*User, error) {
 }
 
 func getUserIDFromLoginService(authToken string) (uint, error) {
-	// Implement the actual call to the login service here
-	// For now, just return a dummy user ID
-	return 1, nil
+	loginServiceURL := getLoginServiceURL()
+	requestURL := fmt.Sprintf("%s/user?authToken=%s", loginServiceURL, authToken)
+	fmt.Printf("Requesting user ID with URL: %s\n", requestURL) //
+
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("Response body from login service: %s\n", string(respBody))
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(respBody))
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("login service returned status %d", resp.StatusCode)
+	}
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return 0, err
+	}
+
+	return uint(data["id"].(float64)), nil
 }
 
 func generateTargetNumber() int {

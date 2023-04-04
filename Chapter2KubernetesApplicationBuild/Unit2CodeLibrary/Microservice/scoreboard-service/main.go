@@ -2,80 +2,79 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
+	"sort"
 )
 
-const serviceName = "scoreboard"
-const servicePort = 8085
+type ScoreboardEntry struct {
+	Username string `json:"username"`
+	Wins     int    `json:"wins"`
+	Attempts int    `json:"attempts"`
+}
+
+type getScoreboardResponse struct {
+	Entries []ScoreboardEntry `json:"entries"`
+}
 
 func main() {
-	db, err := SetupDatabase()
-	if err != nil {
-		log.Fatalf("Failed to set up database: %v", err)
-	}
+	initNacos()    // Initialize Nacos client
+	initDatabase() // Initialize the database
+	defer closeDatabase()
 
-	namingClient, err := createNacosClient()
-	if err != nil {
-		log.Fatalf("Failed to create Nacos client: %v", err)
-	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/scoreboard", getScoreboardHandler)
 
-	ip := "127.0.0.1"
-	port := uint64(servicePort)
-	err = registerService(namingClient, serviceName, ip, port)
-	if err != nil {
-		log.Fatalf("Failed to register service with Nacos: %v", err)
-	}
+	fmt.Println("Starting server on port 8085")
+	log.Fatal(http.ListenAndServe(":8085", corsMiddleware(mux)))
+}
 
-	http.HandleFunc("/scoreboard", func(w http.ResponseWriter, r *http.Request) {
-		// Add CORS support
-		enableCors(&w)
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
-		data, err := getScoreboardData(db)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(data)
+		next.ServeHTTP(w, r)
 	})
-
-	srv := &http.Server{
-		Addr:    ":8085",
-		Handler: nil,
-	}
-
-	// 监听退出信号
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-done
-		log.Println("Shutting down the server...")
-
-		err = deregisterService(namingClient, serviceName, ip, port)
-		if err != nil {
-			log.Printf("Failed to deregister service with Nacos: %v", err)
-		}
-
-		if err := srv.Shutdown(nil); err != nil {
-			log.Printf("Server Shutdown: %v", err)
-		}
-	}()
-
-	log.Printf("Server is ready to handle requests at %s", srv.Addr)
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("Server ListenAndServe: %v", err)
-	}
 }
 
-// Enable CORS support
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var users []User
+	db.Find(&users)
+
+	entries := make([]ScoreboardEntry, len(users))
+	for i, user := range users {
+		entries[i] = ScoreboardEntry{
+			Username: user.Username,
+			Wins:     user.Wins,
+			Attempts: user.Attempts,
+		}
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Wins == entries[j].Wins {
+			return entries[i].Attempts < entries[j].Attempts
+		}
+		return entries[i].Wins > entries[j].Wins
+	})
+
+	res := getScoreboardResponse{
+		Entries: entries,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(res)
 }

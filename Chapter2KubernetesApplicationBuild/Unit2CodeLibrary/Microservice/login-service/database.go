@@ -7,10 +7,17 @@ import (
 
 var db *gorm.DB
 
+func (User) TableName() string {
+	return "user"
+}
+
 type User struct {
-	ID       uint   `gorm:"primary_key"`
-	Username string `gorm:"unique"`
-	Password string
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	Username  string `json:"username" gorm:"size:255;unique;not null"`
+	Password  string `json:"-" gorm:"size:255;not null"`
+	AuthToken string `json:"auth_token,omitempty" gorm:"size:255;default:''"`
+	Wins      uint   `json:"wins"`
+	Attempts  uint   `json:"attempts"`
 }
 
 func initDatabase() {
@@ -21,7 +28,9 @@ func initDatabase() {
 	}
 
 	// 创建数据库表
-	db.AutoMigrate(&User{})
+	db.Table("user").AutoMigrate(&User{})
+	// 设置AuthToken的默认值
+	db.Exec("ALTER TABLE `user` ALTER `AuthToken` SET DEFAULT ''")
 }
 
 func closeDatabase() {

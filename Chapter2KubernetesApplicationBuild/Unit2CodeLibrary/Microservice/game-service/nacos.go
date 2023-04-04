@@ -1,14 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/nacos-group/nacos-sdk-go/clients"
-	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 )
 
-var configClient *config_client.ConfigClient
 var namingClient naming_client.INamingClient
 
 func initNacos() {
@@ -27,61 +26,43 @@ func initNacos() {
 		},
 	}
 
-	cc, err := clients.CreateConfigClient(map[string]interface{}{
-		constant.KEY_SERVER_CONFIGS: serverConfigs,
-		constant.KEY_CLIENT_CONFIG:  clientConfig,
-	})
-
-	if err != nil {
-		panic("failed to connect to Nacos")
-	}
-
-	configClient = cc.(*config_client.ConfigClient)
-
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		constant.KEY_SERVER_CONFIGS: serverConfigs,
 		constant.KEY_CLIENT_CONFIG:  clientConfig,
 	})
-
 	if err != nil {
-		panic("failed to create Nacos naming client")
+		panic("failed to create Nacos client")
 	}
+	namingClient = nc
 
-	namingClient = nc.(naming_client.INamingClient)
-
-	registerInstance()
-}
-
-func registerInstance() {
-	_, err := namingClient.RegisterInstance(vo.RegisterInstanceParam{
+	// Register the service instance
+	success, err := namingClient.RegisterInstance(vo.RegisterInstanceParam{
 		Ip:          "127.0.0.1",
 		Port:        8084,
-		ServiceName: "game-server",
-		Weight:      10,
+		ServiceName: "game-service",
+		Weight:      1,
 		Enable:      true,
 		Healthy:     true,
-		Metadata:    map[string]string{},
-		ClusterName: "DEFAULT",
-		GroupName:   "DEFAULT_GROUP",
-		Ephemeral:   true,
+		Metadata:    map[string]string{"version": "1.0"},
 	})
-
-	if err != nil {
-		panic("failed to register instance with Nacos")
+	if err != nil || !success {
+		panic("failed to register service instance")
 	}
 }
 
-func unregisterInstance() {
-	_, err := namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip:          "127.0.0.1",
-		Port:        8084,
-		ServiceName: "game-server",
-		Cluster:     "DEFAULT",
+func getLoginServiceURL() string {
+	// Discover the login service using Nacos
+	service, err := namingClient.GetService(vo.GetServiceParam{
+		ServiceName: "login-service", // 使用正确的服务名称
 		GroupName:   "DEFAULT_GROUP",
-		Ephemeral:   true,
 	})
-
 	if err != nil {
-		panic("failed to unregister instance with Nacos")
+		panic("failed to discover login service")
 	}
+
+	// Choose the first instance for now
+	instance := service.Hosts[0]
+	url := fmt.Sprintf("http://%s:%d", instance.Ip, instance.Port)
+	fmt.Printf("Login service URL: %s\n", url) // 添加这行代码
+	return url
 }
