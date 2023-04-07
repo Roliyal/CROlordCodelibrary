@@ -18,7 +18,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import authApi from "../auth-api";
 import { useRouter } from "vue-router";
@@ -38,10 +37,13 @@ export default {
   },
   methods: {
     async login() {
-      const success = await authApi.authenticate(this.username, this.password);
+      const authResult = await authApi.authenticate(this.username, this.password);
 
-      if (success) {
+      if (authResult && authResult.authToken) {
         store.setIsLoggedIn(true);
+        localStorage.setItem("authToken", authResult.authToken);
+        localStorage.setItem("id", authResult.id); // 添加这一行
+
         this.router.push("/game");
       } else {
         this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
@@ -50,6 +52,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 body {

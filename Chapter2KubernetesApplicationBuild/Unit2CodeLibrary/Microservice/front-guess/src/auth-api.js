@@ -1,32 +1,32 @@
 import axios from "axios";
 
-const apiClient = axios.create({
-    baseURL: "/",
-    withCredentials: false,
-    headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-    },
-});
+
 
 export default {
     isAuthenticated: false,
 
     async authenticate(username, password) {
         try {
-            const response = await apiClient.post("/login", { username, password });
+            const response = await axios.post("http://localhost:8083/login", { // 更新这一行
+                username,
+                password,
+            });
+            console.log("Response data:", response.data); // 添加这
 
-            if (response.data && response.data.success) {
-                this.isAuthenticated = true;
-                return true;
+            if (response.data && response.data.authToken) {
+                this.isAuthenticated = true; // 添加这一行
+
+                return {
+                    authToken: response.data.authToken,
+                    id: response.data.id, // 确保这里获取了 userID
+                };
             } else {
-                this.isAuthenticated = false;
-                return false;
+                return null;
             }
         } catch (error) {
-            console.error("Error during authentication:", error);
-            this.isAuthenticated = false;
-            return false;
+            console.error("Error authenticating:", error);
+            return null;
         }
     },
+
 };

@@ -7,7 +7,10 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"io/ioutil"
+	"log"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 var db *gorm.DB
@@ -19,10 +22,11 @@ type User struct {
 }
 
 type Game struct {
-	ID           uint `gorm:"primary_key"`
-	UserID       uint
-	TargetNumber int
-	Attempts     int
+	ID             uint `gorm:"primary_key"`
+	UserID         uint // 修改这一行，将 ID 改为 UserID
+	TargetNumber   int
+	Attempts       int
+	CorrectGuesses int
 }
 
 func initDatabase() {
@@ -36,21 +40,21 @@ func initDatabase() {
 	db.AutoMigrate(&User{}, &Game{})
 }
 
-func closeDatabase() {
-	db.Close()
-}
-
 func getOrCreateGame(user *User) (*Game, error) {
 	var game Game
 	if err := db.Where("user_id = ?", user.ID).First(&game).Error; err != nil {
+		log.Println("No game record found for user:", user.ID)
+
 		if gorm.IsRecordNotFoundError(err) {
-			game.UserID = user.ID
+			game.ID = user.ID // 修改这一行
 			game.TargetNumber = generateTargetNumber()
 			game.Attempts = 0
 			if err := db.Create(&game).Error; err != nil {
 				return nil, err
 			}
 		} else {
+			log.Println("Error querying game record:", err)
+
 			return nil, err
 		}
 	}
@@ -62,29 +66,30 @@ func incrementAttempts(game *Game) {
 	db.Save(game)
 }
 
-func deleteGame(game *Game) {
-	db.Delete(game)
-}
-
-func getUserFromAuthToken(authToken string) (*User, error) {
-	// Call the login service to get the user ID from the auth token.
-	userID, err := getUserIDFromLoginService(authToken)
+func getUserFromAuthToken(authToken string, userID uint) (User, error) {
+	userIDURL := fmt.Sprintf("http://localhost:8083/user?authToken=%s&userID=%d", authToken, userID)
+	resp, err := http.Get(userIDURL)
 	if err != nil {
-		return nil, err
+		return User{}, fmt.Errorf("error sending request to login service: %w", err)
 	}
-	fmt.Printf("User ID from login service: %d\n", userID) // 添加这行代码
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return User{}, fmt.Errorf("login service returned status %d", resp.StatusCode)
+	}
 
 	var user User
-	if err := db.First(&user, userID).Error; err != nil {
-		return nil, err
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		return User{}, fmt.Errorf("error decoding user JSON: %w", err)
 	}
-	return &user, nil
+	return user, nil
 }
 
 func getUserIDFromLoginService(authToken string) (uint, error) {
-	loginServiceURL := getLoginServiceURL()
+	loginServiceURL := "http://localhost:8083"
 	requestURL := fmt.Sprintf("%s/user?authToken=%s", loginServiceURL, authToken)
-	fmt.Printf("Requesting user ID with URL: %s\n", requestURL) //
+	fmt.Printf("Requesting user ID with URL: %s\n", requestURL)
 
 	resp, err := http.Get(requestURL)
 	if err != nil {
@@ -108,7 +113,9 @@ func getUserIDFromLoginService(authToken string) (uint, error) {
 }
 
 func generateTargetNumber() int {
-	// Implement the actual target number generation here
-	// For now, just return a dummy target number
-	return 42
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(100)
+}
+func closeDatabase() {
+	db.Close()
 }

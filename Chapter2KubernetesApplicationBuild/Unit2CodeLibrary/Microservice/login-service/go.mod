@@ -17,6 +17,7 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/nacos-group/nacos-sdk-go v1.1.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rs/cors v1.8.3 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect

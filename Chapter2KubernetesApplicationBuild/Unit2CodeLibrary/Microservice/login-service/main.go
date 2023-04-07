@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/satori/go.uuid"
+	"github.com/rs/cors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,7 +20,8 @@ type loginRequest struct {
 
 type loginResponse struct {
 	Success   bool   `json:"success"`
-	AuthToken string `json:"authToken,omitempty"`
+	AuthToken string `json:"authToken"`
+	ID        int    `json:"id"` // 使用 'ID' 而不是 'UserID'
 }
 
 func main() {
@@ -64,31 +67,46 @@ func main() {
 			log.Printf("Failed to deregister service with Nacos: %v", err)
 		}
 	}()
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // 允许来自任何域的请求
+		AllowCredentials: true,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"*"},
+	})
 
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/register", registerHandler)
-	//http.HandleFunc("/user", getUserHandler)
-	http.HandleFunc("/user", userHandler) // 添加这行代码
+	// 使用 CORS 中间件包装处理程序
+	loginHandler := c.Handler(http.HandlerFunc(loginHandler))
+	userHandler := c.Handler(http.HandlerFunc(userHandler))
+
+	// 注册处理程序
+	http.Handle("/login", loginHandler)
+	http.Handle("/user", userHandler)
 
 	fmt.Println("Starting server on port 8083")
 	log.Fatal(http.ListenAndServe(":8083", nil))
 }
-
 func updateUser(user *User) error {
-	if err := db.Model(user).UpdateColumn("auth_token", user.AuthToken).Error; err != nil {
+	if err := db.Model(user).Where("id = ?", user.ID).Update("auth_token", user.AuthToken).Error; err != nil {
 		log.Println("Error updating user:", err)
 		return err
 	}
 	return nil
 }
 
-func generateAuthToken() string {
-	u := uuid.NewV4()
-	return u.String()
+func generateAuthToken() (string, error) {
+	return generateRandomToken(32)
 }
+
+func generateRandomToken(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received login request")
-
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -110,15 +128,27 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Received login request with username: %s, password: %s\n", req.Username, req.Password)
+
 	var user User
-	if err := db.Where("username = ? AND password = ?", req.Username, req.Password).First(&user).Error; err == nil {
+	db = db.LogMode(true)
+
+	if err := db.Select("ID, Username, Password, AuthToken, Wins, Attempts").Where("username = ? AND password = ?", req.Username, req.Password).First(&user).Error; err == nil {
 		log.Println("User found:", user)
+		log.Println("User data retrieved from the database:", user)
+		log.Println("Generated SQL query:", db.Where("username = ? AND password = ?", req.Username, req.Password).First(&user).QueryExpr())
+		fmt.Printf("User data after query: %+v\n", user)
 
-		if user.AuthToken == "" {
-			user.AuthToken = generateAuthToken()
+		newAuthToken, err := generateAuthToken()
+		if err != nil {
+			log.Println("Error generating auth token:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		err := updateUser(&user)
+		user.AuthToken = newAuthToken
+		fmt.Printf("User data after update: %+v\n", user)
 
+		err = updateUser(&user)
 		if err != nil {
 			log.Println("Error updating user:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -127,12 +157,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("User updated successfully:", user)
 		}
 
-		fmt.Println("Updated user:", user)
-
 		res := loginResponse{
 			Success:   true,
 			AuthToken: user.AuthToken,
+			ID:        user.ID,
 		}
+
+		fmt.Println("Updated user:", user)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -151,83 +182,23 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Received register request")
-
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println("Error reading request body:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	var req loginRequest
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		log.Println("Error unmarshalling JSON:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	u := uuid.NewV4()
-	authToken := u.String()
-
-	user := User{
-		Username:  req.Username,
-		Password:  req.Password,
-		AuthToken: authToken,
-	}
-
-	if err := db.Create(&user).Error; err != nil {
-		log.Println("Error creating user:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Println("User created:", user)
-
-	res := loginResponse{
-		Success:   true,
-		AuthToken: authToken,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(res)
-	fmt.Println("Sent register response:", res)
-}
-func getUserHandler(w http.ResponseWriter, r *http.Request) {
-	authToken := r.URL.Query().Get("authToken")
-
-	var user User
-	if err := db.Where("auth_token = ?", authToken).First(&user).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			w.WriteHeader(http.StatusNotFound)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
-}
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.URL.Query().Get("authToken")
-	if authToken == "" {
+	userID := r.URL.Query().Get("userID")
+
+	// 确保userID已提供
+	if authToken == "" || userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	// 在此处添加调试日志
+	log.Printf("Received user request with authToken: %s and userID: %s\n", authToken, userID)
+
+	// 使用userID查询用户
 	var user User
-	if err := db.Where("auth_token = ?", authToken).First(&user).Error; err != nil {
+	if err := db.Where("auth_token = ? AND id = ?", authToken, userID).First(&user).Error; err != nil {
+		fmt.Printf("Error finding user by authToken and userID: %v\n", err)
 		if gorm.IsRecordNotFoundError(err) {
 			w.WriteHeader(http.StatusNotFound)
 		} else {

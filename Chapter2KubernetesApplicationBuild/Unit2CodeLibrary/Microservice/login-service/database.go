@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"time"
 )
 
 var db *gorm.DB
@@ -12,12 +13,15 @@ func (User) TableName() string {
 }
 
 type User struct {
-	ID        uint   `gorm:"primaryKey" json:"id"`
-	Username  string `json:"username" gorm:"size:255;unique;not null"`
-	Password  string `json:"-" gorm:"size:255;not null"`
-	AuthToken string `json:"auth_token,omitempty" gorm:"size:255;default:''"`
-	Wins      uint   `json:"wins"`
-	Attempts  uint   `json:"attempts"`
+	ID             int       `gorm:"column:ID;primaryKey;autoIncrement"`
+	Username       string    `gorm:"column:Username;unique"`
+	Password       string    `gorm:"column:Password"`
+	AuthToken      string    `gorm:"column:AuthToken"`
+	Wins           int       `gorm:"column:Wins"`
+	Attempts       int       `gorm:"column:Attempts"`
+	AuthTokenExtra string    `gorm:"column:auth_token"`
+	CreatedAt      time.Time `gorm:"column:created_at"`
+	UpdatedAt      time.Time `gorm:"column:updated_at"`
 }
 
 func initDatabase() {
@@ -30,7 +34,6 @@ func initDatabase() {
 	// 创建数据库表
 	db.Table("user").AutoMigrate(&User{})
 	// 设置AuthToken的默认值
-	db.Exec("ALTER TABLE `user` ALTER `AuthToken` SET DEFAULT ''")
 }
 
 func closeDatabase() {

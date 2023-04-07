@@ -13,6 +13,6 @@ createApp(App)
     .use(router)
     .mount("#app");
 
-const authToken = localStorage.getItem("authToken"); // 获取存储的authToken
+const authToken = localStorage.getItem("authToken");// 获取存储的authToken
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`; // 设置全局默认请求头

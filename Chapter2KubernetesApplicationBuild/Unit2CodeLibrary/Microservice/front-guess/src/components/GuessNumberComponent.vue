@@ -43,10 +43,25 @@ export default {
     },
 
     async submitGuess(guess) {
+      // 从localStorage中获取authToken
+      const authToken = localStorage.getItem("authToken");
+      const ID = localStorage.getItem("id"); // 获取存储的userID
+
+      if (!authToken) {
+        this.message = "请先登录";
+        return;
+      }
+
       try {
         const response = await axios.post("http://localhost:8084/game", {
-          authToken: "your-auth-token", // 这里替换为实际的authToken
           number: guess,
+        }, {
+          headers: {
+            Authorization: `Bearer ${authToken}` // 设置请求头
+          },
+          params: {
+            userID: ID, // 添加这一行
+          },
         });
         const resData = response.data;
         if (resData.success) {
@@ -65,6 +80,8 @@ export default {
   },
 };
 </script>
+
+
 
 <style scoped>
 .container {
