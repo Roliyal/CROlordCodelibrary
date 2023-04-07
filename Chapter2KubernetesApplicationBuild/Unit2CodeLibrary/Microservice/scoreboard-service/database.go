@@ -6,9 +6,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Score struct {
-	Username string `json:"username"`
-	Score    int    `json:"score"`
+type GameData struct {
+	ID           int `json:"id"`
+	Attempts     int `json:"attempts"`
+	TargetNumber int `json:"target_number"`
 }
 
 const (
@@ -35,21 +36,21 @@ func initDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func getScoreboardData(db *sql.DB) ([]Score, error) {
-	rows, err := db.Query("SELECT username, score FROM scores ORDER BY score DESC")
+func getGameData(db *sql.DB) ([]GameData, error) {
+	rows, err := db.Query("SELECT id, attempts, target_number FROM game")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var scores []Score
+	var gameData []GameData
 	for rows.Next() {
-		var score Score
-		err = rows.Scan(&score.Username, &score.Score)
+		var data GameData
+		err = rows.Scan(&data.ID, &data.Attempts, &data.TargetNumber)
 		if err != nil {
 			return nil, err
 		}
-		scores = append(scores, score)
+		gameData = append(gameData, data)
 	}
 
 	err = rows.Err()
@@ -57,5 +58,5 @@ func getScoreboardData(db *sql.DB) ([]Score, error) {
 		return nil, err
 	}
 
-	return scores, nil
+	return gameData, nil
 }

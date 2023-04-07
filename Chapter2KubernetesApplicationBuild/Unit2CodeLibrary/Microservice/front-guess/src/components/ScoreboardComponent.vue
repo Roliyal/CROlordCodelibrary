@@ -1,30 +1,45 @@
 <template>
   <div class="container scoreboard-container">
-    <h2>战绩展示</h2>
-    <p>在这里查看您的战绩！</p>
-    <!-- 展示战绩的具体实现 -->
-    <button @click="fetchScoreboardData">获取战绩</button>
-    <ul class="scoreboard-list">
-      <li v-for="(score, index) in scores" :key="index">
-        {{ score.username }} - {{ score.score }}
-      </li>
-    </ul>
+    <h2>排行榜展示</h2>
+    <p v-if="!dataFetched">在这里查看您的排行！</p>
+    <button @click="fetchScoreboardData" v-if="!dataFetched">获取排行信息</button>
+    <table class="scoreboard-table" v-if="dataFetched">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Attempts</th>
+        <th>Target Number</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="(game, index) in gameData" :key="index">
+        <td>{{ game.id }}</td>
+        <td>{{ game.attempts }}</td>
+        <td>{{ game.target_number }}</td>
+      </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
-<script>
-export default {
+
+
+<script>export default {
   data() {
     return {
       scores: [],
+      gameData: [],
+      dataFetched: false,
     };
   },
+
   methods: {
     async fetchScoreboardData() {
       try {
         const response = await fetch("http://localhost:8085/scoreboard");
         if (response.ok) {
-          this.scores = await response.json();
+          this.gameData = await response.json();
+          this.dataFetched = true;
         } else {
           console.error("Error fetching scoreboard data:", response.statusText);
         }
@@ -32,8 +47,10 @@ export default {
         console.error("Error fetching scoreboard data:", error);
       }
     },
+
   },
 };
+
 </script>
 
 <style scoped>
@@ -63,21 +80,37 @@ button {
   color: white;
   font-weight: bold;
   cursor: pointer;
+  margin-bottom: 10px;
 }
 
 button:hover {
   background-color: #45a049;
 }
 
-.scoreboard-list {
-  list-style-type: none;
-  padding: 0;
+.scoreboard-table {
+  border-collapse: collapse;
+  width: 100%;
 }
 
-.scoreboard-list li {
-  padding: 10px;
-  background-color: #f1f1f1;
-  margin-bottom: 10px;
-  border-radius: 5px;
+.scoreboard-table th,
+.scoreboard-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.scoreboard-table th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background-color: #4caf50;
+  color: white;
+}
+
+.scoreboard-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.scoreboard-table tr:hover {
+  background-color: #ddd;
 }
 </style>

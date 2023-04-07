@@ -23,7 +23,6 @@ type User struct {
 
 type Game struct {
 	ID             uint `gorm:"primary_key"`
-	UserID         uint // 修改这一行，将 ID 改为 UserID
 	TargetNumber   int
 	Attempts       int
 	CorrectGuesses int
@@ -39,10 +38,13 @@ func initDatabase() {
 	// 创建数据库表
 	db.AutoMigrate(&User{}, &Game{})
 }
+func (Game) TableName() string {
+	return "game"
+}
 
 func getOrCreateGame(user *User) (*Game, error) {
 	var game Game
-	if err := db.Where("user_id = ?", user.ID).First(&game).Error; err != nil {
+	if err := db.Where("id = ?", user.ID).First(&game).Error; err != nil {
 		log.Println("No game record found for user:", user.ID)
 
 		if gorm.IsRecordNotFoundError(err) {
