@@ -17,6 +17,10 @@ type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+type registerRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
 
 type loginResponse struct {
 	Success   bool   `json:"success"`
@@ -77,10 +81,12 @@ func main() {
 	// 使用 CORS 中间件包装处理程序
 	loginHandler := c.Handler(http.HandlerFunc(loginHandler))
 	userHandler := c.Handler(http.HandlerFunc(userHandler))
+	registerHandler := c.Handler(http.HandlerFunc(registerHandler))
 
 	// 注册处理程序
 	http.Handle("/login", loginHandler)
 	http.Handle("/user", userHandler)
+	http.Handle("/register", registerHandler)
 
 	fmt.Println("Starting server on port 8083")
 	log.Fatal(http.ListenAndServe(":8083", nil))
@@ -210,4 +216,67 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
+}
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Received register request")
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error reading request body:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req registerRequest
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		log.Println("Error unmarshalling JSON:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Received register request with username: %s, password: %s\n", req.Username, req.Password)
+
+	var user User
+	err = db.Where("username = ?", req.Username).First(&user).Error
+	if err == nil {
+		log.Println("Username already exists:", req.Username)
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+
+	if !gorm.IsRecordNotFoundError(err) {
+		log.Println("Error checking for existing user:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	newAuthToken, err := generateAuthToken()
+	if err != nil {
+		log.Println("Error generating auth token:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	user = User{
+		Username:  req.Username,
+		Password:  req.Password,
+		AuthToken: newAuthToken,
+		Wins:      0,
+		Attempts:  0,
+	}
+
+	err = db.Create(&user).Error
+	if err != nil {
+		log.Println("Error creating new user:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }

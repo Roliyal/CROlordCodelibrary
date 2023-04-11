@@ -7,6 +7,10 @@ module.exports = {
         target: 'http://localhost:80',
         changeOrigin: true,
       },
+      '/register': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+      },
     },
   },
 }

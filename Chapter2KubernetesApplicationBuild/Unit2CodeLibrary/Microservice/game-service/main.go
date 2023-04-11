@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -23,8 +24,12 @@ type guessResponse struct {
 }
 
 func main() {
-	initNacos()    // Initialize Nacos client
-	initDatabase() // Initialize the database
+	initNacos() // Initialize Nacos client
+	dbConfig, err := getDatabaseConfigFromNacos()
+	if err != nil {
+		panic("failed to get database configuration from Nacos")
+	}
+	initDatabase(dbConfig) // Initialize the database with the configuration from Nacos
 	defer closeDatabase()
 
 	mux := http.NewServeMux()
@@ -34,7 +39,23 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8084", corsMiddleware(mux)))
 }
 
-// Rest of the code...
+func getDatabaseConfigFromNacos() (map[string]string, error) {
+	config, err := ConfigClient.GetConfig(vo.ConfigParam{
+		DataId: "Prod_DATABASE",
+		Group:  "DEFAULT_GROUP",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var dbConfig map[string]string
+	err = json.Unmarshal([]byte(config), &dbConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbConfig, nil
+}
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

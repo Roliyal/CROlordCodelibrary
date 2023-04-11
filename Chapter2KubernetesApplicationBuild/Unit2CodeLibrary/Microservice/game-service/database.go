@@ -28,13 +28,19 @@ type Game struct {
 	CorrectGuesses int
 }
 
-func initDatabase() {
+func initDatabase(dbConfig map[string]string) {
 	var err error
-	db, err = gorm.Open("mysql", "crolord:RyV3MGZ$@Q5rJ3i^-=@tcp(rm-j6cn3wen02w6f5b94ho.mysql.rds.aliyuncs.com:3306)/crolord?charset=utf8&parseTime=True&loc=Local")
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+		dbConfig["DB_USER"],
+		dbConfig["DB_PASSWORD"],
+		dbConfig["DB_HOST"],
+		dbConfig["DB_PORT"],
+		dbConfig["DB_NAME"],
+	)
+	db, err = gorm.Open("mysql", dsn)
 	if err != nil {
 		panic("failed to connect to database")
 	}
-
 	// 创建数据库表
 	db.AutoMigrate(&User{}, &Game{})
 }

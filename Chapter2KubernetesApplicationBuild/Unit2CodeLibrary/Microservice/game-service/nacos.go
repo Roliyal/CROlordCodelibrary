@@ -2,27 +2,38 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/nacos-group/nacos-sdk-go/clients"
+	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"os"
+	"strconv"
 )
 
-var namingClient naming_client.INamingClient
+var NamingClient naming_client.INamingClient
+var ConfigClient config_client.IConfigClient
 
 func initNacos() {
+	// 读取.env文件
+	err := godotenv.Load("../.env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
+
 	clientConfig := constant.ClientConfig{
-		NamespaceId: "public",
-		TimeoutMs:   5000,
-		Username:    "nacos",
-		Password:    "nacos",
+		NamespaceId: os.Getenv("NACOS_NAMESPACE"),
+		TimeoutMs:   uint64(parseInt(os.Getenv("NACOS_TIMEOUT_MS"), 5000)),
+		Username:    os.Getenv("NACOS_USERNAME"),
+		Password:    os.Getenv("NACOS_PASSWORD"),
 	}
 
 	serverConfigs := []constant.ServerConfig{
 		{
-			IpAddr:      "mse-c00253114-p.nacos-ans.mse.aliyuncs.com",
-			ContextPath: "/nacos",
-			Port:        8848,
+			IpAddr:      os.Getenv("NACOS_SERVER_IP"),
+			ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
+			Port:        uint64(parseInt(os.Getenv("NACOS_SERVER_PORT"), 8848)),
 		},
 	}
 
@@ -31,29 +42,44 @@ func initNacos() {
 		constant.KEY_CLIENT_CONFIG:  clientConfig,
 	})
 	if err != nil {
-		panic("failed to create Nacos client")
+		panic("failed to create Nacos naming client")
 	}
-	namingClient = nc
+	NamingClient = nc
 
-	// Register the service instance
-	success, err := namingClient.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          "127.0.0.1",
-		Port:        8084,
-		ServiceName: "game-service",
-		Weight:      1,
-		Enable:      true,
-		Healthy:     true,
-		Metadata:    map[string]string{"version": "1.0"},
+	// 创建Nacos配置客户端
+	cc, err := clients.CreateConfigClient(map[string]interface{}{
+		constant.KEY_SERVER_CONFIGS: serverConfigs,
+		constant.KEY_CLIENT_CONFIG:  clientConfig,
 	})
-	if err != nil || !success {
-		panic("failed to register service instance")
+	if err != nil {
+		panic("failed to create Nacos config client")
 	}
+	ConfigClient = cc
+}
+
+func getDatabaseConfig() (string, error) {
+	content, err := ConfigClient.GetConfig(vo.ConfigParam{
+		DataId: "Prod_DATABASE",
+		Group:  "DEFAULT_GROUP",
+	})
+	if err != nil {
+		return "", err
+	}
+	return content, nil
+}
+
+func parseInt(value string, defaultValue int) int {
+	result, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	return result
 }
 
 func getLoginServiceURL() string {
 	// Discover the login service using Nacos
-	service, err := namingClient.GetService(vo.GetServiceParam{
-		ServiceName: "login-service", // 使用正确的服务名称
+	service, err := NamingClient.GetService(vo.GetServiceParam{
+		ServiceName: "login-service",
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
@@ -63,6 +89,6 @@ func getLoginServiceURL() string {
 	// Choose the first instance for now
 	instance := service.Hosts[0]
 	url := fmt.Sprintf("http://%s:%d", instance.Ip, instance.Port)
-	fmt.Printf("Login service URL: %s\n", url) // 添加这行代码
+	fmt.Printf("Login service URL: %s\n", url) //
 	return url
 }

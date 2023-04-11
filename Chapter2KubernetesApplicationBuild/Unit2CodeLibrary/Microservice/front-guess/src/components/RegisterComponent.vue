@@ -1,9 +1,8 @@
 <template>
   <div class="container">
-    <h1 class="title">Login</h1>
-    <div class="login-container">
-      <p class="intro"> </p>
-      <form @submit.prevent="login">
+    <h1 class="title">Register</h1>
+    <div class="register-container">
+      <form @submit.prevent="register">
         <div class="input-group">
           <label>用户名：</label>
           <input type="text" v-model="username" />
@@ -12,7 +11,7 @@
           <label>密码：</label>
           <input type="password" v-model="password" />
         </div>
-        <button type="submit">登录</button>
+        <button type="submit">注册</button>
         <div class="message-container">
           <div v-show="errorMessage" class="error-message">{{ errorMessage }}</div>
           <div v-show="infoMessage" class="info-message">{{ infoMessage }}</div>
@@ -28,7 +27,6 @@
 <script>
 import authApi from "../auth-api";
 import { useRouter } from "vue-router";
-import store from "../store";
 
 export default {
   data() {
@@ -36,6 +34,7 @@ export default {
       username: "",
       password: "",
       errorMessage: "",
+      infoMessage: "",
     };
   },
   setup() {
@@ -43,17 +42,17 @@ export default {
     return { router };
   },
   methods: {
-    async login() {
-      const authResult = await authApi.authenticate(this.username, this.password);
+    async register() {
+      const registerResult = await authApi.register(this.username, this.password);
 
-      if (authResult && authResult.authToken) {
-        store.setIsLoggedIn(true);
-        localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id); // 添加这一行
-
-        this.router.push("/game");
+      if (registerResult && registerResult.status === 201) {
+        this.errorMessage = "";
+        this.infoMessage = "注册成功！正在跳转到登录页面...";
+        setTimeout(() => {
+          this.router.push("/login");
+        }, 2000);
       } else {
-        this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
+        this.errorMessage = "注册失败，请重试。";
       }
     },
   },
@@ -74,7 +73,7 @@ body {
   background-color: #f5f5f5;
 }
 
-.login-container {
+.register-container {
   width: 370px;
   padding: 30px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);

@@ -28,5 +28,23 @@ export default {
             return null;
         }
     },
+    // 添加 register 函数
+    async register(username, password) {
+        try {
+            const response = await axios.post("http://localhost:8083/register", {
+                username,
+                password,
+            });
 
+            if (response.status === 201) {
+                return { status: response.status };
+            } else {
+                return { status: response.status, error: "注册失败，请重试。" };
+            }
+        } catch (error) {
+            console.error("Error registering:", error);
+            return { status: 500, error: "注册失败，请重试。" };
+        }
+    },
 };
+

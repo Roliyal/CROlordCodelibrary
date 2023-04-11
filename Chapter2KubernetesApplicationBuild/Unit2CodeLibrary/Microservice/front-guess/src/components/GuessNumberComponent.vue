@@ -2,7 +2,6 @@
   <div class="container game-container">
     <h2>猜数字游戏</h2>
     <p>在这里玩猜数字游戏！</p>
-    <!-- 游戏的具体实现 -->
     <div v-if="gameStatus === 'idle'">
       <button @click="startGame">开始游戏</button>
     </div>
@@ -65,6 +64,7 @@ export default {
         });
         const resData = response.data;
         if (resData.success) {
+          alert(resData.message); // 显示提示信息
           this.message = resData.message;
           this.attempts = resData.attempts;
           this.gameStatus = "idle";
