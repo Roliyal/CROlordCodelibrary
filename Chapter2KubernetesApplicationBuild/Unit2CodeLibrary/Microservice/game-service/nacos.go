@@ -36,6 +36,7 @@ func initNacos() {
 			Port:        uint64(parseInt(os.Getenv("NACOS_SERVER_PORT"), 8848)),
 		},
 	}
+	fmt.Printf("Nacos server config: %v\n", serverConfigs) // 输出 Nacos 服务器配置
 
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		constant.KEY_SERVER_CONFIGS: serverConfigs,
@@ -91,4 +92,38 @@ func getLoginServiceURL() string {
 	url := fmt.Sprintf("http://%s:%d", instance.Ip, instance.Port)
 	fmt.Printf("Login service URL: %s\n", url) //
 	return url
+}
+
+func registerService(client naming_client.INamingClient, serviceName, ip string, port uint64) error {
+	success, err := client.RegisterInstance(vo.RegisterInstanceParam{
+		Ip:          ip,
+		Port:        port,
+		ServiceName: serviceName,
+		Weight:      10,
+		Enable:      true,
+		Healthy:     true,
+		Ephemeral:   true,
+	})
+
+	if err != nil {
+		return fmt.Errorf("registerService error: %w", err)
+	}
+
+	if !success {
+		return fmt.Errorf("Failed to register service")
+	}
+
+	return nil
+}
+
+func deregisterGameService() {
+	_, err := NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+		Ip:          "127.0.0.1",
+		Port:        8084,
+		ServiceName: "game-service",
+		GroupName:   "DEFAULT_GROUP",
+	})
+	if err != nil {
+		panic("failed to deregister game service instance")
+	}
 }

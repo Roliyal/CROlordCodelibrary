@@ -8,8 +8,11 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 type guessRequest struct {
@@ -24,7 +27,13 @@ type guessResponse struct {
 }
 
 func main() {
-	initNacos() // Initialize Nacos client
+	initNacos()
+	err := registerService(NamingClient, "game-service", "127.0.0.1", 8084)
+	if err != nil {
+		fmt.Printf("Error registering game service instance: %v\n", err)
+		os.Exit(1)
+	}
+
 	dbConfig, err := getDatabaseConfigFromNacos()
 	if err != nil {
 		panic("failed to get database configuration from Nacos")
@@ -34,19 +43,38 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/game", guessHandler)
+	mux.HandleFunc("/health", healthCheckHandler)
 
 	fmt.Println("Starting server on port 8084")
 	log.Fatal(http.ListenAndServe(":8084", corsMiddleware(mux)))
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	// 注销 game 服务实例
+	deregisterGameService()
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
 
 func getDatabaseConfigFromNacos() (map[string]string, error) {
+	DataId := "Prod_DATABASE"
+	Group := "DEFAULT_GROUP"
+
+	fmt.Printf("Requesting Nacos config with DataId: %s, Group: %s\n", DataId, Group) // 输出请求的 DataId 和 Group
+
 	config, err := ConfigClient.GetConfig(vo.ConfigParam{
-		DataId: "Prod_DATABASE",
-		Group:  "DEFAULT_GROUP",
+		DataId: DataId,
+		Group:  Group,
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("Received Nacos config: %s\n", config) // 输出从 Nacos 接收到的配置
 
 	var dbConfig map[string]string
 	err = json.Unmarshal([]byte(config), &dbConfig)

@@ -76,11 +76,18 @@ func incrementAttempts(game *Game) {
 
 func getUserFromAuthToken(authToken string, userID uint) (User, error) {
 	userIDURL := fmt.Sprintf("http://localhost:8083/user?authToken=%s&userID=%d", authToken, userID)
+	fmt.Printf("Requesting user ID with URL: %s\n", userIDURL) // 输出请求 URL
+
 	resp, err := http.Get(userIDURL)
 	if err != nil {
 		return User{}, fmt.Errorf("error sending request to login service: %w", err)
 	}
 	defer resp.Body.Close()
+
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("Response status code from login service: %d\n", resp.StatusCode) // 输出响应状态码
+	fmt.Printf("Response body from login service: %s\n", string(respBody))       // 输出响应正文
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(respBody))
 
 	if resp.StatusCode != http.StatusOK {
 		return User{}, fmt.Errorf("login service returned status %d", resp.StatusCode)
