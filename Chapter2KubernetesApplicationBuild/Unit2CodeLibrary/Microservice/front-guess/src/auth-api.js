@@ -28,7 +28,7 @@ export default {
             return null;
         }
     },
-    // 添加 register 函数
+    // 添加 register 函数使用
     async register(username, password) {
         try {
             const response = await axios.post("http://localhost:8083/register", {
