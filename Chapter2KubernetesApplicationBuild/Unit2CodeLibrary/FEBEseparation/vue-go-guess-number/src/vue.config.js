@@ -1,5 +1,7 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
-
+module.exports = {
+  productionSourceMap: false,
+};
 module.exports = {
   devServer: {
     proxy: {

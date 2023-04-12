@@ -20,6 +20,8 @@
 
 <script>
 import axios from "axios";
+import config from "@/config";
+
 
 export default {
   data() {
@@ -35,7 +37,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.post("http://127.0.0.1:8081/check-guess", {
+        const response = await axios.post(config.apiUrl, {
           guess: this.userGuess,
         });
         this.message = response.data.message;
