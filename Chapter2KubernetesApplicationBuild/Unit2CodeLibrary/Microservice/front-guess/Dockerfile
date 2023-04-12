@@ -10,7 +10,8 @@ COPY . .
 
 RUN npm run build
 
-FROM nginx:1.21.0-alpine
+FROM nginx:1.20.0-alpine
+
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 COPY --from=build-stage /app/nginx.conf /etc/nginx/conf.d/default.conf
