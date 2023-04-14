@@ -27,12 +27,17 @@ type guessResponse struct {
 }
 
 func main() {
+	logDir := "/app/log"
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		os.MkdirAll(logDir, 0777)
+	}
 	initNacos()
 	err := registerService(NamingClient, "game-service", "127.0.0.1", 8084)
 	if err != nil {
 		fmt.Printf("Error registering game service instance: %v\n", err)
 		os.Exit(1)
 	}
+	subscribeLoginService()
 
 	dbConfig, err := getDatabaseConfigFromNacos()
 	if err != nil {

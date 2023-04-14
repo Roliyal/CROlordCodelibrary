@@ -3,29 +3,26 @@ FROM node:14-slim AS build-stage
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
 # Install dependencies
-RUN npm ci
+COPY package*.json ./
+RUN npm install --production && npm cache clean --force
+RUN npm install axios
 
-# Copy the rest of the project files
+# Copy source files
 COPY . .
 
-# Build the project
-RUN npm run build || (cat /app/npm-debug.log && exit 1)
+# Build the application
+RUN npm run build
 
 # Production stage
 FROM nginx:1.21.0-alpine
 
-# Copy built files from build stage to nginx html folder
+# Copy built files and nginx configuration
 COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY --from=build-stage /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
 
-# Start nginx
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

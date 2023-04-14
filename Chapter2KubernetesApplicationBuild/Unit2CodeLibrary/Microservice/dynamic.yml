@@ -22,12 +22,24 @@ http:
     login-service:
       loadBalancer:
         servers:
-          - url: "http://login.roliyal.com:8083"
+          - url: "http://localhost:8083"
+        healthCheck:
+          path: "/login"
+          interval: "30s"
+          timeout: "5s"
     game-service:
       loadBalancer:
         servers:
-          - url: "http://login.roliyal.com:8083"
+          - url: "http://localhost:8084"
+        healthCheck:
+          path: "/game"
+          interval: "30s"
+          timeout: "5s"
     scoreboard-service:
       loadBalancer:
         servers:
-          - url: "http://login.roliyal.com:8083"
+          - url: "http://localhost:8085"
+        healthCheck:
+          path: "/scoreboard"
+          interval: "30s"
+          timeout: "5s"

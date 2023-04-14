@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
-	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/rs/cors"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 type loginRequest struct {
@@ -29,48 +29,16 @@ type loginResponse struct {
 }
 
 func main() {
-	initNacos()    // Initialize Nacos client
-	initDatabase() // Initialize the database
+	initNacos() // Initialize Nacos client
+	initDatabase()
 	defer closeDatabase()
 
-	// Register the service with Nacos
-	serviceName := "login-service"
-	ip := "127.0.0.1"
-	port := 8083
-	clusterName := "DEFAULT"
-	groupName := "DEFAULT_GROUP"
-
-	success, err := namingClient.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          ip,
-		Port:        uint64(port),
-		ServiceName: serviceName,
-		Weight:      1,
-		Enable:      true,
-		Healthy:     true,
-		Metadata:    map[string]string{},
-		ClusterName: clusterName,
-		GroupName:   groupName,
-		Ephemeral:   true,
-	})
-
-	if !success || err != nil {
-		log.Fatalf("Failed to register service with Nacos: %v", err)
+	err := registerService(NamingClient, "login-service", "127.0.0.1", 8083)
+	if err != nil {
+		fmt.Printf("Error registering game service instance: %v\n", err)
+		os.Exit(1)
 	}
-
-	// Unregister the service when the program exits
-	defer func() {
-		success, err := namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-			Ip:          ip,
-			Port:        uint64(port),
-			ServiceName: serviceName,
-			Cluster:     clusterName,
-			GroupName:   groupName,
-			Ephemeral:   true,
-		})
-		if !success || err != nil {
-			log.Printf("Failed to deregister service with Nacos: %v", err)
-		}
-	}()
+	defer closeDatabase()
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"}, // 允许来自任何域的请求
 		AllowCredentials: true,
@@ -90,6 +58,7 @@ func main() {
 
 	fmt.Println("Starting server on port 8083")
 	log.Fatal(http.ListenAndServe(":8083", nil))
+	deregisterGameService()
 }
 func updateUser(user *User) error {
 	if err := db.Model(user).Where("id = ?", user.ID).Update("auth_token", user.AuthToken).Error; err != nil {

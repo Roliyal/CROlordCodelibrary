@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/nacos-group/nacos-sdk-go/model"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -75,7 +77,34 @@ func incrementAttempts(game *Game) {
 }
 
 func getUserFromAuthToken(authToken string, userID uint) (User, error) {
-	userIDURL := fmt.Sprintf("http://localhost:8083/user?authToken=%s&userID=%d", authToken, userID)
+	// Discover the login service using Nacos
+	service, err := NamingClient.GetService(vo.GetServiceParam{
+		ServiceName: "login-service",
+		GroupName:   "DEFAULT_GROUP",
+	})
+	if err != nil {
+		return User{}, fmt.Errorf("failed to discover login service: %w", err)
+	}
+	// 添加在 "no healthy login service instance found" 错误之前
+	if len(service.Hosts) == 0 {
+		log.Println("No instances found for login-service in Nacos")
+	} else {
+		log.Printf("Found %d instances for login-service in Nacos", len(service.Hosts))
+		for i, host := range service.Hosts {
+			log.Printf("Instance %d: IP: %s, Port: %d, Healthy: %t", i+1, host.Ip, host.Port, host.Healthy)
+		}
+	}
+
+	// Choose the first healthy instance for now
+	instance := getHealthyInstance(service.Hosts)
+	if instance == nil {
+		return User{}, fmt.Errorf("no healthy login service instance found")
+	}
+
+	// Build the user ID request URL using the discovered instance
+	userIDURL := fmt.Sprintf("http://%s:%d/user?authToken=%s&userID=%d", instance.Ip, instance.Port, authToken, userID)
+
+	//userIDURL := fmt.Sprintf("http://localhost:8083/user?authToken=%s&userID=%d", authToken, userID)
 	fmt.Printf("Requesting user ID with URL: %s\n", userIDURL) // 输出请求 URL
 
 	resp, err := http.Get(userIDURL)
@@ -99,6 +128,14 @@ func getUserFromAuthToken(authToken string, userID uint) (User, error) {
 		return User{}, fmt.Errorf("error decoding user JSON: %w", err)
 	}
 	return user, nil
+}
+func getHealthyInstance(instances []model.Instance) *model.Instance {
+	for _, instance := range instances {
+		if instance.Healthy {
+			return &instance
+		}
+	}
+	return nil
 }
 
 func getUserIDFromLoginService(authToken string) (uint, error) {
