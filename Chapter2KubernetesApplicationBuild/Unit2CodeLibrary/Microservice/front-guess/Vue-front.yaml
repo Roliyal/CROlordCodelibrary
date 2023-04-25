@@ -1,0 +1,152 @@
+apiVersion: storage.alibabacloud.com/v1beta1
+kind: ContainerNetworkFileSystem
+metadata:
+  name: cnfs-nas-filesystem
+spec:
+  description: "cnfs"
+  type: nas
+  reclaimPolicy: Retain
+  parameters:
+    server: 12c2714952d-ljk73.cn-hongkong.nas.aliyuncs.com # NAS文件系统的挂载点。
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: app-vue-front-pv
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 10Gi
+  csi:
+    driver: nasplugin.csi.alibabacloud.com
+    fsType: nfs
+    volumeAttributes:
+      containerNetworkFileSystem: cnfs-nas-filesystem # 引用名称为cnfs-nas-filesystem的CNFS对象。
+      mountProtocol: nfs
+      path: /
+      volumeAs: subpath
+      volumeCapacity: "true"
+    volumeHandle: app-vue-front-pv
+  mountOptions:
+    - nolock,tcp,noresvport
+    - vers=3
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-vue-front-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: app-vue-front-pv
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-vue-front
+  labels:
+    app: app-vue-front
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: app-vue-front
+  template:
+    metadata:
+      labels:
+        app: app-vue-front
+    spec:
+      containers:
+        - name: app-vue-front
+          image: registry-vpc.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:V1
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "nginx -s quit; sleep 10"]
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'postStart hook executed'"]
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+            - name: app-vue-front-storage
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: app-vue-front-nginx-config
+        - name: app-vue-front-storage
+          persistentVolumeClaim:
+            claimName: app-vue-front-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-vue-front-service
+spec:
+  selector:
+    app: app-vue-front
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-vue-front-nginx-config
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+      root /usr/share/nginx/html;
+      index index.html;
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+    }
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: app-vue-front-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: app-vue-front
