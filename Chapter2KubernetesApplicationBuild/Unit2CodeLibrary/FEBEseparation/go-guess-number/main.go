@@ -85,5 +85,5 @@ func main() {
 
 	router.HandleFunc("/check-guess", game.checkGuessHandler).Methods("POST", "OPTIONS")
 
-	http.ListenAndServe("127.0.0.1:8081", router)
+	http.ListenAndServe(":8081", router)
 }

@@ -1,10 +1,10 @@
 # 第一阶段：构建 Go 服务器
 FROM golang:1.17-alpine AS go-build
 WORKDIR /go/src/app
-COPY go-guess-number/go.mod .
-COPY go-guess-number/go.sum .
+COPY go.mod .
+COPY go.sum .
 RUN go mod download
-COPY go-guess-number/main.go .
+COPY main.go .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
 
 # 第二阶段：构建最终镜像

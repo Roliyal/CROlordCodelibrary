@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8824bd77-0e8f-4533-8147-00180e4f7e65" name="Changes" comment="" />
+    <list default="true" id="8824bd77-0e8f-4533-8147-00180e4f7e65" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number/default.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/go-guess-number/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/go-guess-number/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/go-guess-number/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/go-guess-number/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number/Dockerfile" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -41,7 +47,7 @@
     "WebServerToolWindowFactoryState": "false",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/raywong/Documents/CROlordCodelibrary/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service",
+    "last_opened_file_path": "/Users/issac/GolandProjects/CROlordCodelibrary/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -57,6 +63,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/login-service" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/game-service" />
