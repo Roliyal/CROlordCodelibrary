@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-vue-front
+  labels:
+    app: app-vue-front
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app-vue-front
+  template:
+    metadata:
+      labels:
+        app: app-vue-front
+    spec:
+      containers:
+        - name: app-vue-front
+          image: registry-vpc.cn-hongkong.aliyuncs.com/crolord_acr_personal/febe:frontv2
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: app-vue-front-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-vue-front-service
+spec:
+  selector:
+    app: app-vue-front
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-vue-front-nginx-config
+data:
+  default.conf: |
+    http {
+        log_format custom_log_format '[$time_local] $remote_addr - $remote_user - $server_name to: $upstream_addr: $request upstream_response_time $upstream_response_time msec $msec request_time $request_time';
+
+        access_log /var/log/nginx/access.log custom_log_format;
+        error_log /var/log/nginx/error.log;
+    }
