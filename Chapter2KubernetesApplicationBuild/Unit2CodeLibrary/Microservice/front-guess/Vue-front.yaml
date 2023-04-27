@@ -86,18 +86,7 @@ spec:
             requests:
               cpu: 250m
               memory: 128Mi
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 60
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 30
-            periodSeconds: 5
+
           lifecycle:
             preStop:
               exec:

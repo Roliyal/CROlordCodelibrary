@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-go-score
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: micro-go-score
+  template:
+    metadata:
+      labels:
+        app: micro-go-score
+    spec:
+      containers:
+        - name: micro-go-score
+          image: registry.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:micro_scorev1
+          ports:
+            - containerPort: 8085
+          env:
+            - name: ENV_FILE
+              value: "/app/.env"
+          volumeMounts:
+            - name: app-log
+              mountPath: /app/log
+      volumes:
+        - name: app-log
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: micro-go-score
+spec:
+  selector:
+    app: micro-go-score
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+  type: ClusterIP
+

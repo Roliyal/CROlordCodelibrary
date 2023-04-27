@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-go-game
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: micro-go-game
+  template:
+    metadata:
+      labels:
+        app: micro-go-game
+    spec:
+      containers:
+        - name: micro-go-game
+          image: registry.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:micro_gamev1
+          ports:
+            - containerPort: 8084
+          env:
+            - name: ENV_FILE
+              value: "/app/.env"
+          volumeMounts:
+            - name: app-log
+              mountPath: /app/log
+      volumes:
+        - name: app-log
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: micro-go-game
+spec:
+  selector:
+    app: micro-go-game
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+  type: ClusterIP
+

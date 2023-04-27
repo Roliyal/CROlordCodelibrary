@@ -140,9 +140,9 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 func deregisterGameService() {
 	hostIP, err := getHostIP()
 
-	_, err := NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
 
-		Ip:          hostIP，
+		Ip:          hostIP,
 		Port:        8084,
 		ServiceName: "game-service",
 		GroupName:   "DEFAULT_GROUP",
