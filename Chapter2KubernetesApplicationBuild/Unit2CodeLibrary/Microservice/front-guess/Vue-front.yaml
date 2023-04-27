@@ -7,7 +7,13 @@ spec:
   type: nas
   reclaimPolicy: Retain
   parameters:
-    server: 12c2714952d-ljk73.cn-hongkong.nas.aliyuncs.com # NAS文件系统的挂载点。
+    filesystemType: standard
+    storageType: Capacity      # 容量型NAS。
+    protocolType: NFS
+    encryptType: None
+    enableTrashCan: "true"     # 回收站打开。
+    trashCanReservedDays: "5"  # 回收站中数据保留5tian
+
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -50,9 +56,9 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-vue-front
+  name: micro-vue-front
   labels:
-    app: app-vue-front
+    app: micro-vue-front
 spec:
   replicas: 3
   strategy:
@@ -62,15 +68,15 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: app-vue-front
+      app: micro-vue-front
   template:
     metadata:
       labels:
-        app: app-vue-front
+        app: micro-vue-front
     spec:
       containers:
-        - name: app-vue-front
-          image: registry-vpc.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:V1
+        - name: micro-vue-front
+          image: registry.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:micro_frontv1
           ports:
             - containerPort: 80
           resources:
@@ -107,7 +113,7 @@ spec:
       volumes:
         - name: nginx-config
           configMap:
-            name: app-vue-front-nginx-config
+            name: micro-vue-front-nginx-config
         - name: app-vue-front-storage
           persistentVolumeClaim:
             claimName: app-vue-front-pvc
@@ -115,7 +121,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-vue-front-service
+  name: micro-vue-front-service
 spec:
   selector:
     app: app-vue-front
@@ -128,7 +134,7 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-vue-front-nginx-config
+  name: micro-vue-front-nginx-config
 data:
   default.conf: |
     server {
@@ -149,4 +155,4 @@ spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: app-vue-front
+      app: micro-vue-front

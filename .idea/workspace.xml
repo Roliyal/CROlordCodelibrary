@@ -47,7 +47,7 @@
     "WebServerToolWindowFactoryState": "false",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/issac/GolandProjects/CROlordCodelibrary/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number",
+    "last_opened_file_path": "/Users/raywong",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -90,7 +90,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changes" />
+    <MESSAGE value="Changess" />
+    <option name="LAST_COMMIT_MESSAGE" value="Changess" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
