@@ -14,8 +14,8 @@ api:
 
 providers:
   file:
-    filename: ./dynamic.yml
+    filename: /etc/traefik/dynamic.yml
     watch: true
 
 log:
-  level: INFO
+  level: ERROR

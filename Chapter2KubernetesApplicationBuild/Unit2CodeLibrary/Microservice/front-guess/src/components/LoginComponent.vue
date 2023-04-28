@@ -25,6 +25,7 @@
   </div>
 </template>
 
+
 <script>
 import authApi from "../auth-api";
 import { useRouter } from "vue-router";
@@ -49,7 +50,7 @@ export default {
       if (authResult && authResult.authToken) {
         store.setIsLoggedIn(true);
         localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id); // 添加这一行
+        localStorage.setItem("id", authResult.id);
 
         this.router.push("/game");
       } else {
@@ -59,6 +60,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>

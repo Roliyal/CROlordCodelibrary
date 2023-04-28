@@ -23,8 +23,10 @@
 </template>
 
 
+<script>
+import config from "../config.js";
 
-<script>export default {
+export default {
   data() {
     return {
       scores: [],
@@ -32,11 +34,10 @@
       dataFetched: false,
     };
   },
-
   methods: {
     async fetchScoreboardData() {
       try {
-        const response = await fetch("http://localhost:8085/scoreboard");
+        const response = await fetch(`${config.scoreboardURL}/scoreboard`);
         if (response.ok) {
           this.gameData = await response.json();
           this.dataFetched = true;
@@ -47,10 +48,8 @@
         console.error("Error fetching scoreboard data:", error);
       }
     },
-
   },
 };
-
 </script>
 
 <style scoped>

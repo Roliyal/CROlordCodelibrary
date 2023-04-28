@@ -24,6 +24,7 @@
   </div>
 </template>
 
+
 <script>
 import authApi from "../auth-api";
 import { useRouter } from "vue-router";

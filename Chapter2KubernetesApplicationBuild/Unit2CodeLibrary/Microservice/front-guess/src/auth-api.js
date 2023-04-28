@@ -1,24 +1,22 @@
 import axios from "axios";
-
-
+import config from "./config";
 
 export default {
     isAuthenticated: false,
 
     async authenticate(username, password) {
         try {
-            const response = await axios.post("http://localhost:8083/login", { // 更新这一行
+            const response = await axios.post(`${config.loginURL}/login`, {
                 username,
                 password,
             });
-            console.log("Response data:", response.data); // 添加这
 
             if (response.data && response.data.authToken) {
-                this.isAuthenticated = true; // 添加这一行
+                this.isAuthenticated = true;
 
                 return {
                     authToken: response.data.authToken,
-                    id: response.data.id, // 确保这里获取了 userID
+                    id: response.data.id,
                 };
             } else {
                 return null;
@@ -28,10 +26,10 @@ export default {
             return null;
         }
     },
-    // 添加 register 函数
+
     async register(username, password) {
         try {
-            const response = await axios.post("http://localhost:8083/register", {
+            const response = await axios.post(`${config.registerURL}/register`, {
                 username,
                 password,
             });
@@ -47,4 +45,3 @@ export default {
         }
     },
 };
-

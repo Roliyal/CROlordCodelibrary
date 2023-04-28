@@ -1,45 +1,61 @@
-# dynamic.yml
-
 http:
+  middlewares:
+    cors:
+      headers:
+        accessControlAllowOriginList: ["*"]
+        accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        accessControlAllowHeaders: ["Content-Type", "Authorization"]
+        accessControlMaxAge: 100
   routers:
     login:
       entryPoints:
         - web
       rule: "Path(`/login`)"
       service: login-service
+      middlewares:
+        - cors
     game:
       entryPoints:
         - web
       rule: "PathPrefix(`/game`)"
       service: game-service
+      middlewares:
+        - cors
     scoreboard:
       entryPoints:
         - web
       rule: "PathPrefix(`/scoreboard`)"
       service: scoreboard-service
-
+      middlewares:
+        - cors
+    micro:
+      entryPoints:
+        - web
+      rule: "Path(`/`)"
+      service: micro-vue-front-service
+      middlewares:
+        - cors
+    register:
+      entryPoints:
+        - web
+      rule: "Path(`/register`)"
+      service: login-service
+      middlewares:
+        - cors
   services:
     login-service:
       loadBalancer:
         servers:
-          - url: "http://localhost:8083"
-        healthCheck:
-          path: "/login"
-          interval: "30s"
-          timeout: "5s"
+          - url: "http://login.default.svc.cluster.local:8083"
     game-service:
       loadBalancer:
         servers:
-          - url: "http://localhost:8084"
-        healthCheck:
-          path: "/game"
-          interval: "30s"
-          timeout: "5s"
+          - url: "http://game.default.svc.cluster.local:8084"
     scoreboard-service:
       loadBalancer:
         servers:
-          - url: "http://localhost:8085"
-        healthCheck:
-          path: "/scoreboard"
-          interval: "30s"
-          timeout: "5s"
+          - url: "http://score.default.svc.cluster.local:8085"
+    micro-vue-front-service:
+      loadBalancer:
+        servers:
+          - url: "http://micro-vue-front-service.default.svc.cluster.local:80"

@@ -98,7 +98,7 @@ spec:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
             - name: app-vue-front-storage
-              mountPath: /usr/share/nginx/html
+              mountPath: /usr/share/nginx/html/app-vue-front-storage
       volumes:
         - name: nginx-config
           configMap:
@@ -116,8 +116,8 @@ spec:
     app: app-vue-front
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
+      port: 8080
+      targetPort: 8080
   type: ClusterIP
 ---
 apiVersion: v1
@@ -133,6 +133,13 @@ data:
       index index.html;
       location / {
         try_files $uri $uri/ /index.html;
+        location / {
+        index index.html;
+    }
+
+      location = /healthz {
+        return 200 'ok';
+        access_log off;
       }
     }
 ---

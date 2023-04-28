@@ -47,7 +47,7 @@
     "WebServerToolWindowFactoryState": "false",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/raywong",
+    "last_opened_file_path": "/Users/raywong/Documents/CROlordCodelibrary/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/front-guess/src",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -63,6 +63,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/front-guess/src" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/FEBEseparation/vue-go-guess-number" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service" />
       <recent name="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/login-service" />

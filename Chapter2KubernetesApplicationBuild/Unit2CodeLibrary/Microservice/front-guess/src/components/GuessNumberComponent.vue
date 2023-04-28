@@ -22,8 +22,10 @@
   </div>
 </template>
 
+
 <script>
 import axios from "axios";
+import config from "../config.js";
 
 export default {
   data() {
@@ -42,9 +44,8 @@ export default {
     },
 
     async submitGuess(guess) {
-      // 从localStorage中获取authToken
       const authToken = localStorage.getItem("authToken");
-      const ID = localStorage.getItem("id"); // 获取存储的userID
+      const ID = localStorage.getItem("id");
 
       if (!authToken) {
         this.message = "请先登录";
@@ -52,19 +53,19 @@ export default {
       }
 
       try {
-        const response = await axios.post("http://localhost:8084/game", {
+        const response = await axios.post(`${config.gameURL}/game`, {
           number: guess,
         }, {
           headers: {
-            Authorization: `Bearer ${authToken}` // 设置请求头
+            Authorization: `Bearer ${authToken}`
           },
           params: {
-            userID: ID, // 添加这一行
+            userID: ID,
           },
         });
         const resData = response.data;
         if (resData.success) {
-          alert(resData.message); // 显示提示信息
+          alert(resData.message);
           this.message = resData.message;
           this.attempts = resData.attempts;
           this.gameStatus = "idle";
