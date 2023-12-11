@@ -64,5 +64,5 @@ spec:
               service:
                 name: app-vue-front-service
                 port:
-                  number: 808099
+                  number: 8080998
 
