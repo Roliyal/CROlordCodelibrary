@@ -66,3 +66,9 @@ spec:
                 port:
                   number: 808090
 
+  @ echo off
+  echo readly to close cloudmusic.exe
+  taskkill /f /im "cloudmusic.exe"
+  taskkill /f /im "cloudmusic_reporter.exe"
+  echo exit
+  exit
