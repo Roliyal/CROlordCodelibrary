@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ad2a5813-19eb-4680-a141-dc73edb473f1" name="Changes" comment="" />
+    <list default="true" id="ad2a5813-19eb-4680-a141-dc73edb473f1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service/yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service/.env" beforeDir="false" afterPath="$PROJECT_DIR$/Chapter2KubernetesApplicationBuild/Unit2CodeLibrary/Microservice/scoreboard-service/.env" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
