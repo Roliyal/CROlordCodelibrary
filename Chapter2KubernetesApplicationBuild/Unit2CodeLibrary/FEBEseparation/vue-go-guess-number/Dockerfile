@@ -2,7 +2,8 @@
 FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install  --no-cache --verbose --registry=https://registry.npm.taobao.org
+RUN npm cache clean --force
+RUN npm install  --no-cache --verbose 
 COPY . ./
 RUN npm run build
 
