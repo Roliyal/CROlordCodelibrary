@@ -64,11 +64,4 @@ spec:
               service:
                 name: app-vue-front-service
                 port:
-                  number: 808090
-
-  @ echo off
-  echo readly to close cloudmusic.exe
-  taskkill /f /im "cloudmusic.exe"
-  taskkill /f /im "cloudmusic_reporter.exe"
-  echo exit
-  exit
+                  number: 8080
