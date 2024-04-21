@@ -56,12 +56,12 @@ spec:
                 name: app-go-backend-service
                 port:
                   number: 8081
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: app-vue-front-service
-                port:
-                  number: 8080
+      #http:
+        #paths:
+          #- path: /
+           # pathType: Prefix
+            #backend:
+             # service:
+            #    name: app-vue-front-service
+              #  port:
+               #   number: 8080
