@@ -1,5 +1,5 @@
 # First stage: Build the Vue static resources
-FROM docker.io/node:14-alpine AS vue-build
+FROM crolord-registry-registry-vpc.cn-hongkong.cr.aliyuncs.com/febe/febe-backend-uat:node14 AS vue-build
 WORKDIR /app
 COPY package*.json ./
 # Install all dependencies
