@@ -8,7 +8,7 @@ COPY . ./
 RUN npm run build
 
 # 第二阶段：将构建好的静态资源复制到 Nginx 镜像中
-FROM nginx:1.21-alpine
+FROM docker.io/nginx:1.21-alpine
 COPY --from=vue-build /app/dist /usr/share/nginx/html
 COPY default.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /var/cache/nginx/client_temp /var/run/nginx && \
