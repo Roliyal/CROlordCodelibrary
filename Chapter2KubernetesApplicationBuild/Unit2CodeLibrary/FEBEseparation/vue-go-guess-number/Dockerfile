@@ -6,7 +6,7 @@ ENV NODE_ENV=production
 RUN npm cache clean --force
 RUN npm install --no-cache --verbose
 COPY . ./
-RUN ./node_modules/.bin/vue-cli-service build
+RUN npm  run build
 
 FROM docker.io/nginx:1.21-alpine
 COPY --from=vue-build /app/dist /usr/share/nginx/html
