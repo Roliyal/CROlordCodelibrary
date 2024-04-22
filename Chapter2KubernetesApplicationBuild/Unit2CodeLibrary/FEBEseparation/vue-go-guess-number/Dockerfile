@@ -2,11 +2,12 @@
 FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
+ENV NODE_ENV=production
 RUN npm cache clean --force
 RUN rm -rf node_modules  # 删除旧的 node_modules
 RUN npm install --no-cache --verbose  # 安装依赖
 COPY . ./
-RUN npm run build
+RUN npm run build production
 
 
 # 第二阶段：将构建好的静态资源复制到 Nginx 镜像中
