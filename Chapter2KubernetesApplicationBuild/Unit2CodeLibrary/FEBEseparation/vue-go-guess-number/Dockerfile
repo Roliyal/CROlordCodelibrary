@@ -1,5 +1,5 @@
 # First stage: Build the Vue static resources
-FROM gcr.io/google-containers/node:15-alpine AS vue-build
+FROM docker.io/node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 # Install all dependencies
