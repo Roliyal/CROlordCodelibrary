@@ -1,15 +1,12 @@
 # First stage: Build the Vue static resources
-FROM node:14-alpine AS vue-build
+FROM docker.io/node:15-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
-
 # Install all dependencies
 ENV NODE_ENV=development
 RUN npm cache clean --force
 RUN npm install --no-cache --verbose
-
 # Set environment to production before running build to mimic production environment
-ENV NODE_ENV=production
 COPY . ./
 RUN npm run build
 
