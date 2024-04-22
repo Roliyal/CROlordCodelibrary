@@ -15,5 +15,5 @@ RUN cat /etc/nginx/conf.d/default.conf  # 添加这行来显示文件内容
 RUN mkdir -p /var/cache/nginx/client_temp /var/run/nginx && \
     chown -R nginx:nginx /var/cache/nginx /var/run/nginx && \
     chmod -R 755 /var/cache/nginx /var/run/nginx
-EXPOSE 80
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
