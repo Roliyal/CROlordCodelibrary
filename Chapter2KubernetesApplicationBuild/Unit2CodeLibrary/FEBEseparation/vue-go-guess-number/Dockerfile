@@ -11,7 +11,7 @@ COPY . ./
 RUN npm run build
 
 # Second stage: Setup Nginx to serve the Vue app
-FROM nginx1.21-alpine
+FROM nginx:1.21-alpine
 COPY --from=vue-build /app/dist /usr/share/nginx/html
 RUN rm /etc/nginx/conf.d/default.conf
 RUN mkdir -p /var/cache/nginx/client_temp /var/run/nginx && \
