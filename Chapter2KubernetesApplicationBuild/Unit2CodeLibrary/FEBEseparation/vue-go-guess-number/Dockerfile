@@ -1,16 +1,26 @@
-# 第一阶段：构建 Vue 静态资源
+# First stage: Build the Vue static resources
 FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
+
+# Set production environment variable
 ENV NODE_ENV=production
+
+# Clean npm cache and remove old node_modules
 RUN npm cache clean --force
-RUN rm -rf node_modules  # 删除旧的 node_modules
-RUN npm install --no-cache --verbose  # 安装依赖
+RUN rm -rf node_modules
+
+# Install dependencies
+RUN npm install --no-cache --verbose
+
+# Copy the rest of your app's source code from your host to your image filesystem.
 COPY . ./
-RUN npm run build production
 
+# Build the project for production
+# Using npx to ensure that vue-cli-service is correctly executed
+RUN npx vue-cli-service build
 
-# 第二阶段：将构建好的静态资源复制到 Nginx 镜像中
+# Second stage: Copy the built static resources into an Nginx image
 FROM docker.io/nginx:1.21-alpine
 COPY --from=vue-build /app/dist /usr/share/nginx/html
 
