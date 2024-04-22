@@ -1,5 +1,5 @@
 # First stage: Build the Vue static resources
-FROM node:14-alpine AS vue-build
+FROM registry.aliyuncs.com/aliyun-node/14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 ENV NODE_ENV=production
