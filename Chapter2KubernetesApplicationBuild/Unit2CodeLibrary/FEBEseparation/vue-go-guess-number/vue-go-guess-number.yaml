@@ -18,7 +18,7 @@ spec:
         - name: app-vue-front
           image: registry-vpc.cn-hongkong.aliyuncs.com/crolord_acr_personal/febe:frontv2
           ports:
-            - containerPort: 80
+            - containerPort: 8080
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
@@ -36,8 +36,8 @@ spec:
     app: app-vue-front
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
+      port: 8080
+      targetPort: 8080
   type: ClusterIP
 ---
 apiVersion: v1
@@ -48,7 +48,6 @@ data:
   default.conf: |
     http {
         log_format custom_log_format '[$time_local] $remote_addr - $remote_user - $server_name to: $upstream_addr: $request upstream_response_time $upstream_response_time msec $msec request_time $request_time';
-
         access_log /var/log/nginx/access.log custom_log_format;
         error_log /var/log/nginx/error.log;
     }
