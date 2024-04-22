@@ -3,9 +3,11 @@ FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 RUN npm cache clean --force
-RUN npm install --no-cache --verbose
+RUN rm -rf node_modules  # 删除旧的 node_modules
+RUN npm install --no-cache --verbose  # 安装依赖
 COPY . ./
 RUN npm run build
+
 
 # 第二阶段：将构建好的静态资源复制到 Nginx 镜像中
 FROM docker.io/nginx:1.21-alpine
