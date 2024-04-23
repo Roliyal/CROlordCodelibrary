@@ -6,7 +6,7 @@ module.exports = {
   devServer: {
     proxy: {
       "/api": {
-        target: "http://app-go-backend-service.cicd.svc.cluster.local:8081",
+        target: "http://47.76.196.15:8081",
         changeOrigin: true,
         pathRewrite: {
           "^/api": "",

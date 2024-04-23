@@ -46,8 +46,7 @@ metadata:
   name: app-go-backend-ingress
 spec:
   rules:
-    - host:
-      http:
+    - http:
         paths:
           - path: /check-guess
             pathType: Prefix
@@ -56,7 +55,7 @@ spec:
                 name: app-go-backend-service
                 port:
                   number: 8081
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix
@@ -65,3 +64,4 @@ spec:
                 name: app-vue-front-service
                 port:
                   number: 8080
+
