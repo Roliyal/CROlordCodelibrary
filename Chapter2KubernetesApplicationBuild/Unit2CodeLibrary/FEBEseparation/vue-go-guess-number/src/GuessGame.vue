@@ -7,7 +7,7 @@
             <h1 class="card-title text-center">猜数字游戏</h1>
             <p class="text-center">请输入一个数字（1-100）：</p>
             <div class="input-group mb-3">
-              <input type="number" class="form-control" v-model="userGuess" />
+              <input type="number" class="form-control" v-model.number="userGuess" />
               <button class="btn btn-primary" @click="checkGuess">提交</button>
             </div>
             <p class="text-center">{{ message }}</p>
@@ -19,33 +19,36 @@
 </template>
 
 <script>
-import axios from "axios";
-import config from "@/config";
-
+import axios from 'axios';
+import config from '@/config';
 
 export default {
   data() {
     return {
       userGuess: null,
-      message: "",
+      message: '',
     };
   },
   methods: {
     async checkGuess() {
-      if (this.userGuess < 1 || this.userGuess > 100) {
-        this.message = "请输入一个 1-100 之间的数字";
+      if (!this.isValidGuess()) {
+        this.message = '请输入一个 1-100 之间的数字';
         return;
       }
+      this.postGuess();
+    },
+    isValidGuess() {
+      return this.userGuess >= 1 && this.userGuess <= 100;
+    },
+    async postGuess() {
       try {
-        const response = await axios.post(config.apiUrl, {
-          guess: this.userGuess,
-        });
+        const response = await axios.post(config.apiUrl, { guess: this.userGuess });
         this.message = response.data.message;
       } catch (error) {
-        console.error(error);
-        this.message = "连接后端服务时发生错误，请稍后重试。";
+        console.error('API error:', error);
+        this.message = '连接后端服务时发生错误，请稍后重试。';
       }
-    },
+    }
   },
 };
 </script>

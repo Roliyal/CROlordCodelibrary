@@ -44,6 +44,8 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: app-go-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   rules:
     - http:
@@ -57,7 +59,7 @@ spec:
                   number: 8080
     - http:
         paths:
-          - path: /api
+          - path: /api/(.*)
             pathType: Prefix
             backend:
               service:
