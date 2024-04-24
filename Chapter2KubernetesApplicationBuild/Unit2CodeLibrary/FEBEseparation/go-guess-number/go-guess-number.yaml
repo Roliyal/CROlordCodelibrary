@@ -57,10 +57,8 @@ spec:
                 name: app-vue-front-service
                 port:
                   number: 8080
-    - http:
-        paths:
-          - path: /api/(.*)
-            pathType: Prefix
+          - path: /api
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: app-go-backend-service
