@@ -1,12 +1,6 @@
 // config.js
-const isProduction = process.env.NODE_ENV === "production";
-
 const config = {
-    apiUrl: isProduction
-        ? "http://47.76.196.15/check-guess"
-        : "http://47.76.196.15/check-guess",
+    apiUrl: "/api"  // 用于本地开发和生产环境
 };
-
-console.log(config.apiUrl); // 调试
 
 export default config;
