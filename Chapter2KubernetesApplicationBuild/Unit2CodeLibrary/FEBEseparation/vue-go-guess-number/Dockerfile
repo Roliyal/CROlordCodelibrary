@@ -3,7 +3,7 @@ FROM node:15-alpine3.10 AS vue-build
 WORKDIR /app
 COPY package*.json ./
 #ENV NODE_ENV=production
-RUN npm install --no-cache --verbose
+RUN npm install
 COPY . .
 RUN npm run build
 
