@@ -22,7 +22,6 @@
 import axios from "axios";
 import config from "@/config";
 
-
 export default {
   data() {
     return {
@@ -44,7 +43,7 @@ export default {
       } catch (error) {
         console.error(error);
         this.message = "连接后端服务时发生错误，请稍后重试。";
-
+      }
     },
   },
 };
