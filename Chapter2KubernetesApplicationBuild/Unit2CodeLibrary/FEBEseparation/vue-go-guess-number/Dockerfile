@@ -3,8 +3,8 @@ FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 #ENV NODE_ENV=production
-RUN npm install
 COPY . .
+RUN npm install
 RUN npm run build
 
 # Second stage: Setup Nginx to serve the Vue app
