@@ -45,7 +45,7 @@ kind: Ingress
 metadata:
   name: app-go-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    #nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
     - http:
@@ -57,11 +57,5 @@ spec:
                 name: app-vue-front-service
                 port:
                   number: 8080
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: app-go-backend-service
-                port:
-                  number: 8081
+
 
