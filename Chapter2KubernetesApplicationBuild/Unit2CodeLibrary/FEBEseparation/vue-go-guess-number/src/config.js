@@ -1,6 +1,6 @@
 // config.js
 const config = {
-    apiUrl: "/api"  // 用于本地开发和生产环境
+    apiUrl: "/check-guess" // 使用Nginx location块中指定的相同路径
 };
 
 export default config;
