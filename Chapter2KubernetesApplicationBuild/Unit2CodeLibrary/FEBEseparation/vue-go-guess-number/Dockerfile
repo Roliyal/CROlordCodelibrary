@@ -5,7 +5,7 @@ COPY package*.json ./
 #ENV NODE_ENV=production
 RUN npm cache clean --force
 RUN npm install
-COPY . .
+#COPY . .
 RUN npm run build
 
 # Second stage: Setup Nginx to serve the Vue app
