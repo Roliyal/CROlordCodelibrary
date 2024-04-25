@@ -2,7 +2,7 @@
 FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
-#ENV NODE_ENV=production
+ENV NODE_ENV=production
 RUN npm install --no-cache --verbose
 COPY . .
 RUN npm run build
