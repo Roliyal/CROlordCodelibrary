@@ -1,5 +1,5 @@
 # First stage: Build the Vue static resources
-FROM node:15-alpine3.10 AS vue-build
+FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 #ENV NODE_ENV=production
