@@ -1,14 +1,11 @@
 # First stage: Build the Vue static resources
-FROM node:14-alpine AS vue-build
+FROM node:15-alpine3.10 AS vue-build
 WORKDIR /app
 COPY package*.json ./
-ENV NODE_ENV=production
+#ENV NODE_ENV=production
 RUN npm install --no-cache --verbose
 COPY . .
 RUN npm run build
-
-# List contents of the /app/dist directory
-RUN ls /app/dist
 
 # Second stage: Setup Nginx to serve the Vue app
 FROM nginx:1.21-alpine
