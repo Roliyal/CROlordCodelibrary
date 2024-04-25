@@ -10,7 +10,7 @@ COPY package*.json ./
 # COPY .npmrc ./
 
 #ENV NODE_ENV=production
-RUN npm install
+RUN npm cache clean --force
 
 # Now copy the rest of your app's source code from your host to your image filesystem.
 COPY . .
