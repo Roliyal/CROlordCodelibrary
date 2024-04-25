@@ -11,7 +11,7 @@ COPY package*.json ./
 
 #ENV NODE_ENV=production
 RUN npm cache clean --force
-RUN npm install -g @vue/cli
+RUN npm install
 
 # Now copy the rest of your app's source code from your host to your image filesystem.
 COPY . .
