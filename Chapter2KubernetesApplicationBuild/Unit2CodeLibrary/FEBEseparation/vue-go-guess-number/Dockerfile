@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 #ENV NODE_ENV=production
 RUN npm cache clean --force
-RUN npm install
+RUN npm install && ls node_modules
 COPY . .
 RUN npm run build
 
