@@ -56,7 +56,7 @@ data:
         try_files $uri $uri/ /index.html;
       }
       location /check-guess {
-        proxy_pass http://app-go-backend-service.cicd.svc.cluster.local;
+        proxy_pass http://app-go-backend-service.cicd.svc.cluster.local:8081;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
