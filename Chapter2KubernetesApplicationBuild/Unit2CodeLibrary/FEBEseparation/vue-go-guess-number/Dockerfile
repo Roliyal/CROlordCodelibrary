@@ -1,5 +1,5 @@
 # 使用 Node.js 的 Docker 镜像
-FROM node:14-alpine AS vue-build
+FROM node:latest AS vue-build
 
 WORKDIR /app
 
