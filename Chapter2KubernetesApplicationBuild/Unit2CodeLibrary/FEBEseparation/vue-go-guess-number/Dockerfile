@@ -3,8 +3,7 @@ FROM node:14-alpine AS vue-build
 WORKDIR /app
 COPY package*.json ./
 #ENV NODE_ENV=productio
-RUN npm cache clean --force
-RUN rm -rf node_modules package-lock.json
+RUN npm cache clean
 RUN npm install
 COPY . .
 
