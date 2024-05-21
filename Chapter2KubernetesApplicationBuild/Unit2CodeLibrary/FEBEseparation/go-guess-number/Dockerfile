@@ -5,7 +5,12 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY main.go .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o app .
+# 复制源代码并编译
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o app ; \
+    else \
+        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -installsuffix cgo -o app ; \
+    fi
 
 # 第二阶段：构建最终镜像
 FROM gcr.io/distroless/static:nonroot
