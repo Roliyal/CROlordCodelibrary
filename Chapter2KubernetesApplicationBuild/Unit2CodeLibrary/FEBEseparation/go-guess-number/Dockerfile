@@ -1,5 +1,5 @@
 # 第一阶段：构建 Go 服务器
-FROM golang:1.17-alpine AS go-build
+FROM golang:1.16-alpine AS go-build
 WORKDIR /go/src/app
 COPY go.mod .
 COPY go.sum .
