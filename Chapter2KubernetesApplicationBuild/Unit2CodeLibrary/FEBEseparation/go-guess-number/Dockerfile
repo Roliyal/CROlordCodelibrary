@@ -9,6 +9,8 @@ COPY go.mod go.sum  ./
 
 # Download the dependencies
 RUN go mod download
+RUN go clean -modcache
+RUN go mod tidy
 
 # Copy the source code to the working directory
 COPY . .
