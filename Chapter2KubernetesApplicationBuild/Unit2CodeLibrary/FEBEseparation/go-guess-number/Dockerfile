@@ -11,6 +11,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
 # 第二阶段：构建最终镜像
 FROM gcr.io/distroless/static:nonroot
 COPY --from=go-build /go/src/app/ /app
-EXPOSE 8081
+USER root
+RUN chmod +x /app/app
 USER nonroot:nonroot
-CMD ["/app"]
+EXPOSE 8081
+CMD ["./app"]
