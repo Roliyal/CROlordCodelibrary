@@ -1,10 +1,11 @@
 # 第一阶段：构建 Go 服务器
-FROM golang:1.19 AS go-build
+FROM golang:1.20 AS go-build
 WORKDIR /go/src/app
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY main.go .
+RUN echo "Golang version:" && go version && echo "Go environment:" && go env
 RUN CGO_ENABLED=0 GOOS=linux go build -o app .
 
 # 第二阶段：构建最终镜像
