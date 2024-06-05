@@ -5,7 +5,7 @@ FROM golang:1.19 AS builder
 WORKDIR /app
 
 # Copy the go.mod, go.sum, and .env files to the working directory
-COPY go.mod go.sum .env ./
+COPY go.mod go.sum  ./
 
 # Download the dependencies
 RUN go mod download
@@ -27,7 +27,6 @@ WORKDIR /app
 
 # Copy the compiled Go binary and .env files
 COPY --from=builder /app/main /app/main
-COPY --from=builder /app/.env /app/.env
 
 # Create the log directory and change its ownership to the non-root user
 RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
