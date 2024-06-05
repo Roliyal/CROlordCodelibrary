@@ -12,5 +12,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
 FROM gcr.io/distroless/static:nonroot
 COPY --from=go-build /go/src/app/ /app
 EXPOSE 8081
-
+USER nonroot:nonroot
 CMD ["/app"]
