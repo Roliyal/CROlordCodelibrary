@@ -1,0 +1,5 @@
+module example.com/go-guess-number
+
+go 1.20
+
+require github.com/gorilla/mux v1.8.1
