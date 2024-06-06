@@ -1,51 +1,37 @@
-# Use the official Golang image as the base image
-FROM golang:1.20 AS builder
+# 使用官方的 Go 1.20 镜像进行构建
+FROM golang:1.20-alpine AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the go.mod, go.sum, and .env files to the working directory
-COPY go.mod go.sum  ./
-
-# Download the dependencies
+# 复制 go.mod 和 go.sum 文件，并下载依赖项
+COPY go.mod go.sum ./
+RUN go clean -modcache
 RUN go mod download
 
-RUN go get -u ./...
-RUN go mod tidy
-RUN go clean -modcache
-
-# Copy the source code to the working directory
+# 复制所有源代码
 COPY . .
 
-# Compile the Go program
+# 构建 Go 程序
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 
-# Use the official Alpine image as the base image
+# 使用官方的 Alpine 镜像作为运行环境
 FROM alpine
 
-# Add a non-root user
+# 添加非 root 用户
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Set the working directory to /app
 WORKDIR /app
 
-# Copy the compiled Go binary and .env files
+# 从构建阶段复制构建好的 Go 二进制文件
 COPY --from=builder /app/main /app/main
 
-# Create the log directory and change its ownership to the non-root user
 RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
-
-# Change the ownership of the working directory to the non-root user
 RUN chown -R appuser:appgroup /app
 
-# Switch to the non-root user
 USER appuser
 
-# Expose the port, make sure it matches the port used by your application
 EXPOSE 8081
 
-# Add a health check
 HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/main", "check"]
 
-# Run the Go program
 ENTRYPOINT ["/app/main"]
