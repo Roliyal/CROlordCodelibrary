@@ -1,5 +1,5 @@
 # Use the official Golang image as the base image
-FROM golang:1.19 AS builder
+FROM golang:1.16 AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -10,6 +10,7 @@ COPY go.mod go.sum  ./
 # Download the dependencies
 RUN go mod download
 RUN go clean -modcache
+RUN go get -u ./...
 RUN go mod tidy
 
 # Copy the source code to the working directory
