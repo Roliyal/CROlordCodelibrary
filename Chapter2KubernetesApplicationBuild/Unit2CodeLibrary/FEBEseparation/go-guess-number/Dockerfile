@@ -1,11 +1,10 @@
 # 使用官方的 Go 1.20 镜像进行构建
-FROM golang:1.20-alpine AS builder
+FROM golang:1.21 AS builder
 
 WORKDIR /app
 
 # 复制 go.mod 和 go.sum 文件，并下载依赖项
 COPY go.mod go.sum ./
-RUN go clean -modcache
 RUN go mod download
 
 # 复制所有源代码
