@@ -45,6 +45,7 @@ kind: Ingress
 metadata:
   name: app-go-ingress
 spec:
+  ingressClassName: mse
   rules:
     - http:
         paths:
