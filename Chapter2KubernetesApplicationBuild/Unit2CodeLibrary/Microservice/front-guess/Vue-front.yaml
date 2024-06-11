@@ -77,6 +77,8 @@ spec:
             preStop:
               exec:
                 command: ["/bin/sh", "-c", "nginx -s quit; sleep 10"]
+          securityContext:
+            runAsUser: 0  # 以root用户运行
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
@@ -126,12 +128,4 @@ data:
       }
     }
 ---
-apiVersion: policy/v1beta1
-kind: PodDisruptionBudget
-metadata:
-  name: app-vue-front-pdb
-spec:
-  minAvailable: 2
-  selector:
-    matchLabels:
-      app: micro-vue-front
+
