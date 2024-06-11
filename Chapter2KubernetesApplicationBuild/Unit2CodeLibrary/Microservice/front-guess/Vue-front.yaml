@@ -1,3 +1,4 @@
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -10,7 +11,6 @@ spec:
   resources:
     requests:
       storage: 20Gi
-  volumeName: app-vue-front-pv
 ---
 apiVersion: apps/v1
 kind: Deployment
