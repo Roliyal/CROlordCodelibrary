@@ -46,16 +46,16 @@ http:
     login-service:
       loadBalancer:
         servers:
-          - url: "http://login.default.svc.cluster.local:8083"
+          - url: "http://login.cicd.svc.cluster.local:8083"
     game-service:
       loadBalancer:
         servers:
-          - url: "http://game.default.svc.cluster.local:8084"
+          - url: "http://game.cicd.svc.cluster.local:8084"
     scoreboard-service:
       loadBalancer:
         servers:
-          - url: "http://score.default.svc.cluster.local:8085"
+          - url: "http://score.cicd.svc.cluster.local:8085"
     micro-vue-front-service:
       loadBalancer:
         servers:
-          - url: "http://micro-vue-front-service.default.svc.cluster.local:80"
+          - url: "http://micro-vue-front-service.cicd.svc.cluster.local:80"
