@@ -69,19 +69,19 @@ data:
         login-service:
           loadBalancer:
             servers:
-              - url: "http://micro-go-login.default.svc.cluster.local:8083"
+              - url: "http://micro-go-login.cicd.svc.cluster.local:8083"
         game-service:
           loadBalancer:
             servers:
-              - url: "http://micro-go-game.default.svc.cluster.local:8084"
+              - url: "http://micro-go-game.cicd.svc.cluster.local:8084"
         scoreboard-service:
           loadBalancer:
             servers:
-              - url: "http://micro-go-score.default.svc.cluster.local:8085"
+              - url: "http://micro-go-score.cicd.svc.cluster.local:8085"
         micro-vue-front-service:
           loadBalancer:
             servers:
-              - url: "http://micro-vue-front-service.default.svc.cluster.local:80"
+              - url: "http://micro-vue-front-service.cicd.svc.cluster.local:80"
 ---
 apiVersion: apps/v1
 kind: Deployment
