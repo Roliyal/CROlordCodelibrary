@@ -44,7 +44,7 @@ metadata:
   labels:
     app: micro-vue-front
 spec:
-  replicas: 3
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -70,14 +70,13 @@ spec:
             requests:
               cpu: 250m
               memory: 128Mi
-
           lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'postStart hook executed' > /tmp/postStart.log"]
             preStop:
               exec:
                 command: ["/bin/sh", "-c", "nginx -s quit; sleep 10"]
-            postStart:
-              exec:
-                command: ["/bin/sh", "-c", "echo 'postStart hook executed'"]
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
