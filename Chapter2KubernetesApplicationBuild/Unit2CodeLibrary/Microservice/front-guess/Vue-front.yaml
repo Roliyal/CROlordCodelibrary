@@ -1,40 +1,15 @@
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: app-vue-front-pv
-spec:
-  accessModes:
-    - ReadWriteOnce
-  capacity:
-    storage: 10Gi
-  csi:
-    driver: nasplugin.csi.alibabacloud.com
-    fsType: nfs
-    volumeAttributes:
-      containerNetworkFileSystem: cnfs-nas-filesystem # 引用名称为cnfs-nas-filesystem的CNFS对象。
-      mountProtocol: nfs
-      path: /
-      volumeAs: subpath
-      volumeCapacity: "true"
-    volumeHandle: app-vue-front-pv
-  mountOptions:
-    - nolock,tcp,noresvport
-    - vers=3
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: app-vue-front-pvc
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: manual
+  storageClassName: crolord-cnfs-uat-nas
   resources:
     requests:
-      storage: 1Gi
+      storage: 20Gi
   volumeName: app-vue-front-pv
 ---
 apiVersion: apps/v1
@@ -77,8 +52,6 @@ spec:
             preStop:
               exec:
                 command: ["/bin/sh", "-c", "nginx -s quit; sleep 10"]
-          securityContext:
-            runAsUser: 0  # 以root用户运行
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
