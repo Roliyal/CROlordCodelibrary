@@ -1,6 +1,6 @@
 module login-service
 
-go 1.20
+go 1.19
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.276 // indirect
