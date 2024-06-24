@@ -16,11 +16,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 # 使用官方的 Alpine 镜像作为运行环境
 FROM ubuntu:latest
 
-# 更新包列表并安装基础工具
-RUN apt-get update && \
-    apt-get install -y curl telnet iputils-ping && \
-    apt-get clean
-
 # 添加非 root 用户
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
