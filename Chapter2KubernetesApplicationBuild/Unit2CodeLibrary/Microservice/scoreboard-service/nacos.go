@@ -16,7 +16,7 @@ import (
 var NamingClient naming_client.INamingClient
 var ConfigClient config_client.IConfigClient
 
-func initNacos() {
+func initNacos() (naming_client.INamingClient, config_client.IConfigClient, error) {
 	timeoutMs, err := strconv.ParseUint(os.Getenv("NACOS_TIMEOUT_MS"), 10, 64)
 	if err != nil {
 		log.Fatalf("Failed to parse NACOS_TIMEOUT_MS: %v", err)
@@ -47,9 +47,26 @@ func initNacos() {
 		"clientConfig":  clientConfig,
 	})
 	if err != nil {
-		log.Fatalf("Failed to create Nacos client: %v", err)
+		return nil, nil, fmt.Errorf("Failed to create Nacos client: %v", err)
 	}
 	NamingClient = nc
+
+	// New config client
+	cc, err := clients.CreateConfigClient(map[string]interface{}{
+		"serverConfigs": serverConfigs,
+		"clientConfig":  clientConfig,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to create Nacos config client: %v", err)
+	}
+	ConfigClient = cc
+
+	err = registerService(NamingClient, "scoreboard-service", 8085)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error registering service: %v", err)
+	}
+
+	return NamingClient, ConfigClient, nil
 }
 
 func getHostIP() (string, error) {
@@ -98,10 +115,10 @@ func registerService(client naming_client.INamingClient, serviceName string, por
 	return nil
 }
 
-func deregisterService(serviceName string, port uint64) {
+func deregisterService(serviceName string, port uint64) error {
 	hostIP, err := getHostIP()
 	if err != nil {
-		log.Fatalf("Failed to get host IP address: %v", err)
+		return fmt.Errorf("Failed to get host IP address: %w", err)
 	}
 
 	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
@@ -111,21 +128,7 @@ func deregisterService(serviceName string, port uint64) {
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
-		log.Fatalf("failed to deregister service instance: %v", err)
+		return fmt.Errorf("failed to deregister service instance: %w", err)
 	}
-}
-
-func main() {
-	initNacos()
-
-	// Register service
-	err := registerService(NamingClient, "scoreboard-service", 8085)
-	if err != nil {
-		log.Fatalf("Failed to register service: %v", err)
-	}
-
-	// Deferred deregister service
-	defer deregisterService("scoreboard-service", 8085)
-
-	// Your application logic here
+	return nil
 }
