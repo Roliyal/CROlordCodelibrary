@@ -2,103 +2,83 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"log"
+	"net"
 	"os"
 	"strconv"
 )
 
-func initNacos() (naming_client.INamingClient, config_client.IConfigClient, error) {
-	nacosNamingClient, err := createNacosNamingClient()
+var NamingClient naming_client.INamingClient
+var ConfigClient config_client.IConfigClient
+
+func initNacos() {
+	timeoutMs, err := strconv.ParseUint(os.Getenv("NACOS_TIMEOUT_MS"), 10, 64)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Error creating Nacos naming client: %v", err)
+		log.Fatalf("Failed to parse NACOS_TIMEOUT_MS: %v", err)
+	}
+	nacosPort, err := strconv.ParseUint(os.Getenv("NACOS_SERVER_PORT"), 10, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse NACOS_SERVER_PORT: %v", err)
 	}
 
-	nacosConfigClient, err := createNacosConfigClient()
-	if err != nil {
-		return nil, nil, fmt.Errorf("Error creating Nacos config client: %v", err)
+	clientConfig := constant.ClientConfig{
+		NamespaceId: os.Getenv("NACOS_NAMESPACE"),
+		TimeoutMs:   timeoutMs,
+		Username:    os.Getenv("NACOS_USERNAME"),
+		Password:    os.Getenv("NACOS_PASSWORD"),
 	}
 
-	err = registerService(nacosNamingClient, "scoreboard-service", "localhost", 8085)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Error registering service: %v", err)
-	}
-
-	return nacosNamingClient, nacosConfigClient, nil
-}
-
-func mustParseInt(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-	return i
-}
-
-func createNacosConfigClient() (config_client.IConfigClient, error) {
 	serverConfigs := []constant.ServerConfig{
 		{
-			IpAddr: os.Getenv("NACOS_SERVER_IP"),
-			Port:   uint64(mustParseInt(os.Getenv("NACOS_SERVER_PORT"))),
+			IpAddr:      os.Getenv("NACOS_SERVER_IP"),
+			ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
+			Port:        nacosPort,
 		},
 	}
 
-	timeoutMs, _ := strconv.Atoi(os.Getenv("NACOS_TIMEOUT_MS"))
-
-	clientConfig := constant.ClientConfig{
-		NamespaceId:         os.Getenv("NACOS_NAMESPACE"),
-		TimeoutMs:           uint64(timeoutMs),
-		Username:            os.Getenv("NACOS_USERNAME"),
-		Password:            os.Getenv("NACOS_PASSWORD"),
-		LogDir:              "nacos-log",
-		CacheDir:            "nacos-cache",
-		UpdateThreadNum:     2,
-		NotLoadCacheAtStart: true,
-	}
-
-	nacosConfigClient, err := clients.CreateConfigClient(map[string]interface{}{
+	// New naming client
+	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
 	})
-
-	return nacosConfigClient, err
-}
-func createNacosNamingClient() (naming_client.INamingClient, error) {
-	serverConfigs := []constant.ServerConfig{
-		{
-			IpAddr: os.Getenv("NACOS_SERVER_IP"),
-			Port:   uint64(mustParseInt(os.Getenv("NACOS_SERVER_PORT"))),
-		},
+	if err != nil {
+		log.Fatalf("Failed to create Nacos client: %v", err)
 	}
-
-	timeoutMs, _ := strconv.Atoi(os.Getenv("NACOS_TIMEOUT_MS"))
-
-	clientConfig := constant.ClientConfig{
-		NamespaceId:         os.Getenv("NACOS_NAMESPACE"),
-		TimeoutMs:           uint64(timeoutMs),
-		Username:            os.Getenv("NACOS_USERNAME"),
-		Password:            os.Getenv("NACOS_PASSWORD"),
-		LogDir:              "nacos-log",
-		CacheDir:            "nacos-cache",
-		UpdateThreadNum:     2,
-		NotLoadCacheAtStart: true,
-	}
-
-	nacosNamingClient, err := clients.CreateNamingClient(map[string]interface{}{
-		"serverConfigs": serverConfigs,
-		"clientConfig":  clientConfig,
-	})
-
-	return nacosNamingClient, err
+	NamingClient = nc
 }
 
-func registerService(client naming_client.INamingClient, serviceName, ip string, port uint64) error {
+func getHostIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		ip, _, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			continue
+		}
+		if !ip.IsLoopback() && ip.To4() != nil {
+			return ip.String(), nil
+		}
+	}
+
+	return "", fmt.Errorf("No valid IP address found")
+}
+
+func registerService(client naming_client.INamingClient, serviceName string, port uint64) error {
+	hostIP, err := getHostIP()
+	if err != nil {
+		return fmt.Errorf("Failed to get host IP address: %w", err)
+	}
+
 	success, err := client.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          ip,
+		Ip:          hostIP, // 使用动态获取的宿主机 IP 地址
 		Port:        port,
 		ServiceName: serviceName,
 		Weight:      10,
@@ -108,7 +88,7 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("registerService error: %w", err)
 	}
 
 	if !success {
@@ -118,21 +98,34 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 	return nil
 }
 
-func deregisterService(client naming_client.INamingClient, serviceName, ip string, port uint64) error {
-	success, err := client.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip:          ip,
+func deregisterService(serviceName string, port uint64) {
+	hostIP, err := getHostIP()
+	if err != nil {
+		log.Fatalf("Failed to get host IP address: %v", err)
+	}
+
+	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+		Ip:          hostIP,
 		Port:        port,
 		ServiceName: serviceName,
-		Ephemeral:   true,
+		GroupName:   "DEFAULT_GROUP",
 	})
-
 	if err != nil {
-		return err
+		log.Fatalf("failed to deregister service instance: %v", err)
+	}
+}
+
+func main() {
+	initNacos()
+
+	// Register service
+	err := registerService(NamingClient, "scoreboard-service", 8085)
+	if err != nil {
+		log.Fatalf("Failed to register service: %v", err)
 	}
 
-	if !success {
-		return fmt.Errorf("Failed to deregister service")
-	}
+	// Deferred deregister service
+	defer deregisterService("scoreboard-service", 8085)
 
-	return nil
+	// Your application logic here
 }
