@@ -42,7 +42,7 @@ func main() {
 		log.Fatal("Error initializing Nacos:", err)
 	}
 	defer func() {
-		err = deregisterService(nacosClient, "scoreboard-service", "localhost", 8085)
+		err = deregisterService(nacosClient, "scoreboard-service", "127.0.0.1", 8085)
 		if err != nil {
 			log.Fatal("Error deregistering service:", err)
 		}
