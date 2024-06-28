@@ -57,6 +57,7 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 	}
 	return db, nil
 }
+
 func getGameData(db *sql.DB) ([]GameData, error) {
 	rows, err := db.Query("SELECT id, attempts, target_number FROM game")
 	if err != nil {

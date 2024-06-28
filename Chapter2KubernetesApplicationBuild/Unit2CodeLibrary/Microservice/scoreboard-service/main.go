@@ -37,12 +37,12 @@ type getScoreboardResponse struct {
 var db *sql.DB
 
 func main() {
-	nacosClient, configClient, err := initNacos()
+	_, configClient, err := initNacos()
 	if err != nil {
 		log.Fatal("Error initializing Nacos:", err)
 	}
 	defer func() {
-		err = deregisterService(nacosClient, "scoreboard-service", 8085)
+		err = deregisterService("scoreboard-service", 8085)
 		if err != nil {
 			log.Fatal("Error deregistering service:", err)
 		}
