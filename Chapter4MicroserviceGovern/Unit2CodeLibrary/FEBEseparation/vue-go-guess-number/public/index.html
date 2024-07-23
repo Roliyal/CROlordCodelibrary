@@ -1,43 +1,17 @@
-<!--
 <!DOCTYPE html>
 <html lang="">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <div id="app"></div>
-    &lt;!&ndash; built files will be auto injected &ndash;&gt;
-  </body>
-</html>
--->
-<!DOCTYPE html>
-<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vue App</title>
-  <% if (htmlWebpackPlugin.options.VUE_APP_ENV === 'gray') { %>
-  <link rel="stylesheet" href="./gray/css/main.css">
-  <% } else { %>
-  <link rel="stylesheet" href="./base/css/main.css">
-  <% } %>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+  <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 <body>
+<noscript>
+  <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+</noscript>
 <div id="app"></div>
-<% if (htmlWebpackPlugin.options.VUE_APP_ENV === 'gray') { %>
-<script src="./gray/js/data-loader.js"></script>
-<script src="./gray/js/main.js"></script>
-<% } else { %>
-<script src="./base/js/data-loader.js"></script>
-<script src="./base/js/main.js"></script>
-<% } %>
+<!-- built files will be auto injected -->
 </body>
 </html>
-
