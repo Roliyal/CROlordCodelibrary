@@ -7,13 +7,12 @@ COPY package*.json ./
 COPY * ./
 RUN npm cache clean --force
 RUN npm install --force
-
 COPY . .
-RUN npm run build:gary
+RUN npm run build:gray
 
 FROM nginx:1.21-alpine
 
-COPY --from=vue-build /app/dist/gary /usr/share/nginx/html
+COPY --from=vue-build /app/dist/gray /usr/share/nginx/html
 # 复制自定义的 Nginx 配置到 Nginx 配置目录
 COPY default.conf /etc/nginx/conf.d/default.conf
 
