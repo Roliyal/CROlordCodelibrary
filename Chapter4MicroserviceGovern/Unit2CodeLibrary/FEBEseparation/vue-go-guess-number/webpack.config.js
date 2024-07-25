@@ -38,12 +38,12 @@ const commonConfig = {
     ],
 };
 
-const productionConfig = {
+const productionConfig = (env) => ({
     mode: 'production',
     output: {
-        path: path.resolve(__dirname, 'dist/base'),
-        filename: 'js/[name].[contenthash].js',
-        publicPath: '/base/',
+        path: path.resolve(__dirname, 'dist'),
+        filename: env.gray ? 'js/[name].gray.[contenthash].js' : 'js/[name].[contenthash].js',
+        publicPath: '/',
         clean: true,
     },
     optimization: {
@@ -54,39 +54,16 @@ const productionConfig = {
     plugins: [
         new HtmlWebpackPlugin({
             template: './public/index.html',
-            title: 'Vue Go Guess Number',
+            title: env.gray ? 'Vue Go Guess Number Gray' : 'Vue Go Guess Number',
             templateParameters: {
-                BASE_URL: '/base/',
+                BASE_URL: '/',
+                SCRIPT_NAME: env.gray ? 'main.gray' : 'main',
             },
             filename: 'index.html',
+            inject: 'body',
         }),
     ],
-};
-
-const grayConfig = {
-    mode: 'production',
-    output: {
-        path: path.resolve(__dirname, 'dist/gray'),
-        filename: 'js/[name].gray.[contenthash].js',
-        publicPath: '/gray/',
-        clean: true,
-    },
-    optimization: {
-        minimize: true,
-        minimizer: [new TerserPlugin()],
-    },
-    devtool: false,
-    plugins: [
-        new HtmlWebpackPlugin({
-            template: './public/index.html',
-            title: 'Vue Go Guess Number Gray',
-            templateParameters: {
-                BASE_URL: '/gray/',
-            },
-            filename: 'index.html',
-        }),
-    ],
-};
+});
 
 const developmentConfig = {
     mode: 'development',
@@ -115,18 +92,17 @@ const developmentConfig = {
             title: 'Vue Go Guess Number',
             templateParameters: {
                 BASE_URL: '/',
+                SCRIPT_NAME: 'main',
             },
             filename: 'index.html',
+            inject: 'body',
         }),
     ],
 };
 
 module.exports = (env) => {
-    if (env.production) {
-        return merge(commonConfig, productionConfig);
-    }
-    if (env.gray) {
-        return merge(commonConfig, grayConfig);
+    if (env.production || env.gray) {
+        return merge(commonConfig, productionConfig(env));
     }
     return merge(commonConfig, developmentConfig);
 };
