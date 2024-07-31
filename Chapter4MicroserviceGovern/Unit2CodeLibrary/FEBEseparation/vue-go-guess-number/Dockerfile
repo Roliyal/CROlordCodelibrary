@@ -8,7 +8,7 @@ COPY * ./
 RUN npm cache clean --force
 RUN npm install --force
 COPY . .
-RUN npm run build:base
+RUN npm run build
 
 FROM nginx:1.21-alpine
 
