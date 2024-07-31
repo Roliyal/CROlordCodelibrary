@@ -21,6 +21,7 @@
 <script>
 import axios from "axios";
 import config from "@/config";
+import versionedAxios from '@/axios-config';  // 使用相对路径引用
 
 export default {
   data() {
@@ -36,7 +37,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.post(config.apiUrl, {
+        const response = await versionedAxios.post(config.apiUrl, { // 使用 versionedAxios 进行请求
           guess: this.userGuess,
         });
         this.message = response.data.message;

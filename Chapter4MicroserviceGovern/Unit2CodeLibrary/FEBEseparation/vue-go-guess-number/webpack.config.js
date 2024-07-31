@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
 const TerserPlugin = require('terser-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 const commonConfig = {
     entry: './src/main.js',
@@ -61,6 +62,9 @@ const productionConfig = (env) => ({
             },
             filename: 'index.html',
             inject: 'body',
+        }),
+        new Dotenv({
+            path: env.gray ? './.env.gray' : './.env.base'
         }),
     ],
 });
