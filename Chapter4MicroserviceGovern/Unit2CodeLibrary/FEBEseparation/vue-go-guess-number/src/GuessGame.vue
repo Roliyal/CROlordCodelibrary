@@ -4,7 +4,7 @@
       <div class="col-md-6 offset-md-3">
         <div class="card">
           <div class="card-body">
-            <h1 class="card-title text-center">猜数字游戏gray</h1>
+            <h1 class="card-title text-center">猜数字游戏base</h1>
             <p class="text-center">请输入一个数字（1-100）：</p>
             <div class="input-group mb-3">
               <input type="number" class="form-control" v-model="userGuess" />
