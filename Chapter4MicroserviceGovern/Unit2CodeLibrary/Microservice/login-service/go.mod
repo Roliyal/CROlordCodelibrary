@@ -3,7 +3,7 @@ module login-service
 go 1.19
 
 require (
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.276 // indirect
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.797 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-errors/errors v1.4.2 // indirect

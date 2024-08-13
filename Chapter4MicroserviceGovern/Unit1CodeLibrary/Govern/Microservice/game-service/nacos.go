@@ -19,9 +19,9 @@ var ConfigClient config_client.IConfigClient
 
 func initNacos() {
 	// 读取.env文件
-	err := godotenv.Load(".env")
+	err := godotenv.Load(".env.production")
 	if err != nil {
-		panic("Error loading .env file")
+		panic("Error loading .env.production file")
 	}
 
 	clientConfig := constant.ClientConfig{

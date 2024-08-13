@@ -4,7 +4,7 @@ FROM golang:1.19 AS builder
 # Set the working directory
 WORKDIR /app
 
-# Copy the go.mod, go.sum, and .env files to the working directory
+# Copy the go.mod, go.sum, and .env.production files to the working directory
 COPY go.mod go.sum .env ./
 
 # Download the dependencies
@@ -25,7 +25,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy the compiled Go binary and .env files
+# Copy the compiled Go binary and .env.production files
 COPY --from=builder /app/main /app/main
 COPY --from=builder /app/.env /app/.env
 

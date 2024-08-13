@@ -23,10 +23,10 @@ func init() {
 	if err != nil {
 		log.Fatalf("Could not determine working directory: %v", err)
 	}
-	envPath := filepath.Join(pwd, ".env")
+	envPath := filepath.Join(pwd, ".env.production")
 	err = godotenv.Load(envPath)
 	if err != nil {
-		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
+		log.Fatalf("Error loading .env.production file from %s: %v", envPath, err)
 	}
 }
 
