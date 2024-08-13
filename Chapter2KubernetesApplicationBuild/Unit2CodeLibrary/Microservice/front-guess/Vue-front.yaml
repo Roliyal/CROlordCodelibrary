@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: cnfs-nas-cb5902b0fc41b4ebaaa5deb4d9c404fca # 使用初始化的配置CNFS文件系统
+  storageClassName: alibabacloud-cnfs-nas # 使用初始化的配置CNFS文件系统
   resources:
     requests:
       storage: 20Gi
