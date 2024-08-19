@@ -8,7 +8,7 @@ COPY * ./
 RUN npm cache clean --force
 RUN npm install --force
 COPY . .
-RUN npm run build
+RUN npm run build:gray
 
 FROM nginx:1.21-alpine
 
