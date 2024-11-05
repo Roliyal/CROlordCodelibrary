@@ -1,5 +1,5 @@
 # 使用官方的 Go 1.20 镜像进行构建
-FROM golang:1.19  AS builder
+FROM golang:latest  AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,9 @@ RUN go mod download
 COPY . .
 
 # 构建 Go 程序
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
+# RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -asmflags "-pcrel -compress" -o main .
+
 
 # 使用官方的 Alpine 镜像作为运行环境
 FROM alpine
