@@ -56,4 +56,8 @@ spec:
                 name: app-vue-front-service
                 port:
                   number: 8080
+                  name: http
+
+
+
 
