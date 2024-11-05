@@ -1,5 +1,4 @@
-# 使用官方的 Go 1.20 镜像进行构建
-FROM golang:latest  AS builder
+FROM golang:1.22.4 AS builder
 
 WORKDIR /app
 
