@@ -3,6 +3,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: app-vue-front-pvc
+  namespace: crolord
 spec:
   accessModes:
     - ReadWriteOnce
@@ -15,6 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: micro-vue-front
+  namespace: crolord
   labels:
     app: micro-vue-front
 spec:
@@ -70,6 +72,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: micro-vue-front-service
+  namespace: crolord
 spec:
   selector:
     app: micro-vue-front
@@ -83,6 +86,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: micro-vue-front-nginx-config
+  namespace: crolord
 data:
   default.conf: |
     server {
