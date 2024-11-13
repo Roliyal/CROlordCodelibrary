@@ -25,7 +25,7 @@ type registerRequest struct {
 type loginResponse struct {
 	Success   bool   `json:"success"`
 	AuthToken string `json:"authToken"`
-	ID        int    `json:"id"` // 使用 'ID' 而不是 'UserID'
+	ID        int    `json:"id"` // 使用 'ID'
 }
 
 func main() {

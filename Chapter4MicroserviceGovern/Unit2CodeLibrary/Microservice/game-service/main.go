@@ -180,7 +180,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func extractTokenFromHeader(r *http.Request) string {
-	log.Printf("Headers: %v\n", r.Header) // 输出请求头的调试信息
+	log.Printf("Headers: %v\n", r.Header) // 输出请求头的调试
 
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
