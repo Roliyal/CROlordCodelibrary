@@ -4,11 +4,11 @@ module.exports = {
   devServer: {
     proxy: {
       '/login': {
-        target: 'http://8.217.105.200:80',
+        target: 'http://47.243.164.40:80',
         changeOrigin: true,
       },
       '/register': {
-        target: 'http://8.217.105.200:8083',
+        target: 'http://47.243.164.40:8083',
         changeOrigin: true,
       },
     },
