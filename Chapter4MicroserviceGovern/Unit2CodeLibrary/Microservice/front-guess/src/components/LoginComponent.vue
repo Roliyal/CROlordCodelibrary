@@ -25,7 +25,6 @@
   </div>
 </template>
 
-
 <script>
 import authApi from "../auth-api";
 import { useRouter } from "vue-router";
@@ -49,8 +48,9 @@ export default {
 
       if (authResult && authResult.authToken) {
         store.setIsLoggedIn(true);
+        store.setUserId(authResult.id); // 设置 userId 到全局状态
         localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id);
+        localStorage.setItem("id", authResult.id); // 存储 userId 到 localStorage
 
         this.router.push("/game");
       } else {
@@ -60,8 +60,6 @@ export default {
   },
 };
 </script>
-
-
 
 <style scoped>
 body {

@@ -1,18 +1,22 @@
+// src/main.js
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import './styles.css';
 import store from "./store";
-import axios from 'axios';
 
-axios.defaults.baseURL = 'http://localhost:8080';
+const app = createApp(App);
 
+// 从 localStorage 初始化全局状态
+const authToken = localStorage.getItem("authToken");
+const storedUserId = localStorage.getItem("id");
 
-createApp(App)
-    .use(store)
-    .use(router)
-    .mount("#app");
+if (authToken) {
+    store.setIsLoggedIn(true);
+}
 
-const authToken = localStorage.getItem("authToken");// 获取存储的authToken
+if (storedUserId) {
+    store.setUserId(storedUserId);
+}
 
-axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`; // 设置全局默认请求头
+app.use(store).use(router).mount("#app");

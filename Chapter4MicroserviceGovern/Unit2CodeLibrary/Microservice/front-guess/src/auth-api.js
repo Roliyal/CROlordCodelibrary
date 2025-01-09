@@ -1,4 +1,5 @@
-import axios from "axios";
+// src/auth-api.js
+import axiosInstance from "./axiosInstance";
 import config from "./config";
 
 export default {
@@ -6,7 +7,7 @@ export default {
 
     async authenticate(username, password) {
         try {
-            const response = await axios.post(`${config.loginURL}/login`, {
+            const response = await axiosInstance.post(`${config.loginURL}/login`, {
                 username,
                 password,
             });
@@ -29,7 +30,7 @@ export default {
 
     async register(username, password) {
         try {
-            const response = await axios.post(`${config.registerURL}/register`, {
+            const response = await axiosInstance.post(`${config.registerURL}/register`, {
                 username,
                 password,
             });
