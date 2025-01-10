@@ -1,21 +1,21 @@
+<!-- src/components/LoginComponent.vue -->
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
     <div class="login-container">
-      <p class="intro"> </p>
       <form @submit.prevent="login">
         <div class="input-group">
           <label>用户名：</label>
-          <input type="text" v-model="username" />
+          <input type="text" v-model="username" required />
         </div>
         <div class="input-group">
           <label>密码：</label>
-          <input type="password" v-model="password" />
+          <input type="password" v-model="password" required />
         </div>
         <button type="submit">登录</button>
         <div class="message-container">
-          <div v-show="errorMessage" class="error-message">{{ errorMessage }}</div>
-          <div v-show="infoMessage" class="info-message">{{ infoMessage }}</div>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+          <div v-if="infoMessage" class="info-message">{{ infoMessage }}</div>
         </div>
       </form>
     </div>
@@ -36,6 +36,7 @@ export default {
       username: "",
       password: "",
       errorMessage: "",
+      infoMessage: "",
     };
   },
   setup() {
@@ -48,11 +49,16 @@ export default {
 
       if (authResult && authResult.authToken) {
         store.setIsLoggedIn(true);
-        store.setUserId(authResult.id); // 设置 userId 到全局状态
+        store.setUserId(authResult.id); // 设置userId到store
         localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id); // 存储 userId 到 localStorage
+        localStorage.setItem("id", authResult.id); // 存储userId到localStorage
 
-        this.router.push("/game");
+        console.log('Stored authToken and id in localStorage');
+
+        this.infoMessage = "登录成功！正在跳转...";
+        setTimeout(() => {
+          this.router.push("/game");
+        }, 1000);
       } else {
         this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
       }
@@ -62,10 +68,7 @@ export default {
 </script>
 
 <style scoped>
-body {
-  font-family: Arial, sans-serif;
-}
-
+/* 样式保持不变 */
 .container {
   display: flex;
   justify-content: center;
@@ -120,6 +123,11 @@ button:hover {
 
 .error-message {
   color: red;
+  text-align: center;
+}
+
+.info-message {
+  color: green;
   text-align: center;
 }
 </style>

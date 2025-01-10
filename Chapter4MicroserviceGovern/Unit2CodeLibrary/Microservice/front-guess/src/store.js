@@ -3,7 +3,7 @@ import { reactive } from "vue";
 
 const state = reactive({
     isLoggedIn: false,
-    userId: null, // 添加 userId
+    userId: null, // 全局用户 ID
 });
 
 const setIsLoggedIn = (isLoggedIn) => {
@@ -17,5 +17,5 @@ const setUserId = (userId) => {
 export default {
     state,
     setIsLoggedIn,
-    setUserId, // 导出 setUserId 方法
+    setUserId,
 };

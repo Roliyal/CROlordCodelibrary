@@ -1,3 +1,4 @@
+<!-- src/components/GameComponent.vue -->
 <template>
   <div class="container game-container">
     <h2>猜数字游戏</h2>
@@ -22,9 +23,8 @@
   </div>
 </template>
 
-
 <script>
-import axios from "axios";
+import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
 import config from "../config.js";
 
 export default {
@@ -44,25 +44,20 @@ export default {
     },
 
     async submitGuess(guess) {
-      const authToken = localStorage.getItem("authToken");
-      const ID = localStorage.getItem("id");
-
-      if (!authToken) {
-        this.message = "请先登录";
-        return;
-      }
-
+      // 不需要手动获取 authToken 和 ID，因为 axiosInstance 已经处理
       try {
-        const response = await axios.post(`${config.gameURL}/game`, {
+        const response = await axiosInstance.post(`${config.gameURL}/game`, {
           number: guess,
         }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          },
-          params: {
-            userID: ID,
-          },
+          // 由于 axiosInstance 已经添加了 Headers，可以移除手动添加
+          // headers: {
+          //   Authorization: `Bearer ${authToken}`
+          // },
+          // params: {
+          //   userID: ID,
+          // },
         });
+
         const resData = response.data;
         if (resData.success) {
           alert(resData.message);
@@ -81,8 +76,6 @@ export default {
   },
 };
 </script>
-
-
 
 <style scoped>
 .container {

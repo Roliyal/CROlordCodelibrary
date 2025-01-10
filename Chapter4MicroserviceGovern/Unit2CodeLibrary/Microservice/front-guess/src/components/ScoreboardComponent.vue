@@ -1,3 +1,4 @@
+<!-- src/components/ScoreboardComponent.vue -->
 <template>
   <div class="container scoreboard-container">
     <h2>排行榜展示</h2>
@@ -22,8 +23,8 @@
   </div>
 </template>
 
-
 <script>
+import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
 import config from "../config.js";
 
 export default {
@@ -37,13 +38,9 @@ export default {
   methods: {
     async fetchScoreboardData() {
       try {
-        const response = await fetch(`${config.scoreboardURL}/scoreboard`);
-        if (response.ok) {
-          this.gameData = await response.json();
-          this.dataFetched = true;
-        } else {
-          console.error("Error fetching scoreboard data:", response.statusText);
-        }
+        const response = await axiosInstance.get(`${config.scoreboardURL}/scoreboard`);
+        this.gameData = response.data;
+        this.dataFetched = true;
       } catch (error) {
         console.error("Error fetching scoreboard data:", error);
       }

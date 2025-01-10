@@ -1,16 +1,18 @@
 // src/auth-api.js
 import axiosInstance from "./axiosInstance";
-import config from "./config";
+//import config from "./config.js";
 
 export default {
     isAuthenticated: false,
 
     async authenticate(username, password) {
         try {
-            const response = await axiosInstance.post(`${config.loginURL}/login`, {
+            const response = await axiosInstance.post(`/login`, {
                 username,
                 password,
             });
+
+            console.log('Login response:', response.data);
 
             if (response.data && response.data.authToken) {
                 this.isAuthenticated = true;
@@ -30,7 +32,7 @@ export default {
 
     async register(username, password) {
         try {
-            const response = await axiosInstance.post(`${config.registerURL}/register`, {
+            const response = await axiosInstance.post(`/register`, {
                 username,
                 password,
             });
