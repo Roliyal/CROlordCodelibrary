@@ -1,6 +1,5 @@
 // src/auth-api.js
 import axiosInstance from "./axiosInstance";
-//import config from "./config.js";
 
 export default {
     isAuthenticated: false,

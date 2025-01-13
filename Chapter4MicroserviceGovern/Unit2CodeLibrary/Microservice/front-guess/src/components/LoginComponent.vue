@@ -49,9 +49,9 @@ export default {
 
       if (authResult && authResult.authToken) {
         store.setIsLoggedIn(true);
-        store.setUserId(authResult.id); // 设置userId到store
+        store.setUserId(authResult.id); // 设置 userId 到 store
         localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id); // 存储userId到localStorage
+        localStorage.setItem("id", authResult.id); // 存储 userId 到 localStorage
 
         console.log('Stored authToken and id in localStorage');
 
@@ -68,7 +68,6 @@ export default {
 </script>
 
 <style scoped>
-/* 样式保持不变 */
 .container {
   display: flex;
   justify-content: center;
