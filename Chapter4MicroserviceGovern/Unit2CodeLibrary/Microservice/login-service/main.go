@@ -46,19 +46,17 @@ func main() {
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
 	})
 
-	// 使用 CORS 中间件包装处理程序
-	loginHandler := c.Handler(http.HandlerFunc(loginHandler))
-	userHandler := c.Handler(http.HandlerFunc(userHandler))
-	registerHandler := c.Handler(http.HandlerFunc(registerHandler))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/login", loginHandler)
+	mux.HandleFunc("/user", userHandler)
+	mux.HandleFunc("/register", registerHandler)
 
-	// 注册处理程序
-	http.Handle("/login", loginHandler)
-	http.Handle("/user", userHandler)
-	http.Handle("/register", registerHandler)
+	// 应用 CORS 中间件到整个 ServeMux
+	handler := c.Handler(mux)
 
 	fmt.Println("Starting server on port 8083")
-	log.Fatal(http.ListenAndServe(":8083", nil))
-	deregisterGameService()
+	log.Fatal(http.ListenAndServe(":8083", handler))
+
 }
 func updateUser(user *User) error {
 	if err := db.Model(user).Where("id = ?", user.ID).Update("auth_token", user.AuthToken).Error; err != nil {
