@@ -92,15 +92,25 @@ func getDatabaseConfigFromNacos() (map[string]string, error) {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		// 设置允许的来源
+		w.Header().Set("Access-Control-Allow-Origin", "http://micro.roliyal.com")
+
+		// 设置允许的请求头，包括自定义头 'X-User-ID'
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+
+		// 设置允许的HTTP方法
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
+		// 允许携带凭证
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// 处理预检请求
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
+		// 调用下一个处理器
 		next.ServeHTTP(w, r)
 	})
 }
