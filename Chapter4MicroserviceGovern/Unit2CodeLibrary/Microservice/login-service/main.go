@@ -156,19 +156,19 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
-	authToken := r.URL.Query().Get("authToken")
-	userID := r.URL.Query().Get("userID")
+	authToken := r.Header.Get("Authorization")
+	userID := r.Header.Get("X-User-ID")
 
-	// 确保userID已提供
+	// 确保 userID 已提供
 	if authToken == "" || userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	// 在此处添加调试日志
+	// 添加调试日志
 	log.Printf("Received user request with authToken: %s and userID: %s\n", authToken, userID)
 
-	// 使用userID查询用户
+	// 使用 userID 查询用户
 	var user User
 	if err := db.Where("auth_token = ? AND id = ?", authToken, userID).First(&user).Error; err != nil {
 		fmt.Printf("Error finding user by authToken and userID: %v\n", err)
@@ -184,6 +184,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
+
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received register request")
 	if r.Method != http.MethodPost {
