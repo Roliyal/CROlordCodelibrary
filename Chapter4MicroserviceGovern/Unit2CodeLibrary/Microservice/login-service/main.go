@@ -17,7 +17,6 @@ type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
-
 type registerRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -26,48 +25,25 @@ type registerRequest struct {
 type loginResponse struct {
 	Success   bool   `json:"success"`
 	AuthToken string `json:"authToken"`
-	ID        int    `json:"id"` // 使用 'ID'
+	ID        int    `json:"id"` // 使用 'ID' 而不是 'UserID'
 }
-
-// 假设User结构体已定义
-type User struct {
-	ID        int    `gorm:"primary_key"`
-	Username  string `gorm:"unique;not null"`
-	Password  string `gorm:"not null"`
-	AuthToken string
-	Wins      int
-	Attempts  int
-}
-
-// 假设这些函数和变量已定义
-var NamingClient interface{}
-var ConfigClient interface{}
-var db *gorm.DB
 
 func main() {
-	logDir := "/app/log"
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		os.MkdirAll(logDir, 0777)
-	}
-
 	initNacos() // Initialize Nacos client
 	initDatabase()
 	defer closeDatabase()
 
 	err := registerService(NamingClient, "login-service", "127.0.0.1", 8083)
 	if err != nil {
-		fmt.Printf("Error registering login service instance: %v\n", err)
+		fmt.Printf("Error registering game service instance: %v\n", err)
 		os.Exit(1)
 	}
-	defer deregisterService() // 确保在退出时注销服务
-
-	// 配置 CORS 中间件
+	defer closeDatabase()
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://micro.roliyal.com"}, // 允许具体的前端域
+		AllowedOrigins:   []string{"http://micro.roliyal.com"}, // 明确指定前端地址
 		AllowCredentials: true,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"},
-		//
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
 	})
 
 	// 使用 CORS 中间件包装处理程序
@@ -80,14 +56,10 @@ func main() {
 	http.Handle("/user", userHandler)
 	http.Handle("/register", registerHandler)
 
-	fmt.Println("Starting login server on port 8083")
+	fmt.Println("Starting server on port 8083")
 	log.Fatal(http.ListenAndServe(":8083", nil))
+	deregisterGameService()
 }
-
-func deregisterService() {
-	// 实现注销服务的逻辑
-}
-
 func updateUser(user *User) error {
 	if err := db.Model(user).Where("id = ?", user.ID).Update("auth_token", user.AuthToken).Error; err != nil {
 		log.Println("Error updating user:", err)
@@ -214,7 +186,6 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
-
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received register request")
 	if r.Method != http.MethodPost {
