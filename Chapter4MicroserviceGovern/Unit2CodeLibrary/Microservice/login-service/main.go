@@ -44,6 +44,8 @@ func main() {
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
+		Debug:            true,                                                   // 启用调试日志
+
 	})
 
 	mux := http.NewServeMux()

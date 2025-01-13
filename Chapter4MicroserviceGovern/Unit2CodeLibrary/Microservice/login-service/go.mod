@@ -19,7 +19,7 @@ require (
 	github.com/nacos-group/nacos-sdk-go v1.1.4 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rs/cors v1.8.3 // indirect
+	github.com/rs/cors v1.11.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

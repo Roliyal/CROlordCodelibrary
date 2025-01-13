@@ -2,9 +2,9 @@ http:
   middlewares:
     cors:
       headers:
-        accessControlAllowOriginList: ["*"]
+        accessControlAllowOriginList: ["http://micro.roliyal.com"]
         accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-        accessControlAllowHeaders: ["Content-Type", "Authorization"]
+        accessControlAllowHeaders: ["Content-Type", "Authorization", "X-User-ID"]
         accessControlMaxAge: 100
   routers:
     login:
