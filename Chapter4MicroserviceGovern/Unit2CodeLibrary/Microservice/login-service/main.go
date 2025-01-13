@@ -159,21 +159,32 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.Header.Get("Authorization")
-	userID := r.Header.Get("X-User-ID")
+	userID := r.Header.Get("X-User-ID") // 通过请求头获取 userID
 
-	// 确保 userID 已提供
 	if authToken == "" || userID == "" {
+		log.Println("Error: Missing Authorization or X-User-ID header")
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Missing Authorization or X-User-ID header",
+		})
 		return
 	}
 
-	// 添加调试日志
-	log.Printf("Received user request with authToken: %s and userID: %s\n", authToken, userID)
+	// 将 userID 转换为整数
+	userIDInt, err := strconv.Atoi(userID)
+	if err != nil {
+		log.Println("Error parsing userID:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Invalid userID",
+		})
+		return
+	}
 
-	// 使用 userID 查询用户
+	// 使用 authToken 和 userID 查询用户
 	var user User
-	if err := db.Where("auth_token = ? AND id = ?", authToken, userID).First(&user).Error; err != nil {
-		fmt.Printf("Error finding user by authToken and userID: %v\n", err)
+	if err := db.Where("auth_token = ? AND id = ?", authToken, userIDInt).First(&user).Error; err != nil {
+		log.Printf("Error finding user by authToken and userID: %v\n", err)
 		if gorm.IsRecordNotFoundError(err) {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
@@ -182,6 +193,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 返回用户数据
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)

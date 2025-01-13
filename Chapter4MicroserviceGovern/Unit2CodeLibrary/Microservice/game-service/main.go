@@ -124,9 +124,8 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 获取请求头中的 Authorization 和 X-User-ID
 	authToken := extractTokenFromHeader(r)
-
-	// 使用请求头中的 X-User-ID，而不是查询参数
 	userIdStr := r.Header.Get("X-User-ID")
 	if userIdStr == "" {
 		log.Println("Error: Missing X-User-ID header")
@@ -164,6 +163,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 使用 authToken 和 userId 获取用户信息
 	req.AuthToken = authToken
 	user, err := getUserFromAuthToken(req.AuthToken, uint(userId)) // 使用 userId 变量
 	if err != nil {
