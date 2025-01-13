@@ -125,10 +125,26 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authToken := extractTokenFromHeader(r)
-	userId, err := strconv.Atoi(r.URL.Query().Get("userID"))
+
+	// 使用请求头中的 X-User-ID，而不是查询参数
+	userIdStr := r.Header.Get("X-User-ID")
+	if userIdStr == "" {
+		log.Println("Error: Missing X-User-ID header")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Missing X-User-ID header",
+		})
+		return
+	}
+
+	// 转换 userIdStr 为整数
+	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
 		log.Println("Error parsing userID:", err)
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Invalid userID",
+		})
 		return
 	}
 
@@ -171,8 +187,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		game.CorrectGuesses++ // 增加猜中次数
 		if err := db.Save(game).Error; err != nil {
 			log.Printf("Error updating game: %v", err)
-		} // 保存更新并检查错误       // 保存更新
-		//deleteGame(game)
+		}
 	} else {
 		res.Success = false
 		if req.Number < game.TargetNumber {
