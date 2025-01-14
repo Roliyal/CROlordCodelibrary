@@ -47,13 +47,12 @@ export default {
     async login() {
       const authResult = await authApi.authenticate(this.username, this.password);
 
-      if (authResult && authResult.authToken) {
+      if (authResult && authResult.id !== undefined) {
         store.setIsLoggedIn(true);
         store.setUserId(authResult.id); // 设置 userId 到 store
-        localStorage.setItem("authToken", authResult.authToken);
-        localStorage.setItem("id", authResult.id); // 存储 userId 到 localStorage
+        localStorage.setItem("userId", authResult.id); // 存储 userId 到 localStorage
 
-        console.log('Stored authToken and id in localStorage');
+        console.log('Stored userId in localStorage');
 
         this.infoMessage = "登录成功！正在跳转...";
         setTimeout(() => {

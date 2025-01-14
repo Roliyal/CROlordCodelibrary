@@ -1,4 +1,5 @@
 // src/auth-api.js
+
 import axiosInstance from "./axiosInstance";
 
 export default {
@@ -13,11 +14,10 @@ export default {
 
             console.log('Login response:', response.data);
 
-            if (response.data && response.data.authToken) {
+            if (response.data && response.data.success && response.data.id !== undefined) {
                 this.isAuthenticated = true;
 
                 return {
-                    authToken: response.data.authToken,
                     id: response.data.id,
                 };
             } else {

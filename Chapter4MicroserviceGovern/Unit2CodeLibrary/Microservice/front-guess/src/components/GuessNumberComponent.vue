@@ -44,18 +44,9 @@ export default {
     },
 
     async submitGuess(guess) {
-      // 不需要手动获取 authToken 和 ID，因为 axiosInstance 已经处理
       try {
         const response = await axiosInstance.post(`${config.gameURL}/game`, {
           number: guess,
-        }, {
-          // 由于 axiosInstance 已经添加了 Headers，可以移除手动添加
-          // headers: {
-          //   Authorization: `Bearer ${authToken}`
-          // },
-          // params: {
-          //   userID: ID,
-          // },
         });
 
         const resData = response.data;
