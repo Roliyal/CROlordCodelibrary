@@ -6,7 +6,6 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -115,16 +114,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 func guessHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"number": rand.Intn(100) + 1,
-		})
-		return
-	}
+	// 输出请求头，确保 Authorization 和 X-User-ID 被接收到
+	log.Printf("Received headers: %v", r.Header)
 
-	// 获取请求头中的 Authorization 和 X-User-ID
 	authToken := extractTokenFromHeader(r)
 	userIdStr := r.Header.Get("X-User-ID") // 读取 X-User-ID 请求头
 

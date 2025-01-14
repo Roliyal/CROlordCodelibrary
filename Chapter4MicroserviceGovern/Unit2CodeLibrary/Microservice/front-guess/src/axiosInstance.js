@@ -28,12 +28,18 @@ axiosInstance.interceptors.request.use(
         if (userId) {
             config.headers['X-User-ID'] = userId; // 添加自定义 Header
             console.log('X-User-ID header added');
+        } else {
+            console.log('X-User-ID header NOT added');
         }
 
         if (authToken) {
             config.headers['Authorization'] = `Bearer ${authToken}`; // 添加 Authorization Header
             console.log('Authorization header added');
+        } else {
+            console.log('Authorization header NOT added');
         }
+
+        console.log('Request Headers:', config.headers);
 
         return config;
     },
