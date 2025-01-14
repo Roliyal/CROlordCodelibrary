@@ -109,37 +109,30 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
 	db = db.LogMode(true)
 
-	if err := db.Select("ID, Username, Password, AuthToken, Wins, Attempts").Where("username = ? AND password = ?", req.Username, req.Password).First(&user).Error; err == nil {
+	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").Where("username = ? AND password = ?", req.Username, req.Password).First(&user).Error; err == nil {
 		log.Println("User found:", user)
-		log.Println("User data retrieved from the database:", user)
-		log.Println("Generated SQL query:", db.Where("username = ? AND password = ?", req.Username, req.Password).First(&user).QueryExpr())
-		fmt.Printf("User data after query: %+v\n", user)
 
+		// 生成新的 AuthToken
 		newAuthToken, err := generateAuthToken()
 		if err != nil {
 			log.Println("Error generating auth token:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		user.AuthToken = newAuthToken
-		fmt.Printf("User data after update: %+v\n", user)
 
-		err = updateUser(&user)
-		if err != nil {
-			log.Println("Error updating user:", err)
+		// 更新用户的 AuthToken
+		user.AuthToken = newAuthToken
+		if err := db.Save(&user).Error; err != nil {
+			log.Println("Error updating user with new AuthToken:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		} else {
-			log.Println("User updated successfully:", user)
 		}
 
 		res := loginResponse{
 			Success:   true,
-			AuthToken: user.AuthToken,
+			AuthToken: newAuthToken,
 			ID:        user.ID,
 		}
-
-		fmt.Println("Updated user:", user)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -261,5 +254,13 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	res := loginResponse{
+		Success:   true,
+		AuthToken: newAuthToken,
+		ID:        user.ID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(res)
 }
