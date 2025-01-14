@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"log"
@@ -35,16 +36,25 @@ type Game struct {
 // 初始化数据库连接
 func initDatabase(dbConfig map[string]string) {
 	var err error
+	// 处理特殊字符的密码
+	password := dbConfig["DB_PASSWORD"]
+	// 如果密码中包含特殊字符，建议使用 URL 编码
+	// password = url.QueryEscape(dbConfig["DB_PASSWORD"])
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbConfig["DB_USER"],
-		dbConfig["DB_PASSWORD"],
+		password,
 		dbConfig["DB_HOST"],
 		dbConfig["DB_PORT"],
 		dbConfig["DB_NAME"],
 	)
+
+	// 打印 DSN，供调试使用（请注意安全性，生产环境下不要打印密码）
+	log.Printf("Connecting to database with DSN: %s", dsn)
+
 	db, err = gorm.Open("mysql", dsn)
 	if err != nil {
-		panic("failed to connect to database")
+		panic(fmt.Sprintf("failed to connect to database: %v", err))
 	}
 	// 自动迁移数据库表
 	db.AutoMigrate(&User{}, &Game{})
@@ -100,7 +110,7 @@ func getUserFromUserID(userID uint) (User, error) {
 
 	log.Printf("Found %d instances for login-service in Nacos", len(service.Hosts))
 	for i, host := range service.Hosts {
-		log.Printf("Instance %d: IP: %s, Port: %d, Healthy: %t", i+1, host.Ip, host.Port, host.Healthy)
+		log.Printf("Instance %d: IP=%s, Port=%d, Healthy=%t", i+1, host.Ip, host.Port, host.Healthy)
 	}
 
 	instance := getHealthyInstance(service.Hosts)

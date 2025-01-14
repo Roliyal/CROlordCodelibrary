@@ -1,3 +1,5 @@
+// nacos.go
+
 package main
 
 import (
@@ -9,14 +11,17 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"log" // 确保导入 log 包
 	"net"
 	"os"
 	"strconv"
 )
 
+// 全局变量
 var NamingClient naming_client.INamingClient
 var ConfigClient config_client.IConfigClient
 
+// 初始化 Nacos 客户端
 func initNacos() {
 	// 读取.env文件
 	err := godotenv.Load(".env")
@@ -60,6 +65,7 @@ func initNacos() {
 	ConfigClient = cc
 }
 
+// 订阅 login-service 的实例变化
 func subscribeLoginService() {
 	err := NamingClient.Subscribe(&vo.SubscribeParam{
 		ServiceName: "login-service",
@@ -84,6 +90,7 @@ func subscribeLoginService() {
 	}
 }
 
+// 解析字符串为整数，失败则返回默认值
 func parseInt(value string, defaultValue int) int {
 	result, err := strconv.Atoi(value)
 	if err != nil {
@@ -91,6 +98,8 @@ func parseInt(value string, defaultValue int) int {
 	}
 	return result
 }
+
+// 获取主机的非回环 IP 地址
 func getHostIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -110,6 +119,7 @@ func getHostIP() (string, error) {
 	return "", fmt.Errorf("No valid IP address found")
 }
 
+// 注册服务到 Nacos
 func registerService(client naming_client.INamingClient, serviceName, ip string, port uint64) error {
 	hostIP, err := getHostIP()
 	if err != nil {
@@ -137,17 +147,23 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 	return nil
 }
 
+// 注销 game-service
 func deregisterGameService() {
 	hostIP, err := getHostIP()
+	if err != nil {
+		log.Printf("Failed to get host IP for deregistration: %v\n", err)
+		return
+	}
 
 	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-
 		Ip:          hostIP,
 		Port:        8084,
 		ServiceName: "game-service",
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
-		panic("failed to deregister game service instance")
+		log.Printf("Error deregistering game service instance: %v\n", err)
+	} else {
+		log.Println("Game service deregistered successfully")
 	}
 }
