@@ -160,7 +160,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.Header.Get("Authorization")
-	userID := r.Header.Get("X-User-ID") // 通过请求头获取 userID
+	userID := r.Header.Get("X-User-ID") // 获取 X-User-ID 请求头
 
 	if authToken == "" || userID == "" {
 		log.Println("Error: Missing Authorization or X-User-ID header")
