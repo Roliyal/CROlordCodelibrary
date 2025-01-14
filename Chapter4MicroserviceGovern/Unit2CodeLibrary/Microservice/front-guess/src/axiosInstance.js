@@ -14,7 +14,7 @@ const excludedEndpoints = ['/login', '/register'];
 // 添加请求拦截器
 axiosInstance.interceptors.request.use(
     config => {
-        // 显式设置 Origin 头
+        // 显式设置 Origin 头打印
         config.headers['Origin'] = 'http://micro.roliyal.com';
 
         // 检查当前请求是否在排除列表中
