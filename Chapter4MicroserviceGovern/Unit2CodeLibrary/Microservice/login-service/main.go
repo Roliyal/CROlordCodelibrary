@@ -176,13 +176,17 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // userHandler 处理获取用户信息的请求
+// main.go 中的 userHandler
+
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.Header.Get("Authorization")
 	userID := r.Header.Get("X-User-ID") // 获取 X-User-ID 请求头
 
+	log.Printf("Received headers: Authorization=%s, X-User-ID=%s", authToken, userID)
+
 	if authToken == "" || userID == "" {
 		log.Println("Error: Missing Authorization or X-User-ID header")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized) // 修改为 401
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": "Missing Authorization or X-User-ID header",
 		})
