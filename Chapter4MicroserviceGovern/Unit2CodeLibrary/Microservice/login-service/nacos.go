@@ -1,16 +1,19 @@
+// nacos.go
+
 package main
 
 import (
 	"fmt"
+	"log"
+	"net"
+	"os"
+	"strconv"
+
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
-	"net"
-	"os"
-	"strconv"
 )
 
 var NamingClient naming_client.INamingClient
@@ -41,16 +44,28 @@ func initNacos() {
 		},
 	}
 
-	// New naming client
+	// 创建命名客户端
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
 	})
 	if err != nil {
-		log.Fatalf("Failed to create Nacos client: %v", err)
+		log.Fatalf("Failed to create Nacos naming client: %v", err)
 	}
 	NamingClient = nc
+
+	// 创建配置客户端
+	cc, err := clients.CreateConfigClient(map[string]interface{}{
+		"serverConfigs": serverConfigs,
+		"clientConfig":  clientConfig,
+	})
+	if err != nil {
+		log.Fatalf("Failed to create Nacos config client: %v", err)
+	}
+	ConfigClient = cc
 }
+
+// getHostIP 获取非回环的 IPv4 地址
 func getHostIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -70,6 +85,7 @@ func getHostIP() (string, error) {
 	return "", fmt.Errorf("No valid IP address found")
 }
 
+// registerService 注册服务到 Nacos
 func registerService(client naming_client.INamingClient, serviceName, ip string, port uint64) error {
 	hostIP, err := getHostIP()
 	if err != nil {
@@ -96,10 +112,13 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 
 	return nil
 }
-func deregisterGameService() {
+
+// deregisterLoginService 从 Nacos 注销服务
+func deregisterLoginService() {
 	hostIP, err := getHostIP()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get host IP address: %v", err))
+		log.Printf("Failed to get host IP for deregistration: %v\n", err)
+		return
 	}
 
 	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
@@ -109,6 +128,8 @@ func deregisterGameService() {
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
-		panic("failed to deregister game service instance")
+		log.Printf("Error deregistering login service instance: %v\n", err)
+	} else {
+		log.Println("Login service deregistered successfully")
 	}
 }

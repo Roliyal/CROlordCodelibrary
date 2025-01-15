@@ -1,20 +1,46 @@
+// database.go
+
 package main
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"math/rand" // 添加 math/rand 包
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 )
+
+// User 结构体
+type User struct {
+	ID        uint      `gorm:"column:ID;primary_key;auto_increment"`
+	Username  string    `gorm:"column:Username;unique;not null"`
+	Password  string    `gorm:"column:Password;not null"`
+	AuthToken string    `gorm:"column:AuthToken;not null"`
+	Wins      int       `gorm:"column:Wins;default:0"`
+	Attempts  int       `gorm:"column:Attempts;default:0"`
+	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+}
+
+// DBConfig 结构体
+type DBConfig struct {
+	DBUser     string `json:"DB_USER"`
+	DBPassword string `json:"DB_PASSWORD"`
+	DBHost     string `json:"DB_HOST"`
+	DBPort     string `json:"DB_PORT"`
+	DBName     string `json:"DB_NAME"`
+}
 
 var db *gorm.DB
 
@@ -28,29 +54,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
 	}
-}
-
-func (User) TableName() string {
-	return "user"
-}
-
-type User struct {
-	ID             int       `gorm:"column:ID;primaryKey;autoIncrement"`
-	Username       string    `gorm:"column:Username;unique"`
-	Password       string    `gorm:"column:Password"`
-	AuthToken      string    `gorm:"column:AuthToken"`
-	Wins           int       `gorm:"column:Wins"`
-	Attempts       int       `gorm:"column:Attempts"`
-	AuthTokenExtra string    `gorm:"column:auth_token"`
-	CreatedAt      time.Time `gorm:"column:created_at"`
-	UpdatedAt      time.Time `gorm:"column:updated_at"`
-}
-type DBConfig struct {
-	DBUser     string `json:"DB_USER"`
-	DBPassword string `json:"DB_PASSWORD"`
-	DBHost     string `json:"DB_HOST"`
-	DBPort     string `json:"DB_PORT"`
-	DBName     string `json:"DB_NAME"`
 }
 
 func initDatabase() {
@@ -69,12 +72,11 @@ func initDatabase() {
 		},
 	}
 
-	// 获取 Nacos 配置
+	// 创建配置客户端
 	configClient, err := clients.CreateConfigClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to create Nacos config client: %v", err)
 	}
@@ -86,7 +88,6 @@ func initDatabase() {
 		DataId: dataId,
 		Group:  group,
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to get database config from Nacos: %v", err)
 	}
@@ -98,10 +99,14 @@ func initDatabase() {
 		log.Fatalf("Failed to parse database config: %v", err)
 	}
 
-	dbConnectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", dbConfig.DBUser, dbConfig.DBPassword, dbConfig.DBHost, dbConfig.DBPort, dbConfig.DBName)
-	db, err = gorm.Open("mysql", dbConnectionString)
-
-	fmt.Println("The connection string is:", dbConnectionString)
+	dbConnectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+		dbConfig.DBUser,
+		dbConfig.DBPassword,
+		dbConfig.DBHost,
+		dbConfig.DBPort,
+		dbConfig.DBName,
+	)
+	log.Printf("Connecting to database with DSN: %s", dbConnectionString)
 
 	db, err = gorm.Open("mysql", dbConnectionString)
 	if err != nil {
@@ -109,11 +114,11 @@ func initDatabase() {
 		panic("failed to connect to database")
 	}
 
-	// 创建数据库表
-	db.Table("user").AutoMigrate(&User{})
-	// 设置AuthToken的默认值
+	// 自动迁移数据库表
+	db.AutoMigrate(&User{})
 }
 
+// mustParseUint 解析字符串为 uint64，失败则记录并退出
 func mustParseUint(s string) uint64 {
 	i, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
@@ -123,5 +128,23 @@ func mustParseUint(s string) uint64 {
 }
 
 func closeDatabase() {
-	db.Close()
+	if db != nil {
+		db.Close()
+	}
+}
+
+// 从实例列表中获取第一个健康的实例
+func getHealthyInstance(instances []model.Instance) *model.Instance {
+	for _, instance := range instances {
+		if instance.Healthy {
+			return &instance
+		}
+	}
+	return nil
+}
+
+// 生成 1 到 100 之间的随机数
+func generateTargetNumber() int {
+	rand.Seed(time.Now().UnixNano()) // 使用 math/rand 包
+	return rand.Intn(100) + 1        // 1 到 100
 }
