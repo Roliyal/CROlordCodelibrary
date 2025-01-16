@@ -12,33 +12,35 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 var db *gorm.DB
 
 // User 结构体
-// database.go
-
 type User struct {
-	ID             uint   `gorm:"primary_key"`
-	Username       string `gorm:"unique"`
-	Password       string
-	AuthToken      string
-	Wins           int
-	Attempts       int
-	CorrectGuesses int
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             string    `gorm:"column:ID;primary_key"`
+	Username       string    `gorm:"column:Username;unique;not null"`
+	Password       string    `gorm:"column:Password;not null"`
+	AuthToken      string    `gorm:"column:AuthToken;not null"`
+	Wins           int       `gorm:"column:Wins;default:0"`
+	Attempts       int       `gorm:"column:Attempts;default:0"`
+	CorrectGuesses int       `gorm:"column:CorrectGuesses;default:0"`
+	CreatedAt      time.Time `gorm:"column:CreatedAt;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time `gorm:"column:UpdatedAt;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 }
 
 // Game 结构体
 type Game struct {
-	ID             uint `gorm:"primary_key"`
-	TargetNumber   int
-	Attempts       int
-	CorrectGuesses int
+	ID             string `gorm:"column:ID;primary_key"`
+	TargetNumber   int    `gorm:"column:TargetNumber;not null"`
+	Attempts       int    `gorm:"column:Attempts;default:0"`
+	CorrectGuesses int    `gorm:"column:CorrectGuesses;default:0"`
+}
+
+// 自定义表名
+func (Game) TableName() string {
+	return "game"
 }
 
 // 初始化数据库连接
@@ -66,11 +68,6 @@ func initDatabase(dbConfig map[string]string) {
 	}
 	// 自动迁移数据库表
 	db.AutoMigrate(&User{}, &Game{})
-}
-
-// 自定义表名
-func (Game) TableName() string {
-	return "game"
 }
 
 // 获取或创建游戏记录
@@ -101,9 +98,7 @@ func incrementAttempts(game *Game) {
 }
 
 // 通过 userID 从 login-service 获取用户信息
-// database.go
-
-func getUserFromUserID(userID uint, authToken string) (User, error) {
+func getUserFromUserID(userID string, authToken string) (User, error) {
 	// 使用 Nacos 发现 login-service
 	service, err := NamingClient.GetService(vo.GetServiceParam{
 		ServiceName: "login-service",
@@ -138,7 +133,7 @@ func getUserFromUserID(userID uint, authToken string) (User, error) {
 	}
 
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("X-User-ID", strconv.Itoa(int(userID)))
+	req.Header.Set("X-User-ID", userID) // 直接设置为字符串类型
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -181,7 +176,9 @@ func generateTargetNumber() int {
 
 // 关闭数据库连接
 func closeDatabase() {
-	db.Close()
+	if db != nil {
+		db.Close()
+	}
 }
 
 // 获取数据库配置从 Nacos

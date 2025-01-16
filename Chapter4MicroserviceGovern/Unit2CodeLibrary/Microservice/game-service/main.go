@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
 
+// 定义请求和响应结构体
 type guessRequest struct {
 	Number int `json:"number"`
 }
@@ -87,7 +87,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "http://micro.roliyal.com")
 
 		// 设置允许的请求头，包括自定义头 'X-User-ID'
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID, Authorization")
 
 		// 设置允许的HTTP方法
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -107,8 +107,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // guessHandler 处理猜数字请求
-// main.go
-
 func guessHandler(w http.ResponseWriter, r *http.Request) {
 	// 输出请求头，确保 X-User-ID 和 Authorization 被接收到
 	log.Printf("Received headers: %v", r.Header)
@@ -125,19 +123,8 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 转换 userIdStr 为整数
-	userId, err := strconv.Atoi(userIdStr)
-	if err != nil {
-		log.Println("Error parsing userID:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "Invalid userID",
-		})
-		return
-	}
-
-	// 使用 userId 和 authToken 从 login-service 获取用户信息
-	user, err := getUserFromUserID(uint(userId), authToken)
+	// 使用 userIdStr 和 authToken 从 login-service 获取用户信息
+	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
 		w.WriteHeader(http.StatusUnauthorized)

@@ -77,7 +77,7 @@ func subscribeLoginService() {
 				return
 			}
 
-			fmt.Println("Login service instances update:") // 输出订阅成功信息
+			fmt.Println("Login service instances update:")
 			for _, service := range services {
 				fmt.Printf("Instance: IP=%s, Port=%d\n", service.Ip, service.Port)
 			}
