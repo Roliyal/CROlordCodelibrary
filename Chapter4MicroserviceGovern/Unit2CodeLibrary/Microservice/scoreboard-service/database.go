@@ -9,6 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"log"
 	"time"
 )
 
@@ -87,9 +88,15 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
         JOIN users ON game.id = users.id
         ORDER BY game.attempts ASC
     `
-	rows, err := db.Query(query)
+	stmt, err := db.Prepare(query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to prepare query: %v", err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to execute query: %v", err)
 	}
 	defer rows.Close()
 
@@ -98,14 +105,24 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 		var entry ScoreboardEntry
 		err := rows.Scan(&entry.ID, &entry.Username, &entry.Attempts, &entry.TargetNumber)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to scan row: %v", err)
 		}
 		entries = append(entries, entry)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Row iteration error: %v", err)
 	}
 
 	return entries, nil
+}
+
+// closeDatabase 关闭数据库连接
+func closeDatabase() {
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			log.Println("Error closing database:", err)
+		}
+	}
 }

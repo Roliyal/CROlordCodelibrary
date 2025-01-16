@@ -4,15 +4,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net"
+	"os"
+	"strconv"
+
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
-	"net"
-	"os"
-	"strconv"
 )
 
 // 全局变量
@@ -141,9 +142,7 @@ func deregisterService(serviceName string, port uint64) error {
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to deregister service: %w", err)
+		return fmt.Errorf("failed to deregister service instance: %w", err)
 	}
-
-	log.Printf("Service %s deregistered successfully from %s:%d", serviceName, hostIP, port)
 	return nil
 }

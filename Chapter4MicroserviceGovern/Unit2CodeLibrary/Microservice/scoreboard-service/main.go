@@ -3,14 +3,15 @@
 package main
 
 import (
-	"database/sql"
+	"database/sql" // 确保导入 database/sql 包
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/joho/godotenv"
 )
 
 type getScoreboardResponse struct {
@@ -33,21 +34,21 @@ func init() {
 
 func main() {
 	// 初始化 Nacos 客户端并获取配置客户端
-	namingClient, configClient, err := initNacos()
+	_, configClient, err := initNacos()
 	if err != nil {
-		log.Fatalf("Error initializing Nacos: %v", err)
+		log.Fatal("Error initializing Nacos:", err)
 	}
 	defer func() {
 		err = deregisterService("scoreboard-service", 8085)
 		if err != nil {
-			log.Fatalf("Error deregistering service: %v", err)
+			log.Fatal("Error deregistering service:", err)
 		}
 	}()
 
 	// 设置数据库连接
 	db, err = SetupDatabase(configClient)
 	if err != nil {
-		log.Fatalf("Error setting up the database: %v", err)
+		log.Fatal("Error setting up the database:", err)
 	}
 	defer closeDatabase()
 
@@ -92,6 +93,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 // getScoreboardHandler 处理排行榜请求
 func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
+		log.Println("Method not allowed:", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":   "Method not allowed",
