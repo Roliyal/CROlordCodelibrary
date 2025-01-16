@@ -76,9 +76,9 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 
 func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 	query := `
-        SELECT game.id, user.username, game.attempts, game.target_number
+        SELECT game.id, users.username, game.attempts, game.target_number
         FROM game
-        JOIN user ON game.id = user.id
+        JOIN users ON game.id = users.id
     `
 	rows, err := db.Query(query)
 	if err != nil {
