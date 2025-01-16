@@ -15,6 +15,7 @@
       <tbody>
       <tr v-for="(game, index) in gameData" :key="index">
         <td>{{ game.id }}</td>
+        <td>{{ game.username }}</td>
         <td>{{ game.attempts }}</td>
         <td>{{ game.target_number }}</td>
       </tr>
