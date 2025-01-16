@@ -7,12 +7,28 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"time"
 )
 
-type GameData struct {
-	ID           int `json:"id"`
-	Attempts     int `json:"attempts"`
-	TargetNumber int `json:"target_number"`
+// database.go
+
+type User struct {
+	ID             uint   `gorm:"primary_key"`
+	Username       string `gorm:"unique"`
+	Password       string
+	AuthToken      string
+	Wins           int
+	Attempts       int
+	CorrectGuesses int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ScoreboardEntry struct {
+	ID           int    `json:"id"`
+	Username     string `json:"username"`
+	Attempts     int    `json:"attempts"`
+	TargetNumber int    `json:"target_number"`
 }
 
 func SetupDatabase(nacosClient config_client.IConfigClient) (*sql.DB, error) {
@@ -58,27 +74,31 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 	return db, nil
 }
 
-func getGameData(db *sql.DB) ([]GameData, error) {
-	rows, err := db.Query("SELECT id, attempts, target_number FROM game")
+func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
+	query := `
+        SELECT game.id, user.username, game.attempts, game.target_number
+        FROM game
+        JOIN user ON game.id = user.id
+    `
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var gameData []GameData
+	var entries []ScoreboardEntry
 	for rows.Next() {
-		var data GameData
-		err = rows.Scan(&data.ID, &data.Attempts, &data.TargetNumber)
+		var entry ScoreboardEntry
+		err := rows.Scan(&entry.ID, &entry.Username, &entry.Attempts, &entry.TargetNumber)
 		if err != nil {
 			return nil, err
 		}
-		gameData = append(gameData, data)
+		entries = append(entries, entry)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return gameData, nil
+	return entries, nil
 }

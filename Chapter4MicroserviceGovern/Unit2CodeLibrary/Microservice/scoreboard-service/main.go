@@ -12,12 +12,6 @@ import (
 	"path/filepath"
 )
 
-type ScoreboardEntry struct {
-	Username string `json:"username"`
-	Wins     int    `json:"wins"`
-	Attempts int    `json:"attempts"`
-}
-
 func init() {
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -82,15 +76,20 @@ func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameData, err := getGameData(db)
+	scoreboardData, err := getScoreboardData(db)
 	if err != nil {
+		log.Println("Error fetching scoreboard data:", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Internal Server Error",
+			"success": false,
+		})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(gameData)
+	json.NewEncoder(w).Encode(scoreboardData)
 }
 
 func closeDatabase() {
