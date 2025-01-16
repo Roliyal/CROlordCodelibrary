@@ -1,16 +1,23 @@
+// main.go
+
 package main
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 )
+
+type getScoreboardResponse struct {
+	Entries []ScoreboardEntry `json:"entries"`
+}
+
+var db *sql.DB
 
 func init() {
 	pwd, err := os.Getwd()
@@ -24,55 +31,72 @@ func init() {
 	}
 }
 
-type getScoreboardResponse struct {
-	Entries []ScoreboardEntry `json:"entries"`
-}
-
-var db *sql.DB
-
 func main() {
-	_, configClient, err := initNacos()
+	// 初始化 Nacos 客户端并获取配置客户端
+	namingClient, configClient, err := initNacos()
 	if err != nil {
-		log.Fatal("Error initializing Nacos:", err)
+		log.Fatalf("Error initializing Nacos: %v", err)
 	}
 	defer func() {
 		err = deregisterService("scoreboard-service", 8085)
 		if err != nil {
-			log.Fatal("Error deregistering service:", err)
+			log.Fatalf("Error deregistering service: %v", err)
 		}
 	}()
 
+	// 设置数据库连接
 	db, err = SetupDatabase(configClient)
 	if err != nil {
-		log.Fatal("Error setting up the database:", err)
+		log.Fatalf("Error setting up the database: %v", err)
 	}
 	defer closeDatabase()
 
+	// 设置 HTTP 路由
 	mux := http.NewServeMux()
 	mux.HandleFunc("/scoreboard", getScoreboardHandler)
 
+	// 应用 CORS 中间件
+	handler := corsMiddleware(mux)
+
+	// 启动 HTTP 服务器
 	fmt.Println("Starting server on port 8085")
-	log.Fatal(http.ListenAndServe(":8085", corsMiddleware(mux)))
+	log.Fatal(http.ListenAndServe(":8085", handler))
 }
 
+// corsMiddleware CORS 中间件
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 设置允许的来源
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// 设置允许的请求头，包括自定义头 'Authorization'
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// 设置允许的HTTP方法
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
+		// 允许携带凭证
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// 处理预检请求
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
+		// 调用下一个处理器
 		next.ServeHTTP(w, r)
 	})
 }
 
+// getScoreboardHandler 处理排行榜请求
 func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Method not allowed",
+			"success": false,
+		})
 		return
 	}
 
@@ -87,13 +111,14 @@ func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := getScoreboardResponse{
+		Entries: scoreboardData,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(scoreboardData)
-}
-
-func closeDatabase() {
-	if db != nil {
-		db.Close()
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Println("Error encoding JSON response:", err)
 	}
 }

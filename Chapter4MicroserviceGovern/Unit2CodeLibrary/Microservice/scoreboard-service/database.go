@@ -1,3 +1,5 @@
+// database.go
+
 package main
 
 import (
@@ -10,27 +12,28 @@ import (
 	"time"
 )
 
-// database.go
-
+// User 结构体
 type User struct {
-	ID             uint   `gorm:"primary_key"`
-	Username       string `gorm:"unique"`
-	Password       string
-	AuthToken      string
-	Wins           int
-	Attempts       int
-	CorrectGuesses int
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             string    `json:"id"`
+	Username       string    `json:"username"`
+	Password       string    `json:"-"`
+	AuthToken      string    `json:"auth_token"`
+	Wins           int       `json:"wins"`
+	Attempts       int       `json:"attempts"`
+	CorrectGuesses int       `json:"correct_guesses"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+// ScoreboardEntry 结构体
 type ScoreboardEntry struct {
-	ID           int    `json:"id"`
+	ID           string `json:"id"` // 字符串类型
 	Username     string `json:"username"`
 	Attempts     int    `json:"attempts"`
 	TargetNumber int    `json:"target_number"`
 }
 
+// SetupDatabase 初始化数据库连接
 func SetupDatabase(nacosClient config_client.IConfigClient) (*sql.DB, error) {
 	dbConfig, err := getDatabaseConfigFromNacos(nacosClient)
 	if err != nil {
@@ -40,6 +43,7 @@ func SetupDatabase(nacosClient config_client.IConfigClient) (*sql.DB, error) {
 	return initDB(dbConfig)
 }
 
+// getDatabaseConfigFromNacos 从 Nacos 获取数据库配置
 func getDatabaseConfigFromNacos(nacosClient config_client.IConfigClient) (map[string]string, error) {
 	content, err := nacosClient.GetConfig(vo.ConfigParam{
 		DataId: "Prod_DATABASE",
@@ -59,6 +63,7 @@ func getDatabaseConfigFromNacos(nacosClient config_client.IConfigClient) (map[st
 	return dbConfig, nil
 }
 
+// initDB 初始化数据库连接
 func initDB(dbConfig map[string]string) (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True",
 		dbConfig["DB_USER"], dbConfig["DB_PASSWORD"], dbConfig["DB_HOST"], dbConfig["DB_PORT"], dbConfig["DB_NAME"])
@@ -74,12 +79,13 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 	return db, nil
 }
 
+// getScoreboardData 获取排行榜数据
 func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 	query := `
         SELECT game.id, users.username, game.attempts, game.target_number
         FROM game
         JOIN users ON game.id = users.id
-        ORDER BY game.attempts DESC
+        ORDER BY game.attempts ASC
     `
 	rows, err := db.Query(query)
 	if err != nil {
