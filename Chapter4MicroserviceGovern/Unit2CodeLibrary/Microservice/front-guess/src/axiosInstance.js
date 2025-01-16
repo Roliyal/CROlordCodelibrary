@@ -21,16 +21,29 @@ axiosInstance.interceptors.request.use(
             return config; // 不添加 Headers，直接返回配置
         }
 
-        // 从 store 或 localStorage 获取 userId
+        // 从 store 或 localStorage 获取 userId 和 authToken
         const userId = store.state.userId || localStorage.getItem("userId");
+        const authToken = store.state.authToken || localStorage.getItem("authToken");
 
-        console.log('Adding headers:', { userId });
+        console.log('Adding headers:', { userId, authToken });
 
         if (userId) {
             config.headers['X-User-ID'] = userId; // 添加自定义 Header
             console.log('X-User-ID header added');
         } else {
             console.log('X-User-ID header NOT added');
+        }
+
+        if (authToken) {
+            config.headers['Authorization'] = authToken; // 添加 Authorization Header
+            console.log('Authorization header added');
+        } else {
+            console.log('Authorization header NOT added');
+        }
+
+        // 确保 Content-Type 设置为 application/json
+        if (!config.headers['Content-Type']) { // 仅在未设置时添加
+            config.headers['Content-Type'] = 'application/json';
         }
 
         console.log('Request Headers:', config.headers);

@@ -61,7 +61,20 @@ func main() {
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
-		Debug:            true,                                                   // 启用调试日志
+		// Allow any Origin if Origin is present, otherwise allow server-to-server requests
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "" {
+				// 允许无 Origin 的请求（服务器间请求）
+				return true
+			}
+			for _, o := range []string{"http://micro.roliyal.com"} {
+				if o == origin {
+					return true
+				}
+			}
+			return false
+		},
+		Debug: true, // 启用调试日志
 	})
 
 	mux := http.NewServeMux()
@@ -111,10 +124,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error unmarshalling JSON:", err)
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Invalid JSON format",
+		})
 		return
 	}
 
-	log.Printf("Received login request with username: %s, password: %s\n", req.Username, req.Password)
+	log.Printf("Received login request with username: %s\n", req.Username)
 
 	var user User
 	// db 已在 database.go 中定义为全局变量
@@ -129,11 +146,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		           Success: false,
 		       }
 		       w.Header().Set("Content-Type", "application/json")
-		       w.WriteHeader(http.StatusOK)
-		       json.NewEncoder(w).Encode(res)
-		       fmt.Println("Sent login response:", res)
-		       return
-		   }
+		           w.WriteHeader(http.StatusOK)
+		           json.NewEncoder(w).Encode(res)
+		           fmt.Println("Sent login response:", res)
+		           return
+		       }
 		*/
 
 		// 生成新的 AuthToken
@@ -176,8 +193,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // userHandler 处理获取用户信息的请求
-// main.go 中的 userHandler
-
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	authToken := r.Header.Get("Authorization")
 	userID := r.Header.Get("X-User-ID") // 获取 X-User-ID 请求头
@@ -272,7 +287,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Received register request with username: %s, password: %s\n", req.Username, req.Password)
+	log.Printf("Received register request with username: %s\n", req.Username)
 
 	var existingUser User
 	err = db.Where("Username = ?", req.Username).First(&existingUser).Error

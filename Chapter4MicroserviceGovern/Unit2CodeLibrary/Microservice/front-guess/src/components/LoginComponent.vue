@@ -45,21 +45,30 @@ export default {
   },
   methods: {
     async login() {
-      const authResult = await authApi.authenticate(this.username, this.password);
+      try {
+        const authResult = await authApi.authenticate(this.username, this.password);
 
-      if (authResult && authResult.id !== undefined) {
-        store.setIsLoggedIn(true);
-        store.setUserId(authResult.id); // 设置 userId 到 store
-        localStorage.setItem("userId", authResult.id); // 存储 userId 到 localStorage
+        // 检查 authResult 是否包含 authToken
+        if (authResult && authResult.id && authResult.authToken) {
+          store.setIsLoggedIn(true);
+          store.setUserId(authResult.id); // 设置 userId 到 store
+          store.setAuthToken(authResult.authToken); // 设置 authToken 到 store
 
-        console.log('Stored userId in localStorage');
+          localStorage.setItem("userId", authResult.id); // 存储 userId 到 localStorage
+          localStorage.setItem("authToken", authResult.authToken); // 存储 authToken 到 localStorage
 
-        this.infoMessage = "登录成功！正在跳转...";
-        setTimeout(() => {
-          this.router.push("/game");
-        }, 1000);
-      } else {
-        this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
+          console.log('Stored userId and authToken in localStorage');
+
+          this.infoMessage = "登录成功！正在跳转...";
+          setTimeout(() => {
+            this.router.push("/game");
+          }, 1000);
+        } else {
+          this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
+        }
+      } catch (error) {
+        console.error("Error during login:", error);
+        this.errorMessage = "登录过程中发生错误，请稍后再试。";
       }
     },
   },

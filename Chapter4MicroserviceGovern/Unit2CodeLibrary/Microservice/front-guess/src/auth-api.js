@@ -14,11 +14,12 @@ export default {
 
             console.log('Login response:', response.data);
 
-            if (response.data && response.data.success && response.data.id !== undefined) {
+            if (response.data && response.data.success && response.data.id !== undefined && response.data.authToken) {
                 this.isAuthenticated = true;
 
                 return {
                     id: response.data.id,
+                    authToken: response.data.authToken, // 返回 authToken
                 };
             } else {
                 return null;

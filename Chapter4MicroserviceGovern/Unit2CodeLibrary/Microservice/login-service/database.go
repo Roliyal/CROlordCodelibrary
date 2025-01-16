@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand" // 添加 math/rand 包
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,6 +31,11 @@ type User struct {
 	Attempts  int       `gorm:"column:Attempts;default:0"`
 	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+}
+
+// TableName 显式指定表名为 `users`
+func (User) TableName() string {
+	return "users"
 }
 
 // DBConfig 结构体

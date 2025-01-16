@@ -25,7 +25,6 @@
 
 <script>
 import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
-import config from "../config.js";
 
 export default {
   data() {
@@ -45,7 +44,7 @@ export default {
 
     async submitGuess(guess) {
       try {
-        const response = await axiosInstance.post(`${config.gameURL}/game`, {
+        const response = await axiosInstance.post('/game', { // 使用相对路径
           number: guess,
         });
 
