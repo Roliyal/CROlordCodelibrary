@@ -8,6 +8,7 @@
       <thead>
       <tr>
         <th>ID</th>
+        <th>Username</th>
         <th>Attempts</th>
         <th>Target Number</th>
       </tr>
