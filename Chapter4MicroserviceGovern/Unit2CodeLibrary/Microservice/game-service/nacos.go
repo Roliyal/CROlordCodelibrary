@@ -45,6 +45,7 @@ func initNacos() {
 	}
 	fmt.Printf("Nacos server config: %v\n", serverConfigs) // 输出 Nacos 服务器配置
 
+	// 创建命名客户端
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		constant.KEY_SERVER_CONFIGS: serverConfigs,
 		constant.KEY_CLIENT_CONFIG:  clientConfig,

@@ -24,6 +24,27 @@ type guessResponse struct {
 	Attempts int    `json:"attempts"`
 }
 
+type registerRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Success   bool   `json:"success"`
+	AuthToken string `json:"authToken"`
+	ID        string `json:"id"` // 使用字符串类型
+}
+
+// respondWithError 统一错误响应
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"error":   message,
+	})
+}
+
 func main() {
 	// 初始化日志目录
 	logDir := "/app/log"
@@ -86,7 +107,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		// 设置允许的来源
 		w.Header().Set("Access-Control-Allow-Origin", "http://micro.roliyal.com")
 
-		// 设置允许的请求头，包括自定义头 'X-User-ID'
+		// 设置允许的请求头，包括自定义头 'X-User-ID' 和 'Authorization'
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID, Authorization")
 
 		// 设置允许的HTTP方法
@@ -116,10 +137,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 
 	if userIdStr == "" {
 		log.Println("Error: Missing X-User-ID header")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "Missing X-User-ID header",
-		})
+		respondWithError(w, http.StatusBadRequest, "Missing X-User-ID header")
 		return
 	}
 
@@ -127,10 +145,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "Unauthorized",
-		})
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -138,7 +153,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Error reading request body:", err)
-		w.WriteHeader(http.StatusBadRequest)
+		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 	defer r.Body.Close()
@@ -148,7 +163,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		log.Println("Error unmarshalling JSON:", err)
-		w.WriteHeader(http.StatusBadRequest)
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON format")
 		return
 	}
 
@@ -156,7 +171,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	game, err := getOrCreateGame(&user)
 	if err != nil {
 		log.Println("Error getting or creating game:", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
