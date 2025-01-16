@@ -107,11 +107,15 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // guessHandler 处理猜数字请求
+// main.go
+
 func guessHandler(w http.ResponseWriter, r *http.Request) {
-	// 输出请求头，确保 X-User-ID 被接收到
+	// 输出请求头，确保 X-User-ID 和 Authorization 被接收到
 	log.Printf("Received headers: %v", r.Header)
 
-	userIdStr := r.Header.Get("X-User-ID") // 读取 X-User-ID 请求头
+	userIdStr := r.Header.Get("X-User-ID")     // 读取 X-User-ID 请求头
+	authToken := r.Header.Get("Authorization") // 读取 Authorization 请求头
+
 	if userIdStr == "" {
 		log.Println("Error: Missing X-User-ID header")
 		w.WriteHeader(http.StatusBadRequest)
@@ -132,8 +136,8 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 使用 userId 从 login-service 获取用户信息
-	user, err := getUserFromUserID(uint(userId))
+	// 使用 userId 和 authToken 从 login-service 获取用户信息
+	user, err := getUserFromUserID(uint(userId), authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
 		w.WriteHeader(http.StatusUnauthorized)

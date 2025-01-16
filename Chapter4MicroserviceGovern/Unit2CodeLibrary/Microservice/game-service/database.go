@@ -19,10 +19,18 @@ import (
 var db *gorm.DB
 
 // User 结构体
+// database.go
+
 type User struct {
-	ID       uint   `gorm:"primary_key"`
-	Username string `gorm:"unique"`
-	Password string
+	ID             uint   `gorm:"primary_key"`
+	Username       string `gorm:"unique"`
+	Password       string
+	AuthToken      string
+	Wins           int
+	Attempts       int
+	CorrectGuesses int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // Game 结构体
@@ -93,7 +101,9 @@ func incrementAttempts(game *Game) {
 }
 
 // 通过 userID 从 login-service 获取用户信息
-func getUserFromUserID(userID uint) (User, error) {
+// database.go
+
+func getUserFromUserID(userID uint, authToken string) (User, error) {
 	// 使用 Nacos 发现 login-service
 	service, err := NamingClient.GetService(vo.GetServiceParam{
 		ServiceName: "login-service",
@@ -121,15 +131,20 @@ func getUserFromUserID(userID uint) (User, error) {
 	// 构建请求 URL
 	url := fmt.Sprintf("http://%s:%d/user", instance.Ip, instance.Port)
 
-	// 创建 GET 请求，并设置 X-User-ID 头
+	// 创建 GET 请求，并设置 Authorization 和 X-User-ID 头
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return User{}, fmt.Errorf("error creating request: %w", err)
 	}
 
+	req.Header.Set("Authorization", authToken)
 	req.Header.Set("X-User-ID", strconv.Itoa(int(userID)))
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
 		return User{}, fmt.Errorf("error sending request to login service: %w", err)
