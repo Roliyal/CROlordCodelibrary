@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,10 +18,10 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"math/rand"
 )
 
 // User 结构体
-
 type User struct {
 	ID             string    `gorm:"column:ID;primary_key"`
 	Username       string    `gorm:"column:Username;unique;not null"`
@@ -61,6 +60,8 @@ func init() {
 	if err != nil {
 		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
 	}
+
+	rand.Seed(time.Now().UnixNano()) // 初始化随机数种子
 }
 
 func initDatabase() {
@@ -125,7 +126,38 @@ func initDatabase() {
 	db.AutoMigrate(&User{})
 }
 
-// mustParseUint 解析字符串为 uint64，失败则记录并退出
+// MaxID 结构体用于接收 MAX(ID) 的查询结果
+type MaxID struct {
+	MaxID string `gorm:"max(id)"`
+}
+
+// getNextUserID 生成下一个唯一的6位数用户ID
+func getNextUserID() (string, error) {
+	var result MaxID
+	// 查询当前最大的ID
+	err := db.Model(&User{}).Select("MAX(ID) as max_id").Scan(&result).Error
+	if err != nil {
+		return "", err
+	}
+
+	var nextID int
+	if result.MaxID == "" {
+		nextID = 1
+	} else {
+		currentID, err := strconv.Atoi(result.MaxID)
+		if err != nil {
+			return "", err
+		}
+		nextID = currentID + 1
+	}
+
+	// 生成6位数ID，补零
+	if nextID > 999999 {
+		return "", fmt.Errorf("User ID exceeds 6 digits")
+	}
+	return fmt.Sprintf("%06d", nextID), nil
+}
+
 func mustParseUint(s string) uint64 {
 	i, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
@@ -154,31 +186,4 @@ func getHealthyInstance(instances []model.Instance) *model.Instance {
 func generateTargetNumber() int {
 	rand.Seed(time.Now().UnixNano()) // 使用 math/rand 包
 	return rand.Intn(100) + 1        // 1 到 100
-}
-
-// getNextUserID 生成下一个唯一的6位数用户ID
-func getNextUserID() (string, error) {
-	var maxID string
-	// 查询当前最大的ID
-	err := db.Model(&User{}).Select("MAX(ID)").Scan(&maxID).Error
-	if err != nil {
-		return "", err
-	}
-
-	var nextID int
-	if maxID == "" {
-		nextID = 1
-	} else {
-		currentID, err := strconv.Atoi(maxID)
-		if err != nil {
-			return "", err
-		}
-		nextID = currentID + 1
-	}
-
-	// 生成6位数ID，补零
-	if nextID > 999999 {
-		return "", fmt.Errorf("User ID exceeds 6 digits")
-	}
-	return fmt.Sprintf("%06d", nextID), nil
 }

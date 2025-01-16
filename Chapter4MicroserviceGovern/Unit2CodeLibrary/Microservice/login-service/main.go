@@ -32,7 +32,7 @@ type registerRequest struct {
 type loginResponse struct {
 	Success   bool   `json:"success"`
 	AuthToken string `json:"authToken"`
-	ID        string `json:"id"` // 改为 string 类型
+	ID        string `json:"id"` // 使用 string 类型
 }
 
 func main() {
@@ -252,7 +252,6 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // registerHandler 处理用户注册请求
-
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received register request")
 	if r.Method != http.MethodPost {
@@ -311,6 +310,20 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// 如果使用密码哈希，请在这里哈希密码
+	/*
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			log.Println("Error hashing password:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Internal Server Error",
+			})
+			return
+		}
+	*/
 
 	user := User{
 		ID:        nextID,
