@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time" // 添加 time 包
 
 	// 如果使用密码哈希，请取消注释以下导入
@@ -33,7 +32,7 @@ type registerRequest struct {
 type loginResponse struct {
 	Success   bool   `json:"success"`
 	AuthToken string `json:"authToken"`
-	ID        uint   `json:"id"` // 使用 uint 类型
+	ID        string `json:"id"` // 改为 string 类型
 }
 
 func main() {
@@ -172,7 +171,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		res := loginResponse{
 			Success:   true,
 			AuthToken: newAuthToken,
-			ID:        user.ID,
+			ID:        user.ID, // 现在是string类型
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -208,20 +207,9 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 将 userID 转换为 uint64
-	userIDUint, err := strconv.ParseUint(userID, 10, 64)
-	if err != nil {
-		log.Println("Error parsing userID:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "Invalid userID",
-		})
-		return
-	}
-
 	// 使用 authToken 和 userID 查询用户
 	var user User
-	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userIDUint).First(&user).Error; err != nil {
+	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
 		log.Printf("Error finding user by AuthToken and ID: %v\n", err)
 		if gorm.IsRecordNotFoundError(err) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -239,7 +227,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 返回用户数据（不包括密码）
 	type userResponse struct {
-		ID        uint      `json:"ID"`
+		ID        string    `json:"ID"`
 		Username  string    `json:"Username"`
 		AuthToken string    `json:"AuthToken"`
 		Wins      int       `json:"Wins"`
@@ -264,6 +252,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // registerHandler 处理用户注册请求
+
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received register request")
 	if r.Method != http.MethodPost {
@@ -311,21 +300,20 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 如果使用密码哈希，请在这里哈希密码
-	/*
-	   hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	   if err != nil {
-	       log.Println("Error hashing password:", err)
-	       w.WriteHeader(http.StatusInternalServerError)
-	       json.NewEncoder(w).Encode(map[string]interface{}{
-	           "success": false,
-	           "error":   "Internal Server Error",
-	       })
-	       return
-	   }
-	*/
+	// 生成下一个唯一的6位数ID
+	nextID, err := getNextUserID()
+	if err != nil {
+		log.Println("Error generating User ID:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Internal Server Error",
+		})
+		return
+	}
 
 	user := User{
+		ID:        nextID,
 		Username:  req.Username,
 		Password:  req.Password, // 如果使用哈希密码，请设置为 string(hashedPassword)
 		AuthToken: generateToken(),
@@ -347,7 +335,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	res := loginResponse{
 		Success:   true,
 		AuthToken: user.AuthToken,
-		ID:        user.ID,
+		ID:        user.ID, // 现在是string类型
 	}
 
 	w.Header().Set("Content-Type", "application/json")

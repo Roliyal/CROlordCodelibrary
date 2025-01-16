@@ -22,15 +22,17 @@ import (
 )
 
 // User 结构体
+
 type User struct {
-	ID        uint      `gorm:"column:ID;primary_key;auto_increment"`
-	Username  string    `gorm:"column:Username;unique;not null"`
-	Password  string    `gorm:"column:Password;not null"`
-	AuthToken string    `gorm:"column:AuthToken;not null"`
-	Wins      int       `gorm:"column:Wins;default:0"`
-	Attempts  int       `gorm:"column:Attempts;default:0"`
-	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	ID             string    `gorm:"column:ID;primary_key"`
+	Username       string    `gorm:"column:Username;unique;not null"`
+	Password       string    `gorm:"column:Password;not null"`
+	AuthToken      string    `gorm:"column:AuthToken;not null"`
+	Wins           int       `gorm:"column:Wins;default:0"`
+	Attempts       int       `gorm:"column:Attempts;default:0"`
+	CreatedAt      time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CorrectGuesses int       `gorm:"column:correct_guesses;default:0"`
 }
 
 // TableName 显式指定表名为 `users`
@@ -152,4 +154,31 @@ func getHealthyInstance(instances []model.Instance) *model.Instance {
 func generateTargetNumber() int {
 	rand.Seed(time.Now().UnixNano()) // 使用 math/rand 包
 	return rand.Intn(100) + 1        // 1 到 100
+}
+
+// getNextUserID 生成下一个唯一的6位数用户ID
+func getNextUserID() (string, error) {
+	var maxID string
+	// 查询当前最大的ID
+	err := db.Model(&User{}).Select("MAX(ID)").Scan(&maxID).Error
+	if err != nil {
+		return "", err
+	}
+
+	var nextID int
+	if maxID == "" {
+		nextID = 1
+	} else {
+		currentID, err := strconv.Atoi(maxID)
+		if err != nil {
+			return "", err
+		}
+		nextID = currentID + 1
+	}
+
+	// 生成6位数ID，补零
+	if nextID > 999999 {
+		return "", fmt.Errorf("User ID exceeds 6 digits")
+	}
+	return fmt.Sprintf("%06d", nextID), nil
 }
