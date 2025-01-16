@@ -79,6 +79,7 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
         SELECT game.id, users.username, game.attempts, game.target_number
         FROM game
         JOIN users ON game.id = users.id
+        ORDER BY game.attempts DESC
     `
 	rows, err := db.Query(query)
 	if err != nil {
