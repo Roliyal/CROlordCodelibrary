@@ -5,7 +5,7 @@ import store from "./store";
 
 // 创建 Axios 实例
 const axiosInstance = axios.create({
-    baseURL: 'http://47.83.211.8', // 后端服务的基础 URL
+    baseURL: 'http://47.238.211.2148', // 后端服务的基础 URL
     timeout: 10000, // 请求超时时间（毫秒）
     withCredentials: true, // 允许携带凭证（如 cookies）
 });
