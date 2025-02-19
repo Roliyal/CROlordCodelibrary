@@ -8,7 +8,7 @@
       </div>
       <a v-else href="#" @click="logout">退出</a>
       <router-link to="/game">猜数字游戏</router-link>
-      <router-link to="/scoreboard">猜测次数最多排行榜</router-link>
+      <router-link to="/scoreboard">猜测次数最少排行榜</router-link>
     </nav>
     <router-view></router-view>
   </div>

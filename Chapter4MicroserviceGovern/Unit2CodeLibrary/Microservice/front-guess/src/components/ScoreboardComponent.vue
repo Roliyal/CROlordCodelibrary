@@ -1,7 +1,7 @@
 <!-- src/components/ScoreboardComponent.vue -->
 <template>
   <div class="container scoreboard-container">
-    <h2>猜测次数最多排行榜</h2>
+    <h2>猜测次数最少排行榜</h2>
     <p v-if="!dataFetched">在这里查看您的排行！</p>
     <button @click="fetchScoreboardData" v-if="!dataFetched">获取排行信息</button>
     <table class="scoreboard-table" v-if="dataFetched">
