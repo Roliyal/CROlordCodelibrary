@@ -1,5 +1,3 @@
-// database.go
-
 package main
 
 import (
@@ -24,14 +22,6 @@ type User struct {
 	CorrectGuesses int       `json:"correct_guesses"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
-}
-
-// ScoreboardEntry 结构体
-type ScoreboardEntry struct {
-	ID           string `json:"id"` // 字符串类型
-	Username     string `json:"username"`
-	Attempts     int    `json:"attempts"`
-	TargetNumber int    `json:"target_number"`
 }
 
 // SetupDatabase 初始化数据库连接
@@ -85,7 +75,7 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 	query := `
         SELECT game.id, users.username, game.attempts, game.target_number
         FROM game
-        JOIN users ON game.id = users.id
+        JOIN users ON game.user_id = users.id
         ORDER BY game.attempts ASC
     `
 	stmt, err := db.Prepare(query)
@@ -118,7 +108,7 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 }
 
 // closeDatabase 关闭数据库连接
-func closeDatabase() {
+func closeDatabase(db *sql.DB) {
 	if db != nil {
 		err := db.Close()
 		if err != nil {

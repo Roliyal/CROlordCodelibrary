@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -40,90 +39,6 @@ func init() {
 	}
 }
 
-// SetupDatabase 设置数据库连接
-func SetupDatabase(nacosClient config_client.IConfigClient) (*sql.DB, error) {
-	dbConfig, err := getDatabaseConfigFromNacos(nacosClient)
-	if err != nil {
-		return nil, err
-	}
-
-	return initDB(dbConfig)
-}
-
-// getDatabaseConfigFromNacos 从 Nacos 配置中心获取数据库配置
-func getDatabaseConfigFromNacos(nacosClient config_client.IConfigClient) (map[string]string, error) {
-	content, err := nacosClient.GetConfig(vo.ConfigParam{
-		DataId: "Prod_DATABASE",
-		Group:  "DEFAULT_GROUP",
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	var dbConfig map[string]string
-	err = json.Unmarshal([]byte(content), &dbConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbConfig, nil
-}
-
-// initDB 初始化数据库连接
-func initDB(dbConfig map[string]string) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True",
-		dbConfig["DB_USER"], dbConfig["DB_PASSWORD"], dbConfig["DB_HOST"], dbConfig["DB_PORT"], dbConfig["DB_NAME"])
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, err
-	}
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-
-// getScoreboardData 从数据库获取排行榜数据
-func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
-	query := `
-        SELECT game.id, users.username, game.attempts, game.target_number
-        FROM game
-        JOIN users ON game.user_id = users.id
-        ORDER BY game.attempts DESC
-    `
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var entries []ScoreboardEntry
-	for rows.Next() {
-		var entry ScoreboardEntry
-		err := rows.Scan(&entry.ID, &entry.Username, &entry.Attempts, &entry.TargetNumber)
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, entry)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return entries, nil
-}
-
-// closeDatabase 关闭数据库连接
-func closeDatabase() {
-	if db != nil {
-		db.Close()
-	}
-}
-
 // main 启动 HTTP 服务
 func main() {
 	_, configClient, err := initNacos()
@@ -141,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error setting up the database:", err)
 	}
-	defer closeDatabase()
+	defer closeDatabase(db)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/scoreboard", getScoreboardHandler)
