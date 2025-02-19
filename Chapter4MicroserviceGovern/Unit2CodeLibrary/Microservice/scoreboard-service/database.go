@@ -73,11 +73,12 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 // getScoreboardData 获取排行榜数据
 func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 	query := `
-        SELECT game.id, users.username, game.attempts, game.target_number
-        FROM game
-        JOIN users ON game.user_id = users.id
-        ORDER BY game.attempts ASC
-    `
+    SELECT game.ID, users.username, game.Attempts, game.TargetNumber
+    FROM game
+    JOIN users ON game.user_id = users.id
+    ORDER BY game.Attempts ASC
+`
+
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to prepare query: %v", err)
