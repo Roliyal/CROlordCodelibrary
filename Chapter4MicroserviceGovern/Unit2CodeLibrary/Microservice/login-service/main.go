@@ -1,5 +1,3 @@
-// main.go
-
 package main
 
 import (
@@ -7,17 +5,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-contrib/cors" // 使用 Gin 专用的 CORS 中间件
+	"github.com/gin-gonic/gin"    // 引入 Gin 框架
 	"github.com/jinzhu/gorm"
-	"github.com/rs/cors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time" // 添加 time 包
-
-	// "golang.org/x/crypto/bcrypt"
 )
 
+// 定义请求结构体
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -31,7 +29,7 @@ type registerRequest struct {
 type loginResponse struct {
 	Success   bool   `json:"success"`
 	AuthToken string `json:"authToken"`
-	ID        string `json:"id"` // 使用 string 类型
+	ID        string `json:"id"`
 }
 
 func main() {
@@ -53,13 +51,15 @@ func main() {
 	}
 	defer deregisterLoginService() // 确保 deregisterLoginService 已定义
 
-	// 配置 CORS
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://micro.roliyal.com"}, // 明确指定前端地址
+	// 使用 Gin 创建一个 HTTP 引擎
+	r := gin.Default()
+
+	// 配置 CORS（使用 Gin 专用的 CORS 中间件）
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 明确指定前端地址
 		AllowCredentials: true,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
-		// Allow any Origin if Origin is present, otherwise allow server-to-server requests
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
 		AllowOriginFunc: func(origin string) bool {
 			if origin == "" {
 				// 允许无 Origin 的请求（服务器间请求）
@@ -73,18 +73,16 @@ func main() {
 			return false
 		},
 		Debug: true, // 启用调试日志
-	})
+	}))
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/login", loginHandler)
-	mux.HandleFunc("/user", userHandler)
-	mux.HandleFunc("/register", registerHandler)
+	// 定义路由
+	r.POST("/login", loginHandler)
+	r.POST("/register", registerHandler)
+	r.GET("/user", userHandler)
 
-	// 应用 CORS 中间件到整个 ServeMux
-	handler := c.Handler(mux)
-
+	// 启动服务
 	fmt.Println("Starting server on port 8083")
-	log.Fatal(http.ListenAndServe(":8083", handler))
+	r.Run(":8083")
 }
 
 // generateAuthToken 生成认证令牌
@@ -102,30 +100,26 @@ func generateRandomToken(length int) (string, error) {
 }
 
 // loginHandler 处理登录请求
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func loginHandler(c *gin.Context) {
 	fmt.Println("Received login request")
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	if c.Request.Method != "POST" {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"success": false, "error": "Invalid method"})
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Println("Error reading request body:", err)
-		w.WriteHeader(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error reading request body"})
 		return
 	}
-	defer r.Body.Close()
+	defer c.Request.Body.Close()
 
 	var req loginRequest
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		log.Println("Error unmarshalling JSON:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Invalid JSON format",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
@@ -136,26 +130,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").Where("username = ?", req.Username).First(&user).Error; err == nil {
 		log.Println("User found:", user)
 
-		// 如果使用密码哈希，请在这里验证密码
-		/*
-		   if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		       // 密码不匹配
-		       res := loginResponse{
-		           Success: false,
-		       }
-		       w.Header().Set("Content-Type", "application/json")
-		           w.WriteHeader(http.StatusOK)
-		           json.NewEncoder(w).Encode(res)
-		           fmt.Println("Sent login response:", res)
-		           return
-		       }
-		*/
-
 		// 生成新的 AuthToken
 		newAuthToken, err := generateAuthToken()
 		if err != nil {
 			log.Println("Error generating auth token:", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating auth token"})
 			return
 		}
 
@@ -163,7 +142,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		user.AuthToken = newAuthToken
 		if err := db.Save(&user).Error; err != nil {
 			log.Println("Error updating user with new AuthToken:", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating auth token"})
 			return
 		}
 
@@ -173,36 +152,27 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			ID:        user.ID, // 现在是string类型
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
-		fmt.Println("Sent login response:", res)
+		c.JSON(http.StatusOK, res)
 	} else {
 		log.Println("User not found, error:", err)
 		res := loginResponse{
 			Success: false,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(res)
-		fmt.Println("Sent login response:", res)
+		c.JSON(http.StatusOK, res)
 	}
 }
 
 // userHandler 处理获取用户信息的请求
-func userHandler(w http.ResponseWriter, r *http.Request) {
-	authToken := r.Header.Get("Authorization")
-	userID := r.Header.Get("X-User-ID") // 获取 X-User-ID 请求头
+func userHandler(c *gin.Context) {
+	authToken := c.GetHeader("Authorization")
+	userID := c.GetHeader("X-User-ID") // 获取 X-User-ID 请求头
 
 	log.Printf("Received headers: Authorization=%s, X-User-ID=%s", authToken, userID)
 
 	if authToken == "" || userID == "" {
 		log.Println("Error: Missing Authorization or X-User-ID header")
-		w.WriteHeader(http.StatusUnauthorized) // 修改为 401
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "Missing Authorization or X-User-ID header",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization or X-User-ID header"})
 		return
 	}
 
@@ -211,15 +181,9 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
 		log.Printf("Error finding user by AuthToken and ID: %v\n", err)
 		if gorm.IsRecordNotFoundError(err) {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": "Unauthorized",
-			})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": "Internal Server Error",
-			})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		}
 		return
 	}
@@ -245,89 +209,44 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(res)
+	c.JSON(http.StatusOK, res)
 }
 
 // registerHandler 处理用户注册请求
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Received register request")
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println("Error reading request body:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
+func registerHandler(c *gin.Context) {
 	var req registerRequest
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		log.Println("Error unmarshalling JSON:", err)
-		w.WriteHeader(http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
 	log.Printf("Received register request with username: %s\n", req.Username)
 
 	var existingUser User
-	err = db.Where("Username = ?", req.Username).First(&existingUser).Error
+	err := db.Where("Username = ?", req.Username).First(&existingUser).Error
 	if err == nil {
 		log.Println("Username already exists:", req.Username)
-		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Username already exists",
-		})
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 		return
 	}
 
 	if !gorm.IsRecordNotFoundError(err) {
 		log.Println("Error checking for existing user:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Internal Server Error",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 
-	// 生成下一个唯一的6位数ID
 	nextID, err := getNextUserID()
 	if err != nil {
 		log.Println("Error generating User ID:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Internal Server Error",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
-
-	// 如果使用密码哈希，请在这里哈希密码
-	/*
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			log.Println("Error hashing password:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   "Internal Server Error",
-			})
-			return
-		}
-	*/
 
 	user := User{
 		ID:        nextID,
 		Username:  req.Username,
-		Password:  req.Password, // 如果使用哈希密码，请设置为 string(hashedPassword)
+		Password:  req.Password, // 可替换为密码哈希
 		AuthToken: generateToken(),
 		Wins:      0,
 		Attempts:  0,
@@ -336,24 +255,17 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	err = db.Create(&user).Error
 	if err != nil {
 		log.Println("Error creating new user:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Internal Server Error",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 
 	res := loginResponse{
 		Success:   true,
 		AuthToken: user.AuthToken,
-		ID:        user.ID, // 现在是string类型
+		ID:        user.ID,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(res)
-	fmt.Println("Sent register response:", res)
+	c.JSON(http.StatusCreated, res)
 }
 
 // generateToken 生成认证令牌（简单示例）
