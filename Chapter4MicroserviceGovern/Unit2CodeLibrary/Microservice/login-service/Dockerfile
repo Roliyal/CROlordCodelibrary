@@ -12,7 +12,7 @@ RUN wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo
     chmod +x instgo
 
 # 设置 LicenseKey 和 RegionId（如果你有 LicenseKey，可以替换 {YourLicenseKey} 和 {YourRegionId}）
-RUN ./instgo set --mse --licenseKey={YourLicenseKey} --regionId={YourRegionId} --dev=false
+RUN ./instgo set --mse --licenseKey={YourLicenseKey} --regionId={YourRegionId} --dev=true
 
 # Copy the go.mod, go.sum, and .env.production files to the working directory
 COPY go.mod go.sum .env ./
