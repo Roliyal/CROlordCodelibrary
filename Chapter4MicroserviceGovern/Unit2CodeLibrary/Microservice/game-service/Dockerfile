@@ -4,6 +4,9 @@ FROM golang:1.22.4 AS builder
 # Set the working directory
 WORKDIR /app
 
+# Set Go proxy to Alibaba Cloud Go Proxy for faster module download
+ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
+
 # Copy the go.mod, go.sum, and .env.production files to the working directory
 COPY go.mod go.sum .env ./
 
