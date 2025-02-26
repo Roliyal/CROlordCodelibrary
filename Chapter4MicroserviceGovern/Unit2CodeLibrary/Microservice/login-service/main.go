@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-contrib/cors" // 使用 Gin 专用的 CORS 中间件
+	"github.com/gin-contrib/cors" // 引入 Gin 的 CORS 中间件
 	"github.com/gin-gonic/gin"    // 引入 Gin 框架
 	"github.com/jinzhu/gorm"
 	"io/ioutil"
@@ -54,12 +54,12 @@ func main() {
 	// 使用 Gin 创建一个 HTTP 引擎
 	r := gin.Default()
 
-	// 配置 CORS（使用 Gin 专用的 CORS 中间件）
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 明确指定前端地址
+	// 配置 CORS
+	corsMiddleware := cors.New(cors.Config{
+		AllowedOrigins:   []string{"http://micro.roliyal.com"}, // 明确指定前端地址
 		AllowCredentials: true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
-		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
 		AllowOriginFunc: func(origin string) bool {
 			if origin == "" {
 				// 允许无 Origin 的请求（服务器间请求）
@@ -72,8 +72,10 @@ func main() {
 			}
 			return false
 		},
-		Debug: true, // 启用调试日志
-	}))
+	})
+
+	// 使用 gin.WrapF 将 cors.Handler 包装为 Gin 的中间件
+	r.Use(corsMiddleware)
 
 	// 定义路由
 	r.POST("/login", loginHandler)
