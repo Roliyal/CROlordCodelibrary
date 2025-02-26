@@ -56,22 +56,10 @@ func main() {
 
 	// 配置 CORS
 	corsMiddleware := cors.New(cors.Config{
-		AllowedOrigins:   []string{"http://micro.roliyal.com"}, // 明确指定前端地址
+		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 明确指定前端地址
 		AllowCredentials: true,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
-		AllowOriginFunc: func(origin string) bool {
-			if origin == "" {
-				// 允许无 Origin 的请求（服务器间请求）
-				return true
-			}
-			for _, o := range []string{"http://micro.roliyal.com"} {
-				if o == origin {
-					return true
-				}
-			}
-			return false
-		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
 	})
 
 	// 使用 gin.WrapF 将 cors.Handler 包装为 Gin 的中间件
