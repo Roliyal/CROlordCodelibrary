@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: micro-go-login
+        aliyun.com/app-language: golang
+        msePilotAutoEnable: "on"
+        mseNamespace: "crolord"
+        msePilotCreateAppName: "micro-go-login"
     spec:
       containers:
         - name: micro-go-login
