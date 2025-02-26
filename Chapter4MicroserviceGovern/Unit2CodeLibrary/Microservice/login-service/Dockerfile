@@ -1,60 +1,70 @@
-# Use the official Golang image as the base image
+# 使用官方 Golang 镜像作为基础镜像
 FROM golang:1.22.4 AS builder
 
-# Set the working directory
+# 设置工作目录
 WORKDIR /app
 
-# Set Go proxy to Alibaba Cloud Go Proxy for faster module download
+# 设置 Go 代理为阿里云镜像
 ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
-# 下载 instgo 工具
-RUN wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo && \
+# 下载 instgo 工具并适配架构
+RUN uname -m && \
+    if [ "$(uname -m)" = "x86_64" ]; then \
+        wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo; \
+    elif [ "$(uname -m)" = "aarch64" ]; then \
+        wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-arm64" -O instgo; \
+    else \
+        echo "Unsupported architecture"; exit 1; \
+    fi && \
     chmod +x instgo
 
-# 设置 LicenseKey 和 RegionId（如果你有 LicenseKey，可以替换 {YourLicenseKey} 和 {YourRegionId}）
-RUN ./instgo set --mse  --regionId=hangzhou --dev=true
+# 设置 LicenseKey 和 RegionId
+RUN ./instgo set --mse --regionId=hangzhou --dev=true
 
-# Copy the go.mod, go.sum, and .env.production files to the working directory
+# 复制 go.mod, go.sum 文件到工作目录
 COPY go.mod go.sum .env ./
 
-# Download the dependencies
+# 下载依赖
 RUN go mod download
 
-# Copy the source code to the working directory
+# 复制源代码到工作目录
 COPY . .
 
-# Compile the Go program
-#RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./instgo go build -o main .
+# 编译 AMD64 架构的二进制文件
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./instgo go build -o main-amd64 .
 
+# 编译 ARM64 架构的二进制文件
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./instgo go build -o main-arm64 .
 
-# Use the official Alpine image as the base image
+# 使用 Alpine 镜像作为基础镜像
 FROM alpine
 
-# Add a non-root user
+# 添加非 root 用户
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Set the working directory to /app
+# 设置工作目录为 /app
 WORKDIR /app
 
-# Copy the compiled Go binary and .env.production files
-COPY --from=builder /app/main /app/main
+# 复制编译好的 Go 二进制文件
+COPY --from=builder /app/main-amd64 /app/main-amd64
+COPY --from=builder /app/main-arm64 /app/main-arm64
 COPY --from=builder /app/.env /app/.env
 
-# Create the log directory and change its ownership to the non-root user
+# 创建日志目录并修改权限
 RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
 
-# Change the ownership of the working directory to the non-root user
+# 更改工作目录的拥有者为非 root 用户
 RUN chown -R appuser:appgroup /app
 
-# Switch to the non-root user
+# 切换到非 root 用户
 USER appuser
 
-# Expose the port, make sure it matches the port used by your application
+# 暴露端口，确保与应用程序使用的端口一致
 EXPOSE 8083
 
-# Add a health check
-HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/main", "check"]
+# 添加启动脚本
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
-# Run the Go program
-ENTRYPOINT ["/app/main"]
+# 默认运行启动脚本
+ENTRYPOINT ["/app/start.sh"]
