@@ -14,7 +14,7 @@ spec:
         app: micro-go-login
         aliyun.com/app-language: golang
         msePilotAutoEnable: "on"
-        mseNamespace: "crolord"
+        mseNamespace: crolord
         msePilotCreateAppName: "micro-go-login"
     spec:
       containers:
