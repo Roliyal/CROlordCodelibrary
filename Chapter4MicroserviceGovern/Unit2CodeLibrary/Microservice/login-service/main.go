@@ -15,7 +15,6 @@ import (
 	"os"
 	"time" // 添加 time 包
 
-	// 如果使用密码哈希，请取消注释以下导入
 	// "golang.org/x/crypto/bcrypt"
 )
 
