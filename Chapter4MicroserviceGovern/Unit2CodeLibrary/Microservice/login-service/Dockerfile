@@ -7,6 +7,13 @@ WORKDIR /app
 # Set Go proxy to Alibaba Cloud Go Proxy for faster module download
 ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
+# 下载 instgo 工具
+RUN wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo && \
+    chmod +x instgo
+
+# 设置 LicenseKey 和 RegionId（如果你有 LicenseKey，可以替换 {YourLicenseKey} 和 {YourRegionId}）
+RUN ./instgo set --mse --licenseKey={YourLicenseKey} --regionId={YourRegionId} --dev=false
+
 # Copy the go.mod, go.sum, and .env.production files to the working directory
 COPY go.mod go.sum .env ./
 
@@ -17,7 +24,9 @@ RUN go mod download
 COPY . .
 
 # Compile the Go program
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
+#RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./instgo go build -o main .
+
 
 # Use the official Alpine image as the base image
 FROM alpine
