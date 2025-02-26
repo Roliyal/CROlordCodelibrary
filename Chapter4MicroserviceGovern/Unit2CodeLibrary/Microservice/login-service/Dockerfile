@@ -49,6 +49,13 @@ WORKDIR /app
 COPY --from=builder /app/main-amd64 /app/main-amd64
 COPY --from=builder /app/main-arm64 /app/main-arm64
 COPY --from=builder /app/.env /app/.env
+COPY --from=builder /app/start.sh /app/start.sh
+
+# 临时切换到 root 用户来修改权限
+USER root
+
+# 赋予执行权限
+RUN chmod +x /app/start.sh
 
 # 创建日志目录并修改权限
 RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
@@ -56,15 +63,14 @@ RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
 # 更改工作目录的拥有者为非 root 用户
 RUN chown -R appuser:appgroup /app
 
-# 切换到非 root 用户
+# 切换回非 root 用户
 USER appuser
 
 # 暴露端口，确保与应用程序使用的端口一致
 EXPOSE 8083
 
-# 添加启动脚本
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# 添加健康检查
+HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/main-amd64", "check"]
 
 # 默认运行启动脚本
 ENTRYPOINT ["/app/start.sh"]
