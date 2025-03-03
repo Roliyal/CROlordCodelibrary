@@ -12,6 +12,7 @@ spec:
     metadata:
       labels:
         app: micro-go-game
+        aliyun.com/app-language: golang
     spec:
       containers:
         - name: micro-go-game
