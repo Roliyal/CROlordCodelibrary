@@ -6,8 +6,6 @@ WORKDIR /app
 
 # Set Go proxy to Alibaba Cloud Go Proxy for faster module download
 ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
-# 设置 Go 代理为阿里云镜像
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
@@ -69,7 +67,7 @@ USER appuser
 EXPOSE 8084
 
 # Add a health check
-HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/main", "check"]
+HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/start.sh", "check"]
 
 # Run the Go program
 ENTRYPOINT ["/app/start.sh"]

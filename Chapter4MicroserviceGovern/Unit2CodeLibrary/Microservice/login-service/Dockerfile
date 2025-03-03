@@ -70,7 +70,7 @@ USER appuser
 EXPOSE 8083
 
 # 添加健康检查
-HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/main-amd64", "check"]
+HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/start.sh", "check"]
 
 # 默认运行启动脚本
 ENTRYPOINT ["/app/start.sh"]

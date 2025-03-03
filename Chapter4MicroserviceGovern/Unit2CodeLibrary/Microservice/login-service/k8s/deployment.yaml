@@ -13,7 +13,6 @@ spec:
       labels:
         app: micro-go-login
         aliyun.com/app-language: golang
-
     spec:
       containers:
         - name: micro-go-login
