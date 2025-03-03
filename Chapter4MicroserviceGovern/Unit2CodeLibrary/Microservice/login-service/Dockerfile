@@ -10,16 +10,16 @@ ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
     if [ "$(uname -m)" = "x86_64" ]; then \
-        wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo; \
+        wget "http://arms-apm-cn-ap-southeast-1.oss-cn-ap-southeast-1.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo; \
     elif [ "$(uname -m)" = "aarch64" ]; then \
-        wget "http://arms-apm-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/instgo/instgo-linux-arm64" -O instgo; \
+        wget "http://arms-apm-cn-southeast-1.oss-cn-southeast-1.aliyuncs.com/instgo/instgo-linux-arm64" -O instgo; \
     else \
         echo "Unsupported architecture"; exit 1; \
     fi && \
     chmod +x instgo
 
 # 设置 LicenseKey 和 RegionId
-RUN ./instgo set --mse  --licenseKey=djqtzchc9t@27546800413b30e --regionId=hangzhou
+RUN ./instgo set --mse  --licenseKey=djqtzchc9t@27546800413b30e --regionId=ap-southeast-1
 
 # 复制 go.mod, go.sum 文件到工作目录
 COPY go.mod go.sum .env ./
