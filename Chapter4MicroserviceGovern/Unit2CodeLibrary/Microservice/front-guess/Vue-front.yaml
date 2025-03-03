@@ -7,7 +7,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: crolord-cnfs-uat-nas-2mfcp # 使用初始化配置CNFS文件系统
+  storageClassName: crolord-cnfs-uat-nas-vjm7f # 使用初始化配置CNFS文件系统
   resources:
     requests:
       storage: 20Gi
