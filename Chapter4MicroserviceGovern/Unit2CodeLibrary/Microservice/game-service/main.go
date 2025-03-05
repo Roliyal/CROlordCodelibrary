@@ -179,7 +179,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
-		res.Message = "Congratulations! You guessed the correct number."
+		res.Message = "Congratulations! You guessed the correct number.The is gray"
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
@@ -188,9 +188,9 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		res.Success = false
 		if req.Number < game.TargetNumber {
-			res.Message = "The number is too low."
+			res.Message = "The number is too low. The is gray"
 		} else {
-			res.Message = "The number is too high."
+			res.Message = "The number is too high.The is gray"
 		}
 		incrementAttempts(game)
 		res.Attempts = game.Attempts
