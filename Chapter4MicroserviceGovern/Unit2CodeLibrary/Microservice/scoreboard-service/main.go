@@ -2,18 +2,18 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"log"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"path/filepath"
 )
 
 // ScoreboardEntry 定义了用户在排行榜中的信息
 type ScoreboardEntry struct {
-	ID           string `json:"id"`
+	ID           string `json:"id"` // 改为 string 类型
 	Username     string `json:"username"`
 	Attempts     int    `json:"attempts"`
 	TargetNumber int    `json:"target_number"`
@@ -27,56 +27,75 @@ type getScoreboardResponse struct {
 var db *sql.DB
 
 func init() {
-	// 加载 .env 文件
-	err := godotenv.Load(".env")
+	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	} else {
-		log.Println("Loaded .env file successfully")
+		log.Fatalf("Could not determine working directory: %v", err)
 	}
-
-	// 输出环境变量的值进行调试
-	log.Printf("NACOS_TIMEOUT_MS: %s", os.Getenv("NACOS_TIMEOUT_MS"))
-	log.Printf("NACOS_SERVER_PORT: %s", os.Getenv("NACOS_SERVER_PORT"))
-	log.Printf("NACOS_SERVER_IP: %s", os.Getenv("NACOS_SERVER_IP"))
+	envPath := filepath.Join(pwd, ".env")
+	err = godotenv.Load(envPath)
+	if err != nil {
+		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
+	}
 }
 
+// main 启动 HTTP 服务
 func main() {
-	// 启动 HTTP 服务
-	r := gin.Default()
-
-	r.GET("/scoreboard", getScoreboardHandler)
-
-	// 设置优雅关闭
-	go func() {
-		if err := r.Run(":8085"); err != nil {
-			log.Fatalf("Error starting server: %v", err)
+	_, configClient, err := initNacos()
+	if err != nil {
+		log.Fatal("Error initializing Nacos:", err)
+	}
+	defer func() {
+		err = deregisterService("scoreboard-service", 8085)
+		if err != nil {
+			log.Fatal("Error deregistering service:", err)
 		}
 	}()
 
-	// 监听退出信号并注销服务
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-
-	// 注销服务
-	err := deregisterService("scoreboard-service", 8085)
+	db, err = SetupDatabase(configClient)
 	if err != nil {
-		log.Fatalf("Error deregistering service: %v", err)
+		log.Fatal("Error setting up the database:", err)
+	}
+	defer closeDatabase(db)
+
+	r := gin.Default()
+
+	// 处理 CORS 请求
+	r.Use(corsMiddleware)
+
+	// 路由处理
+	r.GET("/scoreboard", getScoreboardHandler)
+
+	fmt.Println("Starting server on port 8085")
+	if err := r.Run(":8085"); err != nil {
+		log.Fatal("Error starting server:", err)
 	}
 }
 
-// getScoreboardHandler 处理获取排行榜请求
+// corsMiddleware 设置 CORS 头
+func corsMiddleware(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(200)
+		return
+	}
+
+	c.Next()
+}
+
+// getScoreboardHandler 处理获取排行榜的 HTTP 请求
 func getScoreboardHandler(c *gin.Context) {
 	scoreboardData, err := getScoreboardData(db)
 	if err != nil {
 		log.Println("Error fetching scoreboard data:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(500, gin.H{
 			"error":   "Internal Server Error",
 			"success": false,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, scoreboardData)
+	c.JSON(200, scoreboardData)
 }
