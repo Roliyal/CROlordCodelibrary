@@ -2,19 +2,18 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"os/signal"
+	"syscall"
 )
 
 // ScoreboardEntry 定义了用户在排行榜中的信息
 type ScoreboardEntry struct {
-	ID           string `json:"id"` // 改为 string 类型
+	ID           string `json:"id"`
 	Username     string `json:"username"`
 	Attempts     int    `json:"attempts"`
 	TargetNumber int    `json:"target_number"`
@@ -28,78 +27,56 @@ type getScoreboardResponse struct {
 var db *sql.DB
 
 func init() {
-	pwd, err := os.Getwd()
+	// 加载 .env 文件
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalf("Could not determine working directory: %v", err)
+		log.Fatalf("Error loading .env file: %v", err)
+	} else {
+		log.Println("Loaded .env file successfully")
 	}
-	envPath := filepath.Join(pwd, ".env")
-	err = godotenv.Load(envPath)
-	if err != nil {
-		log.Fatalf("Error loading .env file from %s: %v", envPath, err)
-	}
+
+	// 输出环境变量的值进行调试
+	log.Printf("NACOS_TIMEOUT_MS: %s", os.Getenv("NACOS_TIMEOUT_MS"))
+	log.Printf("NACOS_SERVER_PORT: %s", os.Getenv("NACOS_SERVER_PORT"))
+	log.Printf("NACOS_SERVER_IP: %s", os.Getenv("NACOS_SERVER_IP"))
 }
 
-// main 启动 HTTP 服务
 func main() {
-	_, configClient, err := initNacos()
-	if err != nil {
-		log.Fatal("Error initializing Nacos:", err)
-	}
-	defer func() {
-		err = deregisterService("scoreboard-service", 8085)
-		if err != nil {
-			log.Fatal("Error deregistering service:", err)
+	// 启动 HTTP 服务
+	r := gin.Default()
+
+	r.GET("/scoreboard", getScoreboardHandler)
+
+	// 设置优雅关闭
+	go func() {
+		if err := r.Run(":8085"); err != nil {
+			log.Fatalf("Error starting server: %v", err)
 		}
 	}()
 
-	db, err = SetupDatabase(configClient)
+	// 监听退出信号并注销服务
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	// 注销服务
+	err := deregisterService("scoreboard-service", 8085)
 	if err != nil {
-		log.Fatal("Error setting up the database:", err)
+		log.Fatalf("Error deregistering service: %v", err)
 	}
-	defer closeDatabase(db)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/scoreboard", getScoreboardHandler)
-
-	fmt.Println("Starting server on port 8085")
-	log.Fatal(http.ListenAndServe(":8085", corsMiddleware(mux)))
 }
 
-// corsMiddleware 设置 CORS 头
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-// getScoreboardHandler 处理获取排行榜的 HTTP 请求
-func getScoreboardHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
+// getScoreboardHandler 处理获取排行榜请求
+func getScoreboardHandler(c *gin.Context) {
 	scoreboardData, err := getScoreboardData(db)
 	if err != nil {
 		log.Println("Error fetching scoreboard data:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Internal Server Error",
 			"success": false,
 		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(scoreboardData)
+	c.JSON(http.StatusOK, scoreboardData)
 }
