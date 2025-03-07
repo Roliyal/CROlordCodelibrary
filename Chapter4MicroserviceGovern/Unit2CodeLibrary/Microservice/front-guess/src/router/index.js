@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router"; // 修改为 createWebHashHistory
 import LoginComponent from "../components/LoginComponent.vue";
 import GuessNumberComponent from "../components/GuessNumberComponent.vue";
 import ScoreboardComponent from "../components/ScoreboardComponent.vue";
@@ -13,7 +13,7 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory(process.env.BASE_URL),
+    history: createWebHashHistory(process.env.BASE_URL), // 改为 createWebHashHistory
     routes,
 });
 
