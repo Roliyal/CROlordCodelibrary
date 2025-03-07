@@ -73,15 +73,28 @@ func main() {
 
 // corsMiddleware 设置 CORS 头
 func corsMiddleware(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// 设置允许的源（特定的域名，不能是 *）
+	c.Header("Access-Control-Allow-Origin", "http://micro.roliyal.com")
+
+	// 允许的请求头
+	c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+
+	// 允许的请求方法
 	c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
+	// 允许携带凭证（如 cookies）
+	c.Header("Access-Control-Allow-Credentials", "true")
+
+	// 设置预检请求的缓存时间
+	c.Header("Access-Control-Max-Age", "100")
+
+	// 如果是预检请求，直接返回 200
 	if c.Request.Method == "OPTIONS" {
 		c.AbortWithStatus(200)
 		return
 	}
 
+	// 继续处理请求
 	c.Next()
 }
 
