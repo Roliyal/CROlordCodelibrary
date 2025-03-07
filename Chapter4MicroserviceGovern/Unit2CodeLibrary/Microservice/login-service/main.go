@@ -161,7 +161,7 @@ func userHandler(c *gin.Context) {
 	log.Printf("Received headers: Authorization=%s, X-User-ID=%s", authToken, userID)
 
 	if authToken == "" || userID == "" {
-		log.Println("Error: Missing Authorization or X-User-ID header")
+		log.Println("Error: gray提示 这是灰度测试版本Missing Authorization or X-User-ID header")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization or X-User-ID header"})
 		return
 	}

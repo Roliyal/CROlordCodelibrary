@@ -2,12 +2,12 @@ import { createRouter, createWebHistory } from "vue-router";
 import LoginComponent from "../components/LoginComponent.vue";
 import GuessNumberComponent from "../components/GuessNumberComponent.vue";
 import ScoreboardComponent from "../components/ScoreboardComponent.vue";
-import authApi from "../auth-api"; // 更新这里
-import RegisterComponent from "../components/RegisterComponent.vue"; // 导入 Register 组件
+import authApi from "../auth-api";
+import RegisterComponent from "../components/RegisterComponent.vue";
 
 const routes = [
     { path: "/login", component: LoginComponent },
-    { path: "/register", component: RegisterComponent }, // 添加新的路由
+    { path: "/register", component: RegisterComponent },
     { path: "/game", component: GuessNumberComponent },
     { path: "/scoreboard", component: ScoreboardComponent },
 ];
