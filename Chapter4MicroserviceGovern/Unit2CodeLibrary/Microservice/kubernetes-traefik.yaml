@@ -26,6 +26,7 @@ data:
       middlewares:
         cors:
           headers:
+            accessControlAllowCredentials: true
             accessControlAllowOriginList: ["http://micro.roliyal.com"]
             accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
             accessControlAllowHeaders: ["Content-Type", "Authorization", "X-User-ID"]
