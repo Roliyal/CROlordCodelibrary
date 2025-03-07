@@ -1,4 +1,4 @@
-const baseURL = "nlb-5xtd0ttz7yxeeqf2ac.ap-southeast-1.nlb.aliyuncsslbintl.com"; // 使用您的 Traefik 外部 IP 和端口
+const baseURL = "http://8.222.254.176"; // 使用您的 Traefik 外部 IP 和端口
 
 export default {
     loginURL: `${baseURL}`,
