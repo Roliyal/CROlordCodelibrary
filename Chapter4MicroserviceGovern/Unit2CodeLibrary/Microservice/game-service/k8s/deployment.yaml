@@ -12,6 +12,9 @@ spec:
     metadata:
       labels:
         app: micro-go-game
+        msePilotAutoEnable: "on"
+        mseNamespace: "crolord"
+        msePilotCreateAppName: "micro-go-game"
         aliyun.com/app-language: golang
     spec:
       containers:
