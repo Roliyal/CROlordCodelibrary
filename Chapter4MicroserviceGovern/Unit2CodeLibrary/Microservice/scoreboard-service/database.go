@@ -75,7 +75,7 @@ func getScoreboardData(db *sql.DB) ([]ScoreboardEntry, error) {
 	query := `
 SELECT game.ID, users.username, game.Attempts, game.TargetNumber
     FROM game
-    JOIN users ON game.ID = users.idthis is gray
+    JOIN users ON game.ID = users.id
     ORDER BY game.Attempts ASC
 `
 
