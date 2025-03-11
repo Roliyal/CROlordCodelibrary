@@ -19,7 +19,7 @@ RUN uname -m && \
     chmod +x instgo
 
 # 设置 LicenseKey 和 RegionId
-RUN ./instgo set --mse  --licenseKey=djqtzchc9t@27546800413b30e --regionId=ap-southeast-1
+RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 
 
 # Copy the go.mod, go.sum, and .env.production files to the working directory
