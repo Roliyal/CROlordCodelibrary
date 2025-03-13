@@ -11,14 +11,16 @@ const axiosInstance = axios.create({
 });
 
 // 定义不需要添加 Headers 的端点
-const excludedEndpoints = ['/login', '/register'];
+const excludedEndpoints = ['/register']; // 移除 /login，保留 /register
 
 // 添加请求拦截器
 axiosInstance.interceptors.request.use(
     config => {
         // 检查当前请求是否在排除列表中
         if (excludedEndpoints.some(endpoint => config.url.startsWith(endpoint))) {
-            return config; // 不添加 Headers，直接返回配置
+            // 仅移除 /register，不移除 /login
+            config.headers['X-User-ID'] = store.state.userId || localStorage.getItem("userId"); // 添加 X-User-ID
+            return config;
         }
 
         // 从 store 或 localStorage 获取 userId 和 authToken
