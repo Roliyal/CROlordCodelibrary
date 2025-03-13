@@ -17,6 +17,10 @@ export default {
             if (response.data && response.data.success && response.data.id !== undefined && response.data.authToken) {
                 this.isAuthenticated = true;
 
+                // 存储用户信息
+                localStorage.setItem('userId', response.data.id);
+                localStorage.setItem('authToken', response.data.authToken);
+
                 return {
                     id: response.data.id,
                     authToken: response.data.authToken, // 返回 authToken
@@ -47,4 +51,4 @@ export default {
             return { status: 500, error: "注册失败，请重试。" };
         }
     },
-};
+}
