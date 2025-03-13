@@ -4,7 +4,7 @@
       <div v-if="!store.state.isLoggedIn">
         <router-link to="/login">登录</router-link>
         <span>/</span>
-        <router-link to="/register">注册</router-link>
+        <router-link to="/register">注册-this is gray</router-link>
       </div>
       <a v-else href="#" @click="logout">退出</a>
       <router-link to="/game">猜数字游戏</router-link>
