@@ -5,6 +5,22 @@ import axiosInstance from "./axiosInstance";
 export default {
     isAuthenticated: false,
 
+    // 新增：检查是否有用户信息
+    checkAuth() {
+        const userId = localStorage.getItem('userId');
+        const authToken = localStorage.getItem('authToken');
+
+        if (userId && authToken) {
+            this.isAuthenticated = true;  // 设置已认证状态
+            console.log('User is already authenticated');
+            return { userId, authToken };
+        } else {
+            this.isAuthenticated = false;
+            console.log('No authentication data found');
+            return null;
+        }
+    },
+
     async authenticate(username, password) {
         try {
             const response = await axiosInstance.post(`/login`, {

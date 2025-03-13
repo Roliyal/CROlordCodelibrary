@@ -22,12 +22,16 @@
             if (typeof localStorage !== 'undefined' && localStorage !== null) {
                 var storageValue = localStorage.getItem(grayKey);
                 var cookieValue = cookies.length > 0 ? decodeURIComponent(cookies[0].split('=')[1]) : null;
+
+                // 确保 localStorage 和 cookie 中的值匹配，否则才进行更新
                 if (storageValue && storageValue.indexOf('=') < 0 && cookieValue && cookieValue !== storageValue) {
+                    // 更新 cookie 的值
                     document.cookie = grayKey + '=' + encodeURIComponent(storageValue) + '; path=/;';
-                    // 延迟重载，确保其他内容先加载完
-                    setTimeout(function() {
+
+                    // 只在值不一致时才执行重载
+                    if (cookieValue !== storageValue) {
                         window.location.reload();
-                    }, 100); // 延迟 100ms，避免页面白屏
+                    }
                 }
             }
         } catch (error) {
