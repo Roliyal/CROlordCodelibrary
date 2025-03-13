@@ -1,38 +1,41 @@
 <!DOCTYPE html>
 <html lang="">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <script>
-        (function() {
-            var grayKey = '@@X_GRAY_KEY';
-            var cookies = document.cookie.split('; ').filter(function(row) {
-                return row.indexOf(grayKey + '=') === 0;
-            });
+</head>
+<body>
+<noscript>
+    <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+</noscript>
+<script>
+    window.onload = function() {
+        var grayKey = '@@X_GRAY_KEY';
+        var cookies = document.cookie.split('; ').filter(function(row) {
+            return row.indexOf(grayKey + '=') === 0;
+        });
 
-            try {
-                if (typeof localStorage !== 'undefined' && localStorage !== null) {
-                    var storageValue = localStorage.getItem(grayKey);
-                    var cookieValue = cookies.length > 0 ? decodeURIComponent(cookies[0].split('=')[1]) : null;
-                    if (storageValue && storageValue.indexOf('=') < 0 && cookieValue && cookieValue !== storageValue) {
-                        document.cookie = grayKey + '=' + encodeURIComponent(storageValue) + '; path=/;';
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage !== null) {
+                var storageValue = localStorage.getItem(grayKey);
+                var cookieValue = cookies.length > 0 ? decodeURIComponent(cookies[0].split('=')[1]) : null;
+                if (storageValue && storageValue.indexOf('=') < 0 && cookieValue && cookieValue !== storageValue) {
+                    document.cookie = grayKey + '=' + encodeURIComponent(storageValue) + '; path=/;';
+                    // 延迟重载，确保其他内容先加载完
+                    setTimeout(function() {
                         window.location.reload();
-                    }
+                    }, 100); // 延迟 100ms，避免页面白屏
                 }
-            } catch (error) {
-                // 错误处理
-                console.error(error);
             }
-        })();
-    </script>
-    <div id="app"></div>
-  </body>
+        } catch (error) {
+            // 错误处理
+            console.error(error);
+        }
+    };
+</script>
+<div id="app"></div>
+</body>
 </html>
