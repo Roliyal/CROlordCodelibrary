@@ -13,18 +13,19 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
     (config) => {
         // 从 Vuex 获取 userId 和 authToken
-        const userId = store.state.userId || localStorage.getItem('userId');
-        const authToken = store.state.authToken || localStorage.getItem('authToken');
+        const userId = store.getters.userId || localStorage.getItem('userId');
+        const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        console.log('Adding headers:', { userId, authToken });  // 检查添加的头部
+        console.log('Adding headers:', { userId, authToken });
 
         // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {
             config.headers['X-User-ID'] = userId;
         }
 
+        // 确保 Authorization 使用 Bearer token 格式
         if (authToken) {
-            config.headers['Authorization'] = `Bearer ${authToken}`;
+            config.headers['Authorization'] = authToken;
         }
 
         // 设置 Content-Type 为 application/json（如果未设置）
