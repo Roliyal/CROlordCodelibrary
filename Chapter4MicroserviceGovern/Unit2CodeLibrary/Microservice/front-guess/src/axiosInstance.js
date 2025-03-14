@@ -1,6 +1,6 @@
 // src/axiosInstance.js
-import axios from "axios";
-import store from "./store"; // 引入 Vuex store
+import axios from 'axios';
+import store from './store';  // 引入 Vuex store
 
 // 创建 Axios 实例
 const axiosInstance = axios.create({
@@ -12,11 +12,9 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 从 Vuex 或 localStorage 获取 userId 和 authToken
-        const userId = store.state.userId || localStorage.getItem("userId");
-        const authToken = store.state.authToken || localStorage.getItem("authToken");
-
-        console.log('Adding headers:', { userId, authToken });
+        // 从 Vuex 获取 userId 和 authToken
+        const userId = store.getters.userId || localStorage.getItem('userId');
+        const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
         // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {

@@ -1,10 +1,11 @@
-import axiosInstance from "./axiosInstance";
+// src/auth-api.js
+import axiosInstance from './axiosInstance'; // 引入自定义的 axios 实例
 
 export default {
     // 用户登录
     async authenticate(username, password) {
         try {
-            const response = await axiosInstance.post("/login", {
+            const response = await axiosInstance.post('/login', {
                 username,
                 password,
             });
@@ -17,9 +18,10 @@ export default {
                     authToken: response.data.authToken,
                 };
             }
+
             return null;
         } catch (error) {
-            console.error("Login failed:", error);
+            console.error('Login failed:', error);
             return null;
         }
     },
@@ -27,17 +29,18 @@ export default {
     // 用户注册
     async register(username, password) {
         try {
-            const response = await axiosInstance.post("/register", { username, password });
+            const response = await axiosInstance.post('/register', { username, password });
 
             console.log('Register response:', response.data);
 
             if (response.status === 201) {
                 return response.data;
             }
+
             return null;
         } catch (error) {
-            console.error("Registration failed:", error);
+            console.error('Registration failed:', error);
             return null;
         }
     },
-}
+};

@@ -26,17 +26,18 @@
 </template>
 
 <script>
-import { useRouter } from "vue-router";
-import store from "../store";  // 引入 Vuex store
-import authApi from "../auth-api";  // 引入 authApi
+// src/components/LoginComponent.vue
+import { useRouter } from 'vue-router';
+import store from '../store'; // 引入 Vuex store
+import authApi from '../auth-api'; // 引入 authApi
 
 export default {
   data() {
     return {
-      username: "",
-      password: "",
-      errorMessage: "",
-      infoMessage: "",
+      username: '',
+      password: '',
+      errorMessage: '',
+      infoMessage: '',
     };
   },
   setup() {
@@ -53,23 +54,24 @@ export default {
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
-          localStorage.setItem("userId", authResult.id);
-          localStorage.setItem("authToken", authResult.authToken);
+          localStorage.setItem('userId', authResult.id);
+          localStorage.setItem('authToken', authResult.authToken);
 
-          this.infoMessage = "登录成功！正在跳转...";
+          this.infoMessage = '登录成功！正在跳转...';
           setTimeout(() => {
-            this.router.push("/game"); // 跳转到游戏页面
+            this.router.push('/game'); // 跳转到游戏页面
           }, 1000);
         } else {
-          this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
+          this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
         }
       } catch (error) {
-        console.error("Error during login:", error);
-        this.errorMessage = "登录过程中发生错误，请稍后再试。";
+        console.error('Error during login:', error);
+        this.errorMessage = '登录过程中发生错误，请稍后再试。';
       }
     },
   },
 };
+
 </script>
 
 

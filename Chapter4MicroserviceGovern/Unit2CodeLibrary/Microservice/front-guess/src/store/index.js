@@ -3,9 +3,9 @@ import { createStore } from 'vuex';
 
 export default createStore({
     state: {
-        isLoggedIn: false,  // 默认未登录
-        userId: null,       // 用户 ID
-        authToken: null,    // 用户认证 token
+        isLoggedIn: false,
+        userId: null,
+        authToken: null,
     },
     mutations: {
         setIsLoggedIn(state, isLoggedIn) {
