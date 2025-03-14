@@ -1,3 +1,4 @@
+// src/store/index.js
 import { createStore } from 'vuex';
 
 export default createStore({
@@ -16,7 +17,6 @@ export default createStore({
         setAuthToken(state, authToken) {
             state.authToken = authToken;
         },
-        // 退出时清除状态
         logout(state) {
             state.isLoggedIn = false;
             state.userId = null;

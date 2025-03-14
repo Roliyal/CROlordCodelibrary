@@ -15,13 +15,15 @@ axiosInstance.interceptors.request.use(
         const userId = store.state.userId || localStorage.getItem("userId");
         const authToken = store.state.authToken || localStorage.getItem("authToken");
 
-        // 如果是登录请求，也带上 X-User-ID
-        if (config.url === "/login" && userId) {
-            config.headers['X-User-ID'] = userId;  // 将 X-User-ID 加入请求头
+        console.log('Adding headers:', { userId, authToken });
+
+        // 确保只有登录请求携带 X-User-ID
+        if (userId) {
+            config.headers['X-User-ID'] = userId;  // 在请求头中加入 X-User-ID
         }
 
         if (authToken) {
-            config.headers['Authorization'] = `Bearer ${authToken}`;  // Bearer 认证模式
+            config.headers['Authorization'] = authToken;  // 在请求头中加入 Authorization
         }
 
         // 设置 Content-Type 为 application/json（如果未设置）

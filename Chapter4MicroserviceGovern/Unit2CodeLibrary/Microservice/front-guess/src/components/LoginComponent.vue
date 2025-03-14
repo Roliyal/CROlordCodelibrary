@@ -52,6 +52,7 @@ export default {
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
+
           localStorage.setItem("userId", authResult.id);
           localStorage.setItem("authToken", authResult.authToken);
 
@@ -69,6 +70,7 @@ export default {
     },
   },
 };
+
 </script>
 
 
