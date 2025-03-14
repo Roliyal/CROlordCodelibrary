@@ -1,3 +1,4 @@
+// src/components/LoginComponent.vue
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
@@ -52,7 +53,6 @@ export default {
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
-
           localStorage.setItem("userId", authResult.id);
           localStorage.setItem("authToken", authResult.authToken);
 
@@ -70,9 +70,8 @@ export default {
     },
   },
 };
-
-
 </script>
+
 
 
 

@@ -1,9 +1,10 @@
+// src/router/index.js
 import { createRouter, createWebHashHistory } from "vue-router";
 import LoginComponent from "../components/LoginComponent.vue";
 import GuessNumberComponent from "../components/GuessNumberComponent.vue";
 import ScoreboardComponent from "../components/ScoreboardComponent.vue";
 import RegisterComponent from "../components/RegisterComponent.vue";
-import { mapState } from "vuex";
+import store from "../store";  // 引入 Vuex store
 
 const routes = [
     { path: "/login", component: LoginComponent },
@@ -18,14 +19,13 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-    const store = mapState(["isLoggedIn"]);
     if (
-        (to.path !== "/login" && to.path !== "/register") && // 排除登录和注册
-        !store.isLoggedIn  // 使用 Vuex 判断登录状态
+        (to.path !== "/login" && to.path !== "/register") &&  // 排除登录和注册页面
+        !store.state.isLoggedIn  // 未登录时
     ) {
-        next("/login"); // 如果未登录，重定向到登录页
+        next("/login");  // 强制跳转到登录页
     } else {
-        next(); // 继续其他页面
+        next();  // 继续访问目标页面
     }
 });
 
