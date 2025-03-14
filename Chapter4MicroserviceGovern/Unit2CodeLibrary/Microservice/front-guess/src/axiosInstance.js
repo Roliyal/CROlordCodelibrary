@@ -17,13 +17,13 @@ axiosInstance.interceptors.request.use(
 
         console.log('Adding headers:', { userId, authToken });
 
-        // 确保只有登录请求携带 X-User-ID
+        // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {
-            config.headers['X-User-ID'] = userId;  // 在请求头中加入 X-User-ID
+            config.headers['X-User-ID'] = userId;  // 添加 X-User-ID
         }
 
         if (authToken) {
-            config.headers['Authorization'] = authToken;  // 在请求头中加入 Authorization
+            config.headers['Authorization'] = authToken;  // 添加 Authorization
         }
 
         // 设置 Content-Type 为 application/json（如果未设置）
