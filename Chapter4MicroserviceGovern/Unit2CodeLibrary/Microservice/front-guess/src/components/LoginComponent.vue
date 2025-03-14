@@ -49,8 +49,10 @@ export default {
 
         if (authResult) {
           // 登录成功，将 userId 和 authToken 存储到 Vuex 和 localStorage
-          store.setUserId(authResult.id);
-          store.setAuthToken(authResult.authToken);
+          store.commit('setUserId', authResult.id);  // 通过 commit 来调用 Vuex mutation
+          store.commit('setAuthToken', authResult.authToken);  // 通过 commit 来调用 Vuex mutation
+          store.commit('setIsLoggedIn', true);  // 设置登录状态
+
           localStorage.setItem("userId", authResult.id);
           localStorage.setItem("authToken", authResult.authToken);
 
@@ -69,6 +71,7 @@ export default {
   },
 };
 </script>
+
 
 
 
