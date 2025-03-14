@@ -1,4 +1,3 @@
-<!-- src/components/LoginComponent.vue -->
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
@@ -26,7 +25,6 @@
 </template>
 
 <script>
-import authApi from "../auth-api";
 import { useRouter } from "vue-router";
 import store from "../store";
 
@@ -46,22 +44,15 @@ export default {
   methods: {
     async login() {
       try {
-        const authResult = await authApi.authenticate(this.username, this.password);
+        const authResult = await store.dispatch("login", {
+          username: this.username,
+          password: this.password
+        });
 
-        // 检查 authResult 是否包含 authToken
-        if (authResult && authResult.id && authResult.authToken) {
-          store.commit("setIsLoggedIn", true);  // 使用 commit 调用 mutation
-          store.commit("setUserId", authResult.id); // 设置 userId 到 store
-          store.commit("setAuthToken", authResult.authToken); // 设置 authToken 到 store
-
-          localStorage.setItem("userId", authResult.id); // 存储 userId 到 localStorage
-          localStorage.setItem("authToken", authResult.authToken); // 存储 authToken 到 localStorage
-
-          console.log('Stored userId and authToken in localStorage');
-
+        if (authResult) {
           this.infoMessage = "登录成功！正在跳转...";
           setTimeout(() => {
-            this.router.push("/game");
+            this.router.push("/game"); // 跳转到游戏页面
           }, 1000);
         } else {
           this.errorMessage = "登录失败，请检查用户名和密码是否正确。";
@@ -74,6 +65,8 @@ export default {
   },
 };
 </script>
+
+
 
 <style scoped>
 .container {
