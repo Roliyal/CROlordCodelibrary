@@ -1,8 +1,7 @@
 <template>
   <div id="app">
     <nav class="navbar">
-      <!-- 判断是否已登录 -->
-      <div v-if="!store.state.isLoggedIn">
+      <div v-if="!isLoggedIn">
         <router-link to="/login">登录-this is gra</router-link>
         <span>/</span>
         <router-link to="/register">注册-this is gray</router-link>
@@ -16,23 +15,15 @@
 </template>
 
 <script>
-import store from "./store"; // 确保正确导入 store.js
+import { mapState, mapActions } from "vuex";
 
 export default {
   name: "App",
+  computed: {
+    ...mapState(["isLoggedIn"]),  // 映射 Vuex 状态到组件的计算属性
+  },
   methods: {
-    logout() {
-      store.setIsLoggedIn(false); // 更新登录状态
-      store.setUserId(null); // 清除用户 ID
-      store.setAuthToken(null); // 清除认证 token
-
-      // 清除 localStorage 中的数据
-      localStorage.removeItem('userId');
-      localStorage.removeItem('authToken');
-
-      // 跳转到登录页面
-      this.$router.push("/login");
-    },
+    ...mapActions(["logout"]),  // 映射 Vuex actions 到组件方法
   },
 };
 </script>
