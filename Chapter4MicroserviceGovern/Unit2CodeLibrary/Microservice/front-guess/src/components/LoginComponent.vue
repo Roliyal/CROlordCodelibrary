@@ -27,6 +27,7 @@
 <script>
 import { useRouter } from "vue-router";
 import store from "../store";  // 引入 Vuex store
+import authApi from "../auth-api";  // 引入 authApi
 
 export default {
   data() {
@@ -44,17 +45,14 @@ export default {
   methods: {
     async login() {
       try {
-        const authResult = await store.dispatch("login", {
-          username: this.username,
-          password: this.password
-        });
+        const authResult = await authApi.authenticate(this.username, this.password);
 
         if (authResult) {
-          // 登录成功，将 userId 和 authToken 存储到 localStorage 和 Vuex
+          // 登录成功，将 userId 和 authToken 存储到 Vuex 和 localStorage
+          store.setUserId(authResult.id);
+          store.setAuthToken(authResult.authToken);
           localStorage.setItem("userId", authResult.id);
           localStorage.setItem("authToken", authResult.authToken);
-          store.commit("setUserId", authResult.id);
-          store.commit("setAuthToken", authResult.authToken);
 
           this.infoMessage = "登录成功！正在跳转...";
           setTimeout(() => {
@@ -71,7 +69,6 @@ export default {
   },
 };
 </script>
-
 
 
 <style scoped>

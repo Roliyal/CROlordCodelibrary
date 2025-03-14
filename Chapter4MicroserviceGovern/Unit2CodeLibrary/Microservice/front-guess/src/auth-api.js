@@ -13,7 +13,6 @@ export default {
             console.log('Login response:', response.data);
 
             if (response.data && response.data.success && response.data.id && response.data.authToken) {
-                // 登录成功
                 return {
                     id: response.data.id,
                     authToken: response.data.authToken,
