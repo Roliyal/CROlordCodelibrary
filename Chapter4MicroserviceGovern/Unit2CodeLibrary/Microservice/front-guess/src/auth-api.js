@@ -5,7 +5,7 @@ export default {
     // 用户登录
     async authenticate(username, password) {
         try {
-            const response = await axiosInstance.post(`/login`, {
+            const response = await axiosInstance.post("/login", {
                 username,
                 password,
             });
@@ -18,11 +18,25 @@ export default {
                     id: response.data.id,
                     authToken: response.data.authToken,
                 };
-            } else {
-                return null;
             }
+            return null;
         } catch (error) {
-            console.error("Error authenticating:", error);
+            console.error("Login failed:", error);
+            return null;
+        }
+    },
+
+    // 用户注册
+    async register(username, password) {
+        try {
+            const response = await axiosInstance.post("/register", { username, password });
+
+            if (response.status === 201) {
+                return response.data;
+            }
+            return null;
+        } catch (error) {
+            console.error("Registration failed:", error);
             return null;
         }
     },
