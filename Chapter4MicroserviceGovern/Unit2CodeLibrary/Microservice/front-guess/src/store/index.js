@@ -28,6 +28,16 @@ export default createStore({
         setAuthToken({ commit }, authToken) {
             commit('setAuthToken', authToken);
         },
+        // 添加 logout Action
+        logout({ commit }) {
+            commit('setIsLoggedIn', false);
+            commit('setUserId', null);
+            commit('setAuthToken', null);
+
+            // 清除 localStorage 中的用户信息
+            localStorage.removeItem('userId');
+            localStorage.removeItem('authToken');
+        },
     },
     getters: {
         isLoggedIn: state => state.isLoggedIn,
