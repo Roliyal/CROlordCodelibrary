@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <nav class="navbar">
+      <!-- 判断是否已登录 -->
       <div v-if="!isLoggedIn">
         <router-link to="/login">登录-this is gra</router-link>
         <span>/</span>

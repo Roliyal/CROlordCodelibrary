@@ -1,4 +1,3 @@
-// src/store/index.js
 import { createStore } from 'vuex';
 
 export default createStore({
@@ -17,26 +16,20 @@ export default createStore({
         setAuthToken(state, authToken) {
             state.authToken = authToken;
         },
-    },
-    actions: {
-        setIsLoggedIn({ commit }, isLoggedIn) {
-            commit('setIsLoggedIn', isLoggedIn);
-        },
-        setUserId({ commit }, userId) {
-            commit('setUserId', userId);
-        },
-        setAuthToken({ commit }, authToken) {
-            commit('setAuthToken', authToken);
-        },
-        // 添加 logout Action
-        logout({ commit }) {
-            commit('setIsLoggedIn', false);
-            commit('setUserId', null);
-            commit('setAuthToken', null);
+        // 退出时清除状态
+        logout(state) {
+            state.isLoggedIn = false;
+            state.userId = null;
+            state.authToken = null;
 
             // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
+        },
+    },
+    actions: {
+        logout({ commit }) {
+            commit('logout');
         },
     },
     getters: {

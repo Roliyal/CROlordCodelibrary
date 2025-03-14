@@ -1,4 +1,3 @@
-// src/router/index.js
 import { createRouter, createWebHashHistory } from "vue-router";
 import LoginComponent from "../components/LoginComponent.vue";
 import GuessNumberComponent from "../components/GuessNumberComponent.vue";

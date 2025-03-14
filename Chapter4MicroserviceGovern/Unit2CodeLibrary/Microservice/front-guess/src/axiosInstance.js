@@ -1,6 +1,5 @@
-// src/axiosInstance.js
 import axios from "axios";
-import store from "./store";  // 引入 Vuex store
+import store from "./store";
 
 // 创建 Axios 实例
 const axiosInstance = axios.create({
@@ -16,14 +15,11 @@ axiosInstance.interceptors.request.use(
         const userId = store.state.userId || localStorage.getItem("userId");
         const authToken = store.state.authToken || localStorage.getItem("authToken");
 
-        console.log('Adding headers:', { userId, authToken });
-
-        // 在请求头中加入 X-User-ID
+        // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {
             config.headers['X-User-ID'] = userId;
         }
 
-        // 在请求头中加入 Authorization
         if (authToken) {
             config.headers['Authorization'] = authToken;
         }
