@@ -13,6 +13,7 @@ export default {
             console.log('Login response:', response.data);
 
             if (response.data && response.data.success && response.data.id && response.data.authToken) {
+                // 登录成功
                 return {
                     id: response.data.id,
                     authToken: response.data.authToken,
@@ -23,25 +24,6 @@ export default {
         } catch (error) {
             console.error("Error authenticating:", error);
             return null;
-        }
-    },
-
-    // 用户注册
-    async register(username, password) {
-        try {
-            const response = await axiosInstance.post(`/register`, {
-                username,
-                password,
-            });
-
-            if (response.status === 201) {
-                return { status: response.status };
-            } else {
-                return { status: response.status, error: "Registration failed, please try again." };
-            }
-        } catch (error) {
-            console.error("Error registering:", error);
-            return { status: 500, error: "Registration failed, please try again." };
         }
     },
 };

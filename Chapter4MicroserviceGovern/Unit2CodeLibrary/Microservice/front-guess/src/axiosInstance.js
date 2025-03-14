@@ -12,16 +12,18 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 从 Vuex 获取 userId 和 authToken
-        const userId = store.state.userId;
-        const authToken = store.state.authToken;
+        // 从 Vuex 获取 userId，如果没有则从 localStorage 获取
+        const userId = store.state.userId || localStorage.getItem("userId");
+        const authToken = store.state.authToken || localStorage.getItem("authToken");
 
         console.log('Adding headers:', { userId, authToken });
 
-        // 将 userId 和 authToken 添加到请求头中
+        // 在登录请求时添加 X-User-ID
         if (userId) {
-            config.headers['X-User-ID'] = userId;
+            config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
         }
+
+        // 在每次请求中都携带 Authorization 头
         if (authToken) {
             config.headers['Authorization'] = authToken;
         }
