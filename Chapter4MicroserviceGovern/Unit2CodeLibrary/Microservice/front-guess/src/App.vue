@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import store from "./store"; // 引入 store.js
+import store from "./store"; // 确保正确导入 store.js
 
 export default {
   name: "App",
