@@ -4,7 +4,7 @@ import LoginComponent from "../components/LoginComponent.vue";
 import GuessNumberComponent from "../components/GuessNumberComponent.vue";
 import ScoreboardComponent from "../components/ScoreboardComponent.vue";
 import RegisterComponent from "../components/RegisterComponent.vue";
-import store from "./store"; // 引入 store.js
+import store from "../store"; // 引入 store.js
 
 const routes = [
     { path: "/login", component: LoginComponent },
