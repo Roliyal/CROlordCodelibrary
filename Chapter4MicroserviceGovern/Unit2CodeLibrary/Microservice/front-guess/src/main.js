@@ -5,7 +5,6 @@ import router from "./router";
 import store from "./store";  // 引入 Vuex store
 import './styles.css';  // 确保样式文件已被引入
 
-
 const app = createApp(App);
 
 // 从 localStorage 初始化全局状态

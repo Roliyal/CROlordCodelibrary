@@ -5,16 +5,16 @@
       <form @submit.prevent="register">
         <div class="input-group">
           <label>用户名：</label>
-          <input type="text" v-model="username" />
+          <input type="text" v-model="username" required />
         </div>
         <div class="input-group">
           <label>密码：</label>
-          <input type="password" v-model="password" />
+          <input type="password" v-model="password" required />
         </div>
         <button type="submit">注册</button>
         <div class="message-container">
-          <div v-show="errorMessage" class="error-message">{{ errorMessage }}</div>
-          <div v-show="infoMessage" class="info-message">{{ infoMessage }}</div>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+          <div v-if="infoMessage" class="info-message">{{ infoMessage }}</div>
         </div>
       </form>
     </div>
@@ -24,11 +24,9 @@
   </div>
 </template>
 
-
 <script>
-import authApi from "../auth-api";
 import { useRouter } from "vue-router";
-
+import store from "../store";
 
 export default {
   data() {
@@ -45,21 +43,30 @@ export default {
   },
   methods: {
     async register() {
-      const registerResult = await authApi.register(this.username, this.password);
+      try {
+        const registerResult = await store.dispatch("register", {
+          username: this.username,
+          password: this.password
+        });
 
-      if (registerResult && registerResult.status === 201) {
-        this.errorMessage = "";
-        this.infoMessage = "注册成功！正在跳转到登录页面...";
-        setTimeout(() => {
-          this.router.push("/login");
-        }, 2000);
-      } else {
-        this.errorMessage = "注册失败，请重试。";
+        if (registerResult) {
+          this.infoMessage = "注册成功！正在跳转到登录页面...";
+          setTimeout(() => {
+            this.router.push("/login"); // 跳转到登录页面
+          }, 2000);
+        } else {
+          this.errorMessage = "注册失败，请重试。";
+        }
+      } catch (error) {
+        console.error("Error during registration:", error);
+        this.errorMessage = "注册过程中发生错误，请稍后再试。";
       }
     },
   },
 };
 </script>
+
+
 
 
 <style scoped>
