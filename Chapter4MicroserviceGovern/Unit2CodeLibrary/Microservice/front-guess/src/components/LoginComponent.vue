@@ -51,11 +51,11 @@ export default {
 
         if (authResult) {
           // 登录成功，将 userId 和 authToken 存储到 Vuex 和 localStorage
-          store.commit('setUserId', authResult.id);
-          store.commit('setAuthToken', authResult.authToken);
-          store.commit('setIsLoggedIn', true);
-          localStorage.setItem('userId', authResult.id);
-          localStorage.setItem('authToken', authResult.authToken);
+          store.commit('setUserId', authResult.id);  // 更新 Vuex 状态
+          store.commit('setAuthToken', authResult.authToken);  // 更新 Vuex 状态
+          store.commit('setIsLoggedIn', true);  // 更新登录状态
+          localStorage.setItem('userId', authResult.id);  // 存储在 localStorage
+          localStorage.setItem('authToken', authResult.authToken);  // 存储在 localStorage
 
           this.infoMessage = '登录成功！正在跳转...';
           setTimeout(() => {
@@ -71,13 +71,6 @@ export default {
     },
   },
 };
-
-</script>
-
-
-
-
-
 
 
 <style scoped>
