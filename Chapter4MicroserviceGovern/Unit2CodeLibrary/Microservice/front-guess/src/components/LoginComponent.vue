@@ -26,7 +26,7 @@
 
 <script>
 import { useRouter } from "vue-router";
-import store from "../store";
+import store from "../store";  // 引入 Vuex store
 
 export default {
   data() {
@@ -50,6 +50,12 @@ export default {
         });
 
         if (authResult) {
+          // 登录成功，将 userId 和 authToken 存储到 localStorage 和 Vuex
+          localStorage.setItem("userId", authResult.id);
+          localStorage.setItem("authToken", authResult.authToken);
+          store.commit("setUserId", authResult.id);
+          store.commit("setAuthToken", authResult.authToken);
+
           this.infoMessage = "登录成功！正在跳转...";
           setTimeout(() => {
             this.router.push("/game"); // 跳转到游戏页面
