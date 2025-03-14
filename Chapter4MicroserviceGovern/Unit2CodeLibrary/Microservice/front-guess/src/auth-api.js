@@ -1,4 +1,3 @@
-// src/auth-api.js
 import axiosInstance from "./axiosInstance";
 
 export default {
@@ -41,4 +40,4 @@ export default {
             return null;
         }
     },
-};
+}

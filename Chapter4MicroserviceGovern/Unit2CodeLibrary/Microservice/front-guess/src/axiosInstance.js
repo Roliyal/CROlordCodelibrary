@@ -1,5 +1,5 @@
 import axios from "axios";
-import store from "./store";
+import store from "./store";  // 引入 Vuex store
 
 // 创建 Axios 实例
 const axiosInstance = axios.create({
@@ -15,13 +15,13 @@ axiosInstance.interceptors.request.use(
         const userId = store.state.userId || localStorage.getItem("userId");
         const authToken = store.state.authToken || localStorage.getItem("authToken");
 
-        // 在请求头中加入 X-User-ID 和 Authorization
-        if (userId) {
-            config.headers['X-User-ID'] = userId;
+        // 如果是登录请求，也带上 X-User-ID
+        if (config.url === "/login" && userId) {
+            config.headers['X-User-ID'] = userId;  // 将 X-User-ID 加入请求头
         }
 
         if (authToken) {
-            config.headers['Authorization'] = authToken;
+            config.headers['Authorization'] = `Bearer ${authToken}`;  // Bearer 认证模式
         }
 
         // 设置 Content-Type 为 application/json（如果未设置）
