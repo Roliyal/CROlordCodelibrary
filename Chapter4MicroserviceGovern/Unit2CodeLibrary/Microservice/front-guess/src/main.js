@@ -2,7 +2,7 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
-import store from "./store";  // 确保正确导入 store
+import store from "./store";  // 确保正确导入 store.js
 
 const app = createApp(App);
 
