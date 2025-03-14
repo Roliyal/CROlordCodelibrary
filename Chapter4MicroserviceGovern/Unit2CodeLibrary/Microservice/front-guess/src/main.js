@@ -2,7 +2,9 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
-import store from "./store";  // 确保正确导入 Vuex store
+import store from "./store";  // 引入 Vuex store
+import './styles.css';  // 确保样式文件已被引入
+
 
 const app = createApp(App);
 

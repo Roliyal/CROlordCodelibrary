@@ -50,9 +50,9 @@ export default {
 
         // 检查 authResult 是否包含 authToken
         if (authResult && authResult.id && authResult.authToken) {
-          store.setIsLoggedIn(true);
-          store.setUserId(authResult.id); // 设置 userId 到 store
-          store.setAuthToken(authResult.authToken); // 设置 authToken 到 store
+          store.commit("setIsLoggedIn", true);  // 使用 commit 调用 mutation
+          store.commit("setUserId", authResult.id); // 设置 userId 到 store
+          store.commit("setAuthToken", authResult.authToken); // 设置 authToken 到 store
 
           localStorage.setItem("userId", authResult.id); // 存储 userId 到 localStorage
           localStorage.setItem("authToken", authResult.authToken); // 存储 authToken 到 localStorage
