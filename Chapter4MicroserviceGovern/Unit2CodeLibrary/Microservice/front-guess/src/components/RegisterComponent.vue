@@ -26,7 +26,7 @@
 
 <script>
 import { useRouter } from "vue-router";
-import store from "../store";
+import authApi from "../auth-api";  // 引入 authApi
 
 export default {
   data() {
@@ -44,15 +44,12 @@ export default {
   methods: {
     async register() {
       try {
-        const registerResult = await store.dispatch("register", {
-          username: this.username,
-          password: this.password
-        });
+        const registerResult = await authApi.register(this.username, this.password);
 
         if (registerResult) {
           this.infoMessage = "注册成功！正在跳转到登录页面...";
           setTimeout(() => {
-            this.router.push("/login"); // 跳转到登录页面
+            this.router.push("/login"); // 注册成功后跳转到登录页面
           }, 2000);
         } else {
           this.errorMessage = "注册失败，请重试。";
@@ -65,6 +62,9 @@ export default {
   },
 };
 </script>
+
+
+
 
 
 <style scoped>

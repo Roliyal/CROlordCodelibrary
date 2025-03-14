@@ -30,6 +30,8 @@ export default {
         try {
             const response = await axiosInstance.post("/register", { username, password });
 
+            console.log('Register response:', response.data);
+
             if (response.status === 201) {
                 return response.data;
             }
