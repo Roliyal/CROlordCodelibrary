@@ -1,14 +1,12 @@
 // src/store.js
 import { reactive } from "vue";
 
-// 使用 reactive 创建响应式状态
 const state = reactive({
-    isLoggedIn: false,
-    userId: null,
-    authToken: null,
+    isLoggedIn: false,  // 默认未登录
+    userId: null,       // 用户 ID
+    authToken: null,    // 用户认证 token
 });
 
-// 设置状态的更新方法
 const setIsLoggedIn = (isLoggedIn) => {
     state.isLoggedIn = isLoggedIn;
 };
@@ -22,7 +20,7 @@ const setAuthToken = (authToken) => {
 };
 
 export default {
-    state,
+    state,             // 导出响应式的 state
     setIsLoggedIn,
     setUserId,
     setAuthToken,
