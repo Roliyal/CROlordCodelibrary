@@ -13,23 +13,22 @@ const axiosInstance = axios.create({
 // 添加请求拦截器
 axiosInstance.interceptors.request.use(
     config => {
-        // 从 store 或 localStorage 获取 userId 和 authToken
-        const userId = store.state.userId || localStorage.getItem("userId");
-        const authToken = store.state.authToken || localStorage.getItem("authToken");
+        // 从 localStorage 获取 userId 和 authToken
+        const userId = localStorage.getItem('userId');
+        const authToken = localStorage.getItem('authToken');
 
         console.log('Adding headers:', { userId, authToken });
 
-        // 始终添加 X-User-ID 头
+        // 始终添加 X-User-ID 和 Authorization 头
         if (userId) {
-            config.headers['X-User-ID'] = userId; // 添加自定义 Header
+            config.headers['X-User-ID'] = userId;
             console.log('X-User-ID header added');
         } else {
             console.log('X-User-ID header NOT added');
         }
 
-        // 始终添加 Authorization 头
         if (authToken) {
-            config.headers['Authorization'] = authToken; // 添加 Authorization Header
+            config.headers['Authorization'] = authToken;
             console.log('Authorization header added');
         } else {
             console.log('Authorization header NOT added');
