@@ -1,5 +1,3 @@
-// database.go
-
 package main
 
 import (
@@ -34,7 +32,7 @@ type User struct {
 	CorrectGuesses int       `gorm:"column:correct_guesses;default:0"`
 }
 
-// TableName 显式指定表名为 `users`
+// TableName 显式指定表名为 users
 func (User) TableName() string {
 	return "users"
 }
@@ -126,7 +124,6 @@ func initDatabase() {
 	db.AutoMigrate(&User{})
 }
 
-// MaxID 结构体用于接收 MAX(ID) 的查询结果
 type MaxID struct {
 	MaxID string `gorm:"max(id)"`
 }

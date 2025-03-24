@@ -1,5 +1,3 @@
-// nacos.go
-
 package main
 
 import (
