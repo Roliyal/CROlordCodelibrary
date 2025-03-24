@@ -17,19 +17,19 @@ import (
 
 // 定义请求结构体
 type loginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string json:"username"
+	Password string json:"password"
 }
 
 type registerRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string json:"username"
+	Password string json:"password"
 }
 
 type loginResponse struct {
-	Success   bool   `json:"success"`
-	AuthToken string `json:"authToken"`
-	ID        string `json:"id"`
+	Success   bool   json:"success"
+	AuthToken string json:"authToken"
+	ID        string json:"id"
 }
 
 func main() {
@@ -180,13 +180,13 @@ func userHandler(c *gin.Context) {
 
 	// 返回用户数据（不包括密码）
 	type userResponse struct {
-		ID        string    `json:"ID"`
-		Username  string    `json:"Username"`
-		AuthToken string    `json:"AuthToken"`
-		Wins      int       `json:"Wins"`
-		Attempts  int       `json:"Attempts"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
+		ID        string    json:"ID"
+		Username  string    json:"Username"
+		AuthToken string    json:"AuthToken"
+		Wins      int       json:"Wins"
+		Attempts  int       json:"Attempts"
+		CreatedAt time.Time json:"created_at"
+		UpdatedAt time.Time json:"updated_at"
 	}
 
 	res := userResponse{
