@@ -1,7 +1,4 @@
 // src/auth-api.js
-import axiosInstance from './axiosInstance'; // 引入自定义的 axios 实例
-import store from './store';  // 引入 Vuex store
-
 export default {
     // 用户登录
     async authenticate(username, password) {
@@ -23,6 +20,8 @@ export default {
                 localStorage.setItem('userId', response.data.id);
                 localStorage.setItem('authToken', response.data.authToken);
 
+                console.log('Stored userId and authToken in localStorage:', response.data.id, response.data.authToken);
+
                 return {
                     id: response.data.id,
                     authToken: response.data.authToken,
@@ -32,24 +31,6 @@ export default {
             return null;
         } catch (error) {
             console.error('Login failed:', error);
-            return null;
-        }
-    },
-
-    // 用户注册
-    async register(username, password) {
-        try {
-            const response = await axiosInstance.post('/register', { username, password });
-
-            console.log('Register response:', response.data);
-
-            if (response.status === 201) {
-                return response.data;
-            }
-
-            return null;
-        } catch (error) {
-            console.error('Registration failed:', error);
             return null;
         }
     },
