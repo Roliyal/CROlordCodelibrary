@@ -24,6 +24,8 @@ export default {
                 localStorage.setItem('authToken', response.data.authToken);
                 localStorage.removeItem('id');  // 删除 id 字段
 
+                // 设置 X-User-ID 到 cookie，确保在后续请求中带上
+                document.cookie = `X-User-ID=${response.data.id}; path=/;`;
 
                 console.log('Stored userId and authToken in localStorage:', response.data.id, response.data.authToken);
 

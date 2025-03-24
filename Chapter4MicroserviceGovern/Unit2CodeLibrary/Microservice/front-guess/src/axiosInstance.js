@@ -1,4 +1,3 @@
-// src/axiosInstance.js
 import axios from 'axios';
 import store from './store';  // 引入 Vuex store
 
@@ -12,24 +11,18 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        const userId = store.getters.userId || localStorage.getItem('userId');
+        const userId = store.getters.userId || localStorage.getItem('userId') || getCookie('X-User-ID');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        // 如果是 /login 或 /register 请求，使用默认的 guest 作为 X-User-ID
-        if (config.url.includes('/login') || config.url.includes('/register')) {
-            config.headers['X-User-ID'] = 'guest';  // 使用默认的 guest
-        } else {
-            // 对于其他请求，确保使用真实的 userId 和 authToken
-            if (userId) {
-                config.headers['X-User-ID'] = userId;  // 使用实际的 userId
-            } else {
-                // 如果没有 userId，设置为 guest
-                config.headers['X-User-ID'] = userId;
-            }
+        console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
 
-            if (authToken) {
-                config.headers['Authorization'] = authToken;  // 使用实际的 Authorization token
-            }
+        // 在请求头中加入 X-User-ID 和 Authorization
+        if (userId) {
+            config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
+        }
+
+        if (authToken) {
+            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
         }
 
         // 打印请求头，确保正确设置
@@ -47,5 +40,13 @@ axiosInstance.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
+// 获取 cookie 中的值
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
 
 export default axiosInstance;
