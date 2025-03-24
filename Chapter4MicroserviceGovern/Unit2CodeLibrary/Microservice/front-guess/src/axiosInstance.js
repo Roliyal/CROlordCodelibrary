@@ -15,19 +15,21 @@ axiosInstance.interceptors.request.use(
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        // 如果是 /login 或 /register 请求，强制携带 X-User-ID
+        // 如果是 /login 或 /register 请求，使用默认的 guest 作为 X-User-ID
         if (config.url.includes('/login') || config.url.includes('/register')) {
+            config.headers['X-User-ID'] = 'guest';  // 使用默认的 guest
+        } else {
+            // 对于其他请求，确保使用真实的 userId 和 authToken
             if (userId) {
-                config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
+                config.headers['X-User-ID'] = userId;  // 使用实际的 userId
             } else {
-                // 如果 userId 为 null，使用 'guest' 或其他默认值
-                config.headers['X-User-ID'] = 'guest';
+                // 如果没有 userId，设置为 guest
+                config.headers['X-User-ID'] = userId;
             }
-        }
 
-        // 添加 Authorization 请求头
-        if (authToken) {
-            config.headers['Authorization'] = `authToken`;  // 添加 Authorization 请求头
+            if (authToken) {
+                config.headers['Authorization'] = authToken;  // 使用实际的 Authorization token
+            }
         }
 
         // 打印请求头，确保正确设置
