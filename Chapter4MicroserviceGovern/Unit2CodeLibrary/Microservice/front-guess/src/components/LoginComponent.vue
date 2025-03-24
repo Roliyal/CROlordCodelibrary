@@ -1,3 +1,4 @@
+// src/components/LoginComponent.vue
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
@@ -11,7 +12,7 @@
           <label>密码：</label>
           <input type="password" v-model="password" required />
         </div>
-        <button type="submit">登录</button>
+        <button type="submit" :disabled="isLoggingIn">登录</button>
         <div class="message-container">
           <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
           <div v-if="infoMessage" class="info-message">{{ infoMessage }}</div>
@@ -37,6 +38,7 @@ export default {
       password: '',
       errorMessage: '',
       infoMessage: '',
+      isLoggingIn: false,  // 新增状态，防止多次登录请求
     };
   },
   setup() {
@@ -45,16 +47,22 @@ export default {
   },
   methods: {
     async login() {
+      if (this.isLoggingIn) return;  // 如果已经在登录中，阻止再次点击
+
+      this.isLoggingIn = true;  // 设置登录中状态
+
       try {
         const authResult = await authApi.authenticate(this.username, this.password);
 
         if (authResult) {
-          // 登录成功，将 userId 和 authToken 存储到 Vuex 和 localStorage
+          localStorage.removeItem('userld');  // 清理错误的键
+          localStorage.setItem('userId', authResult.id);  // 存储 userId
+          localStorage.setItem('authToken', authResult.authToken);  // 存储 authToken
+
+          // 同步到 Vuex
           store.commit('setUserId', authResult.id);  // 更新 Vuex 状态
           store.commit('setAuthToken', authResult.authToken);  // 更新 Vuex 状态
           store.commit('setIsLoggedIn', true);  // 更新登录状态
-          localStorage.setItem('userId', authResult.id);  // 存储在 localStorage
-          localStorage.setItem('authToken', authResult.authToken);  // 存储在 localStorage
 
           this.infoMessage = '登录成功！正在跳转...';
           setTimeout(() => {
@@ -66,11 +74,12 @@ export default {
       } catch (error) {
         console.error('Error during login:', error);
         this.errorMessage = '登录过程中发生错误，请稍后再试。';
+      } finally {
+        this.isLoggingIn = false;  // 恢复登录状态
       }
     },
   },
 };
-
 </script>
 
 <style scoped>
