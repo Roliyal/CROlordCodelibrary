@@ -15,15 +15,11 @@ axiosInstance.interceptors.request.use(
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
-
         // 在所有请求中都添加 X-User-ID 和 Authorization
-        // 只要 userId 存在就添加 X-User-ID
         if (userId) {
             config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
         }
 
-        // 确保在所有请求中添加 Authorization 请求头
         if (authToken) {
             config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
         }

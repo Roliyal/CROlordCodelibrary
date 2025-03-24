@@ -37,10 +37,4 @@ export default {
                 return response.data;
             }
 
-            return null;
-        } catch (error) {
-            console.error('Registration failed:', error);
-            return null;
-        }
-    },
-}
+            return null
