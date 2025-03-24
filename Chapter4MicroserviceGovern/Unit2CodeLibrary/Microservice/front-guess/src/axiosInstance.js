@@ -15,13 +15,15 @@ axiosInstance.interceptors.request.use(
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        // 在所有请求中都添加 X-User-ID 和 Authorization
+        console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
+
+        // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {
             config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
         }
 
         if (authToken) {
-            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
+            config.headers['Authorization'] = `Bearer ${authToken}`;  // 添加 Authorization 请求头
         }
 
         console.log('Request headers:', config.headers);  // 打印出完整的请求头，检查是否正确

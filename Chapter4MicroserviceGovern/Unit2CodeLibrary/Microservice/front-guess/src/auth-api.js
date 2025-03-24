@@ -6,13 +6,11 @@ export default {
     // 用户登录
     async authenticate(username, password) {
         try {
-            // 获取 Vuex 或 localStorage 中的 userId
-            const userId = store.getters.userId || localStorage.getItem('userId');
-            const headers = {};
-
-            if (userId) {
-                headers['X-User-ID'] = userId;  // 在登录时显式添加 X-User-ID
-            }
+            // 获取 Vuex 或 localStorage 中的 userId，如果没有则使用 guest 或 null
+            const userId = store.getters.userId || localStorage.getItem('userId') || 'guest';
+            const headers = {
+                'X-User-ID': userId,  // 显式添加 X-User-ID 头部
+            };
 
             const response = await axiosInstance.post('/login', {
                 username,
@@ -22,6 +20,13 @@ export default {
             console.log('Login response:', response.data);
 
             if (response.data && response.data.success && response.data.id && response.data.authToken) {
+                // 登录成功后更新 Vuex 和 localStorage
+                store.commit('setUserId', response.data.id);
+                store.commit('setAuthToken', response.data.authToken);
+                store.commit('setIsLoggedIn', true);
+                localStorage.setItem('userId', response.data.id);
+                localStorage.setItem('authToken', response.data.authToken);
+
                 return {
                     id: response.data.id,
                     authToken: response.data.authToken,
