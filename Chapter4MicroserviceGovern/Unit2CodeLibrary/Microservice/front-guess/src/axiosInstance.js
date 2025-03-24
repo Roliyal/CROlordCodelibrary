@@ -12,6 +12,7 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
+        // 从 Vuex 或 localStorage 获取实际的 userId
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 

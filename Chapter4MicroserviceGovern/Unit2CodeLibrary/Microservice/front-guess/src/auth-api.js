@@ -6,16 +6,10 @@ export default {
     // 用户登录
     async authenticate(username, password) {
         try {
-            // 获取 Vuex 或 localStorage 中的 userId，如果没有则使用 guest 或 null
-            const userId = store.getters.userId || localStorage.getItem('userId') || 'guest';
-            const headers = {
-                'X-User-ID': userId,  // 显式添加 X-User-ID 头部
-            };
-
             const response = await axiosInstance.post('/login', {
                 username,
                 password,
-            }, { headers });  // 将 headers 传递给请求
+            });
 
             console.log('Login response:', response.data);
 
@@ -24,6 +18,8 @@ export default {
                 store.commit('setUserId', response.data.id);
                 store.commit('setAuthToken', response.data.authToken);
                 store.commit('setIsLoggedIn', true);
+
+                // 存储在 localStorage 中
                 localStorage.setItem('userId', response.data.id);
                 localStorage.setItem('authToken', response.data.authToken);
 
