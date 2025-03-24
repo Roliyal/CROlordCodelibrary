@@ -1,4 +1,7 @@
 // src/auth-api.js
+import axiosInstance from './axiosInstance'; // 引入自定义的 axios 实例
+import store from './store';  // 引入 Vuex store
+
 export default {
     // 用户登录
     async authenticate(username, password) {
@@ -34,4 +37,22 @@ export default {
             return null;
         }
     },
-}
+
+    // 用户注册
+    async register(username, password) {
+        try {
+            const response = await axiosInstance.post('/register', { username, password });
+
+            console.log('Register response:', response.data);
+
+            if (response.status === 201) {
+                return response.data;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Registration failed:', error);
+            return null;
+        }
+    },
+};

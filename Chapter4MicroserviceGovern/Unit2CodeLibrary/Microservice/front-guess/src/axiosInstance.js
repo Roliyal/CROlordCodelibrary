@@ -15,19 +15,18 @@ axiosInstance.interceptors.request.use(
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
-
-        // 在请求头中加入 X-User-ID 和 Authorization
-        if (userId) {
-            config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
+        // 如果请求是 /login 或 /register，不需要带上 X-User-ID
+        if (!config.url.includes('/login') && !config.url.includes('/register')) {
+            // 在请求头中加入 X-User-ID 和 Authorization
+            if (userId) {
+                config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
+            }
         }
 
+        // 只对非登录、注册请求携带 Authorization
         if (authToken) {
             config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
         }
-
-        // 打印请求头，确保正确设置
-        console.log('Request headers:', config.headers);
 
         // 设置 Content-Type 为 application/json（如果未设置）
         if (!config.headers['Content-Type']) {

@@ -21,7 +21,6 @@ export default createStore({
             state.isLoggedIn = false;
             state.userId = null;
             state.authToken = null;
-
             // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
