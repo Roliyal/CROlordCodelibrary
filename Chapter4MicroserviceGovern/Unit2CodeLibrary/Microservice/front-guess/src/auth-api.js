@@ -1,14 +1,23 @@
 // src/auth-api.js
 import axiosInstance from './axiosInstance'; // 引入自定义的 axios 实例
+import store from './store';  // 引入 Vuex store
 
 export default {
     // 用户登录
     async authenticate(username, password) {
         try {
+            // 获取 Vuex 或 localStorage 中的 userId
+            const userId = store.getters.userId || localStorage.getItem('userId');
+            const headers = {};
+
+            if (userId) {
+                headers['X-User-ID'] = userId;  // 在登录时显式添加 X-User-ID
+            }
+
             const response = await axiosInstance.post('/login', {
                 username,
                 password,
-            });
+            }, { headers });  // 将 headers 传递给请求
 
             console.log('Login response:', response.data);
 
