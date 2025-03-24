@@ -23,7 +23,7 @@ axiosInstance.interceptors.request.use(
         }
 
         if (authToken) {
-            config.headers['Authorization'] = `Bearer ${authToken}`;  // 添加 Authorization 请求头
+            config.headers['Authorization'] = ` ${authToken}`;  // 添加 Authorization 请求头
         }
 
         console.log('Request headers:', config.headers);  // 打印出完整的请求头，检查是否正确
