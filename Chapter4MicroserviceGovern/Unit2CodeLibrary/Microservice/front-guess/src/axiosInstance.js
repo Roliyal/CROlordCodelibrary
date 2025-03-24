@@ -20,7 +20,7 @@ axiosInstance.interceptors.request.use(
 
         // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {
-            config.headers['X-User-ID'] = userId;
+            config.headers['X-User-ID'] = userId;  // 添加 X-User-ID 请求头
         }
 
         // 确保 Authorization 使用 Bearer token 格式
