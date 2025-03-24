@@ -90,8 +90,8 @@ func initDatabase() {
 	}
 
 	// 获取 Nacos 中的数据库配置
-	dataId := "Prod_DATABASE" // 请替换为您在 Nacos 中设置的数据 ID
-	group := "DEFAULT_GROUP"  // 请替换为您在 Nacos 中设置的组
+	dataId := "Prod_DATABASE" //
+	group := "DEFAULT_GROUP"  //
 	dbConfigContent, err := configClient.GetConfig(vo.ConfigParam{
 		DataId: dataId,
 		Group:  group,

@@ -25,7 +25,7 @@ axiosInstance.interceptors.request.use(
 
         // 确保 Authorization 使用 Bearer token 格式
         if (authToken) {
-            config.headers['Authorization'] = authToken;
+            config.headers['Authorization'] = `Bearer ${authToken}`;
         }
 
         // 设置 Content-Type 为 application/json（如果未设置）
