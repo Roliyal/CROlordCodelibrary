@@ -16,7 +16,7 @@ axiosInstance.interceptors.request.use(
         const userId = store.getters.userId || localStorage.getItem('userId');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
-        console.log('Adding headers:', { userId, authToken });
+        console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
 
         // 在请求头中加入 X-User-ID 和 Authorization
         if (userId) {

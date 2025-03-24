@@ -1,4 +1,3 @@
-// src/components/LoginComponent.vue
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
@@ -71,8 +70,8 @@ export default {
     },
   },
 };
-</script>
 
+</script>
 
 <style scoped>
 .container {
