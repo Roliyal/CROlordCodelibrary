@@ -22,6 +22,8 @@ export default {
                 // 存储在 localStorage 中
                 localStorage.setItem('userId', response.data.id);
                 localStorage.setItem('authToken', response.data.authToken);
+                localStorage.removeItem('id');  // 删除 id 字段
+
 
                 console.log('Stored userId and authToken in localStorage:', response.data.id, response.data.authToken);
 
