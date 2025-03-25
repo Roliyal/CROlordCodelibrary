@@ -51,4 +51,4 @@ function getCookie(name) {
     return null;
 }
 
-export default axiosInstance;import { createApp } from 'vue';
+export default axiosInstance;
