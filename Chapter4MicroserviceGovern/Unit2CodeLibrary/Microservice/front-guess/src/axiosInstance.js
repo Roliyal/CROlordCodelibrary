@@ -1,3 +1,4 @@
+// src/axiosInstance.js
 import axios from 'axios';
 import store from './store';  // 引入 Vuex store
 
@@ -11,6 +12,7 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
+        // 从 Vuex 或 localStorage 获取最新的 userId 和 authToken
         const userId = store.getters.userId || localStorage.getItem('userId') || getCookie('X-User-ID');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
