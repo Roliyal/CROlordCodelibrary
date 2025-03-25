@@ -50,4 +50,5 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(';').shift();
     return null;
 }
+
 export default axiosInstance;import { createApp } from 'vue';

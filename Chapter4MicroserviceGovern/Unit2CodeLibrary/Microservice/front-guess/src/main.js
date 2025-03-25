@@ -1,3 +1,4 @@
+import { createApp } from 'vue';
 import App from './App.vue';
 import store from './store';  // 引入 Vuex store
 import router from './router'; // 引入路由
