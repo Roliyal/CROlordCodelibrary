@@ -19,6 +19,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
+    // 判断是否是登录或注册页面，或者是否已经登录
     if (
         (to.path !== "/login" && to.path !== "/register") &&  // 排除登录和注册页面
         !store.state.isLoggedIn  // 未登录时

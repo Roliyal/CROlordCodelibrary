@@ -1,4 +1,3 @@
-// src/store/index.js
 import { createStore } from 'vuex';
 
 export default createStore({
@@ -21,6 +20,7 @@ export default createStore({
             state.isLoggedIn = false;
             state.userId = null;
             state.authToken = null;
+
             // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
@@ -32,8 +32,8 @@ export default createStore({
         },
     },
     getters: {
-        isLoggedIn: state => state.isLoggedIn,
-        userId: state => state.userId,
-        authToken: state => state.authToken,
+        isLoggedIn: (state) => state.isLoggedIn,
+        userId: (state) => state.userId,
+        authToken: (state) => state.authToken,
     },
 });

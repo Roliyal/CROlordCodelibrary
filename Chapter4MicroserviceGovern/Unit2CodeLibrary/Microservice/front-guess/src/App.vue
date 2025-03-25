@@ -1,4 +1,3 @@
-// src/App.vue
 <template>
   <div id="app">
     <nav class="navbar">
@@ -27,6 +26,4 @@ export default {
     ...mapActions(["logout"]),  // 映射 Vuex actions 到组件方法
   },
 };
-
-
 </script>
