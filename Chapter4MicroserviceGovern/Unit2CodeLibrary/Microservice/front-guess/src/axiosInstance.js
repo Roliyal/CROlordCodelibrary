@@ -24,7 +24,7 @@ axiosInstance.interceptors.request.use(
         }
 
         if (authToken) {
-            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
+            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求
         }
 
         // 打印请求头，确保正确设置
