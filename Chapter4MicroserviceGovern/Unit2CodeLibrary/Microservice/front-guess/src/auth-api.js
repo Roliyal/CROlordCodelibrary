@@ -29,7 +29,6 @@ export default {
                 localStorage.setItem('authToken', response.data.authToken);
                 localStorage.removeItem('id');  // 删除 id 字段
 
-
                 // 更新 cookie 中的 X-User-ID
                 document.cookie = `X-User-ID=${response.data.id}; path=/;`;
 
@@ -47,4 +46,4 @@ export default {
             return null;
         }
     },
-}
+};
