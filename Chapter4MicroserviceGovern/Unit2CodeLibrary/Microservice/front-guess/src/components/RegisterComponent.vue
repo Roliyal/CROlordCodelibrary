@@ -45,7 +45,7 @@ export default {
   methods: {
     async register() {
       try {
-        const registerResult = await authApi.authenticate(this.username, this.password);  // 使用 authenticate 进行登录或注册
+        const registerResult = await authApi.register(this.username, this.password);  // 使用注册接口进行注册
 
         if (registerResult) {
           this.infoMessage = '注册成功！正在跳转到登录页面...';
@@ -63,8 +63,6 @@ export default {
   },
 };
 </script>
-
-
 
 
 

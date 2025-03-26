@@ -4,7 +4,7 @@ import store from './store';  // Import Vuex store
 
 export default {
     // 用户登录
-    async authenticate(username, password) {
+    async login(username, password) {
         try {
             const response = await axiosInstance.post('/login', {
                 username,
@@ -43,6 +43,44 @@ export default {
             return null;
         } catch (error) {
             console.error('Login failed:', error);
+            return null;
+        }
+    },
+
+    // 用户注册
+    async register(username, password) {
+        try {
+            const response = await axiosInstance.post('/register', {
+                username,
+                password,
+            });
+
+            console.log('Register response:', response.data);
+
+            if (response.status === 201 && response.data.id && response.data.authToken) {
+                // 注册成功后更新 Vuex 和 localStorage
+                store.commit('setUserId', response.data.id);
+                store.commit('setAuthToken', response.data.authToken);
+                store.commit('setIsLoggedIn', true);
+
+                // 存储注册数据到 localStorage 和 cookie 中
+                localStorage.setItem('userId', response.data.id);
+                localStorage.setItem('authToken', response.data.authToken);
+
+                // 更新 cookie 中的 X-User-ID
+                document.cookie = `X-User-ID=${response.data.id}; path=/;`;
+
+                console.log('Stored userId and authToken in localStorage after registration:', response.data.id, response.data.authToken);
+
+                return {
+                    id: response.data.id,
+                    authToken: response.data.authToken,
+                };
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Registration failed:', error);
             return null;
         }
     },
