@@ -47,7 +47,7 @@ export default {
   methods: {
     async login() {
       try {
-        const authResult = await authApi.authenticate(this.username, this.password);
+        const authResult = await authApi.login(this.username, this.password);  // 改为调用 login 方法
 
         if (authResult) {
           // 登录成功，将 userId 和 authToken 存储到 Vuex 和 localStorage
@@ -72,7 +72,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .container {
