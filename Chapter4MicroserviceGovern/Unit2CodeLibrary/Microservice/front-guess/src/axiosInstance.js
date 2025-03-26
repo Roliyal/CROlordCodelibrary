@@ -12,7 +12,6 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 从 Vuex 或 localStorage 获取最新的 userId 和 authToken
         const userId = store.getters.userId || localStorage.getItem('userId') || getCookie('X-User-ID');
         const authToken = store.getters.authToken || localStorage.getItem('authToken');
 
@@ -24,7 +23,7 @@ axiosInstance.interceptors.request.use(
         }
 
         if (authToken) {
-            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求
+            config.headers['Authorization'] = authToken;  // 添加 Authorization 请求头
         }
 
         // 打印请求头，确保正确设置

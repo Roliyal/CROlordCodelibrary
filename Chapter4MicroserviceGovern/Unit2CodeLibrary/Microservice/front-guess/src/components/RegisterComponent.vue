@@ -1,3 +1,4 @@
+// src/components/RegisterComponent.vue
 <template>
   <div class="container">
     <h1 class="title">Register</h1>
@@ -25,16 +26,16 @@
 </template>
 
 <script>
-import { useRouter } from "vue-router";
-import authApi from "../auth-api";  // 引入 authApi
+import { useRouter } from 'vue-router';
+import authApi from '../auth-api';  // 引入 authApi
 
 export default {
   data() {
     return {
-      username: "",
-      password: "",
-      errorMessage: "",
-      infoMessage: "",
+      username: '',
+      password: '',
+      errorMessage: '',
+      infoMessage: '',
     };
   },
   setup() {
@@ -44,15 +45,15 @@ export default {
   methods: {
     async register() {
       try {
-        const registerResult = await authApi.register(this.username, this.password);
+        const registerResult = await authApi.authenticate(this.username, this.password);  // 使用 authenticate 进行登录或注册
 
         if (registerResult) {
-          this.infoMessage = "注册成功！正在跳转到登录页面...";
+          this.infoMessage = '注册成功！正在跳转到登录页面...';
           setTimeout(() => {
             this.router.push("/login"); // 注册成功后跳转到登录页面
           }, 2000);
         } else {
-          this.errorMessage = "注册失败，请重试。";
+          this.errorMessage = '注册失败，请重试。';
         }
       } catch (error) {
         console.error("Error during registration:", error);
@@ -62,6 +63,7 @@ export default {
   },
 };
 </script>
+
 
 
 

@@ -25,6 +25,9 @@ export default createStore({
             // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
+
+            // 删除 cookie 中的 X-User-ID
+            document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";  // 删除旧的 cookie
         },
     },
     actions: {
@@ -33,8 +36,8 @@ export default createStore({
         },
     },
     getters: {
-        isLoggedIn: state => state.isLoggedIn,
-        userId: state => state.userId,
-        authToken: state => state.authToken,
+        isLoggedIn: (state) => state.isLoggedIn,
+        userId: (state) => state.userId,
+        authToken: (state) => state.authToken,
     },
 });
