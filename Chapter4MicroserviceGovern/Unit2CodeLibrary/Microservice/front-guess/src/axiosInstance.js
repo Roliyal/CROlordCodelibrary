@@ -12,9 +12,14 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 从 Vuex 或 localStorage 获取最新的 userId 和 authToken
-        const userId = store.getters.userId || localStorage.getItem('userId') || getCookie('X-User-ID');
-        const authToken = store.getters.authToken || localStorage.getItem('authToken');
+        // 尝试从 Vuex 或 localStorage 获取 userId 和 authToken
+        let userId = store.getters.userId || localStorage.getItem('userId');
+        let authToken = store.getters.authToken || localStorage.getItem('authToken');
+
+        // 如果没有从 Vuex 或 localStorage 获取到用户信息，则尝试从 cookie 获取
+        if (!userId) {
+            userId = getCookie('X-User-ID');  // 尝试从 cookie 获取 X-User-ID
+        }
 
         console.log('Adding headers:', { userId, authToken });  // 日志输出，检查请求头
 
