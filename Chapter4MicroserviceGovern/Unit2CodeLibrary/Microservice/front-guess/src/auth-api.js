@@ -1,5 +1,5 @@
 // src/auth-api.js
-import axiosInstance from './axiosInstance';  // Import axiosInstance from axiosInstance.js
+import axiosInstance from './axiosInstance'; // Import axiosInstance from axiosInstance.js
 import store from './store';  // Import Vuex store
 
 export default {
@@ -84,4 +84,4 @@ export default {
             return null;
         }
     },
-};
+}
