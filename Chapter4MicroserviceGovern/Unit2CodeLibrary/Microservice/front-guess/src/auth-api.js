@@ -1,9 +1,7 @@
-// src/auth-api.js
-import axiosInstance from './axiosInstance';  // Import axiosInstance from axiosInstance.js
-import store from './store';  // Import Vuex store
+import axiosInstance from './axiosInstance';
+import store from './store';
 
 export default {
-    // 用户登录
     async login(username, password) {
         try {
             const response = await axiosInstance.post('/login', {
@@ -13,32 +11,27 @@ export default {
 
             console.log('Login response:', response.data);
 
-            if (response.data && response.data.success && response.data.id && response.data.authToken) {
-                // 清除之前的缓存数据
+            if (response.data?.success && response.data.userId && response.data.authToken) {
+                // 清除旧数据
                 localStorage.removeItem('userId');
                 localStorage.removeItem('authToken');
-                document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";  // 删除旧的 cookie
+                document.cookie = "X-User-ID=; path=/; domain=.roliyal.com; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-                // 登录成功后更新 Vuex 和 localStorage
+                // 存储新数据（HTTP 环境）
+                localStorage.setItem('userId', response.data.id);
+                localStorage.setItem('authToken', response.data.authToken);
+                document.cookie = `X-User-ID=${response.data.id}; path=/; domain=.roliyal.com; SameSite=Lax`;
+
+                // 更新 Vuex
                 store.commit('setUserId', response.data.id);
                 store.commit('setAuthToken', response.data.authToken);
                 store.commit('setIsLoggedIn', true);
 
-                // 存储新数据到 localStorage 和 cookie 中
-                localStorage.setItem('userId', response.data.id);
-                localStorage.setItem('authToken', response.data.authToken);
-
-                // 更新 cookie 中的 X-User-ID
-                document.cookie = `X-User-ID=${response.data.id}; path=/;`;
-
-                console.log('Stored userId and authToken in localStorage:', response.data.id, response.data.authToken);
-
                 return {
-                    id: response.data.id,
+                    userId: response.data.id,
                     authToken: response.data.authToken,
                 };
             }
-
             return null;
         } catch (error) {
             console.error('Login failed:', error);
@@ -46,7 +39,6 @@ export default {
         }
     },
 
-    // 用户注册
     async register(username, password) {
         try {
             const response = await axiosInstance.post('/register', {
@@ -54,33 +46,26 @@ export default {
                 password,
             });
 
-            console.log('Register response:', response.data);
+            if (response.status === 201 && response.data?.id && response.data?.authToken) {
+                // 存储数据（和登录逻辑一致）
+                localStorage.setItem('userId', response.data.id);
+                localStorage.setItem('authToken', response.data.authToken);
+                document.cookie = `X-User-ID=${response.data.id}; path=/; domain=.roliyal.com; SameSite=Lax`;
 
-            if (response.status === 201 && response.data.id && response.data.authToken) {
-                // 注册成功后更新 Vuex 和 localStorage
+                // 更新 Vuex
                 store.commit('setUserId', response.data.id);
                 store.commit('setAuthToken', response.data.authToken);
                 store.commit('setIsLoggedIn', true);
 
-                // 存储注册数据到 localStorage 和 cookie 中
-                localStorage.setItem('userId', response.data.id);
-                localStorage.setItem('authToken', response.data.authToken);
-
-                // 更新 cookie 中的 X-User-ID
-                document.cookie = `X-User-ID=${response.data.id}; path=/;`;
-
-                console.log('Stored userId and authToken in localStorage after registration:', response.data.id, response.data.authToken);
-
                 return {
-                    id: response.data.id,
+                    userId: response.data.userId,
                     authToken: response.data.authToken,
                 };
             }
-
             return null;
         } catch (error) {
             console.error('Registration failed:', error);
             return null;
         }
-    },
+    }
 }
