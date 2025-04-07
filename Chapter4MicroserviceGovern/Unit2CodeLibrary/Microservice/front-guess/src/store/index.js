@@ -22,12 +22,11 @@ export default createStore({
             state.userId = null;
             state.authToken = null;
 
-            // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
 
-            // 删除 cookie 中的 X-User-ID
-            document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            // 删除 X-User-ID cookie
+            document.cookie = 'X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         },
     },
     actions: {
