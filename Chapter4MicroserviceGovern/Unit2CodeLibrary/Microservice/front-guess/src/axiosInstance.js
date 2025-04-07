@@ -3,19 +3,18 @@ import axios from 'axios';
 import store from './store';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://micro.roliyal.com', // 这里替换成你的后端地址
+    baseURL: 'http://micro.roliyal.com', // 你的后端地址
     timeout: 10000,
-    withCredentials: true, // 允许携带 Cookie
+    withCredentials: true,              // 允许携带 Cookie
 });
 
-// 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 优先从 Vuex 里取 userId、authToken
+        // 1. 优先从 Vuex 获取
         let userId = store.state.userId;
         let authToken = store.state.authToken;
 
-        // 如果没有，就再看看 localStorage
+        // 2. 如果 Vuex 没值，就从 localStorage 获取
         if (!userId) {
             userId = localStorage.getItem('userId');
         }
@@ -23,26 +22,24 @@ axiosInstance.interceptors.request.use(
             authToken = localStorage.getItem('authToken');
         }
 
-        // 如果拿到了，就加到请求头
+        // 3. 拿到就加到请求头里
         if (userId) {
             config.headers['X-User-ID'] = userId;
-            // 同时让浏览器带 Cookie（如果还没有，也可以写 Cookie）
+            // 也写到Cookie（如果需要）
             document.cookie = `X-User-ID=${userId}; path=/;`;
         }
         if (authToken) {
             config.headers['Authorization'] = authToken;
         }
 
-        // 确保 Content-Type
+        // 默认 Content-Type
         if (!config.headers['Content-Type']) {
             config.headers['Content-Type'] = 'application/json';
         }
 
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 export default axiosInstance;
