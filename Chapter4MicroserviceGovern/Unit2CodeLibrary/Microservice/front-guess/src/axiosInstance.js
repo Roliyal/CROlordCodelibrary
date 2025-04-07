@@ -26,7 +26,7 @@ axiosInstance.interceptors.request.use(
         if (userId) {
             config.headers['X-User-ID'] = userId;
             // 也写到Cookie（如果需要）
-            document.cookie = `X-User-ID=${userId}; path=/;`;
+            //document.cookie = `X-User-ID=${userId}; path=/;`;
         }
         if (authToken) {
             config.headers['Authorization'] = authToken;
