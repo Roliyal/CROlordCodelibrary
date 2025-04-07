@@ -1,16 +1,16 @@
 // src/router/index.js
-import { createRouter, createWebHashHistory } from "vue-router";
-import LoginComponent from "../components/LoginComponent.vue";
-import GuessNumberComponent from "../components/GuessNumberComponent.vue";
-import ScoreboardComponent from "../components/ScoreboardComponent.vue";
-import RegisterComponent from "../components/RegisterComponent.vue";
-import store from "../store";  // 引入 Vuex store
+import { createRouter, createWebHashHistory } from 'vue-router';
+import LoginComponent from '../components/LoginComponent.vue';
+import GuessNumberComponent from '../components/GuessNumberComponent.vue';
+import ScoreboardComponent from '../components/ScoreboardComponent.vue';
+import RegisterComponent from '../components/RegisterComponent.vue';
+import store from '../store';  // 引入 Vuex store
 
 const routes = [
-    { path: "/login", component: LoginComponent },
-    { path: "/register", component: RegisterComponent },
-    { path: "/game", component: GuessNumberComponent },
-    { path: "/scoreboard", component: ScoreboardComponent },
+    { path: '/login', component: LoginComponent },
+    { path: '/register', component: RegisterComponent },
+    { path: '/game', component: GuessNumberComponent },
+    { path: '/scoreboard', component: ScoreboardComponent },
 ];
 
 const router = createRouter({
@@ -18,14 +18,16 @@ const router = createRouter({
     routes,
 });
 
+// 导航守卫：如果未登录则跳转到 login
 router.beforeEach((to, from, next) => {
     if (
-        (to.path !== "/login" && to.path !== "/register") &&  // 排除登录和注册页面
-        !store.state.isLoggedIn  // 未登录时
+        to.path !== '/login' &&
+        to.path !== '/register' &&
+        !store.state.isLoggedIn
     ) {
-        next("/login");  // 强制跳转到登录页
+        next('/login');
     } else {
-        next();  // 继续访问目标页面
+        next();
     }
 });
 

@@ -1,10 +1,11 @@
+// src/store/index.js
 import { createStore } from 'vuex';
 
 export default createStore({
     state: {
         isLoggedIn: false,
         userId: null,
-        authToken: null
+        authToken: null,
     },
     mutations: {
         setIsLoggedIn(state, isLoggedIn) {
@@ -21,20 +22,22 @@ export default createStore({
             state.userId = null;
             state.authToken = null;
 
-            // 清除所有存储（HTTP专用）
+            // 清除 localStorage 中的用户信息
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
-            document.cookie = "X-User-ID=; path=/; domain=.roliyal.com; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        }
+
+            // 删除 cookie 中的 X-User-ID
+            document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        },
     },
     actions: {
         logout({ commit }) {
             commit('logout');
-        }
+        },
     },
     getters: {
         isLoggedIn: (state) => state.isLoggedIn,
         userId: (state) => state.userId,
-        authToken: (state) => state.authToken
-    }
+        authToken: (state) => state.authToken,
+    },
 });

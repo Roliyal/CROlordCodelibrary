@@ -27,7 +27,7 @@
 
 <script>
 import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
-import config from "../config.js";
+import config from "../config.js";            // 你定义的配置文件
 
 export default {
   data() {

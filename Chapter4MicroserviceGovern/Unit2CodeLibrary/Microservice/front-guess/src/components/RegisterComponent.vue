@@ -1,4 +1,4 @@
-// src/components/RegisterComponent.vue
+<!-- src/components/RegisterComponent.vue -->
 <template>
   <div class="container">
     <h1 class="title">Register</h1>
@@ -45,12 +45,14 @@ export default {
   methods: {
     async register() {
       try {
-        const registerResult = await authApi.register(this.username, this.password);  // 使用注册接口进行注册
+        // 调用封装好的 authApi.register
+        const registerResult = await authApi.register(this.username, this.password);
 
         if (registerResult) {
+          // 注册成功
           this.infoMessage = '注册成功！正在跳转到登录页面...';
           setTimeout(() => {
-            this.router.push("/login"); // 注册成功后跳转到登录页面
+            this.router.push("/login");
           }, 2000);
         } else {
           this.errorMessage = '注册失败，请重试。';
@@ -63,9 +65,6 @@ export default {
   },
 };
 </script>
-
-
-
 
 <style scoped>
 body {

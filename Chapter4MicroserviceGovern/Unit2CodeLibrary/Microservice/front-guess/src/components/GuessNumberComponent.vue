@@ -44,7 +44,8 @@ export default {
 
     async submitGuess(guess) {
       try {
-        const response = await axiosInstance.post('/game', { // 使用相对路径
+        // 调用后端的 /game 接口
+        const response = await axiosInstance.post('/game', {
           number: guess,
         });
 
