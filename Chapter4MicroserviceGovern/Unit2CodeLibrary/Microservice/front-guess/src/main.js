@@ -5,8 +5,6 @@ import store from './store';
 import router from './router';
 import './styles.css';
 
-
-
 // ---- 1) 如果发现本地没有存过 userId，就强行写入一个 FAKE 值
 let storedUserId = localStorage.getItem('userId');
 let storedAuthToken = localStorage.getItem('authToken');
