@@ -33,6 +33,7 @@ export default {
       document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";  // 删除 cookie 中的 X-User-ID
     },
   },
+
   mounted() {
     // 在组件加载时初始化登录状态
     const storedUserId = localStorage.getItem('userId');
@@ -43,7 +44,7 @@ export default {
       this.$store.commit('setUserId', storedUserId);  // 设置 userId
       this.$store.commit('setAuthToken', storedAuthToken);  // 设置 authToken
     } else {
-      this.$store.commit('setIsLoggedIn', false);  // 如果没有 userId 或 authToken，设置为未登录
+      this.$store.commit('setIsLoggedIn', false);  // 如果没有 userId 或 authToken，设置为未登录。
     }
   },
 };
