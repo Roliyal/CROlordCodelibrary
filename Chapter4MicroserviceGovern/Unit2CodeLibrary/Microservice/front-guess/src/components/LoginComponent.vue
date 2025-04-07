@@ -1,4 +1,3 @@
-<!-- src/components/LoginComponent.vue -->
 <template>
   <div class="container">
     <h1 class="title">Login</h1>
@@ -19,16 +18,13 @@
         </div>
       </form>
     </div>
-    <footer class="footer">
-      <p>&copy; 2023 CROlord. All rights reserved.</p>
-    </footer>
   </div>
 </template>
 
 <script>
 import { useRouter } from 'vue-router';
-import store from '../store'; // 引入 Vuex store
-import authApi from '../auth-api'; // 引入 authApi
+import store from '../store';       // 这里引入了 store
+import authApi from '../auth-api';  // 这里引入了登录接口封装
 
 export default {
   data() {
@@ -46,17 +42,24 @@ export default {
   methods: {
     async login() {
       try {
-        // 调用封装好的 authApi.login
+        // 调用后端登录接口
         const authResult = await authApi.login(this.username, this.password);
 
         if (authResult) {
-          // 登录成功
+          // ====== 在这里“用到”store，更新 Vuex 中的登录状态 ======
+          store.commit('setUserId', authResult.id);
+          store.commit('setAuthToken', authResult.authToken);
+          store.commit('setIsLoggedIn', true);
+
+          // 你也可以把 userId 和 token 同步到 localStorage
+          localStorage.setItem('userId', authResult.id);
+          localStorage.setItem('authToken', authResult.authToken);
+
           this.infoMessage = '登录成功！正在跳转...';
           setTimeout(() => {
-            this.router.push('/game'); // 跳转到游戏页面
+            this.router.push('/game'); // 比如跳转到游戏页面
           }, 1000);
         } else {
-          // 登录失败
           this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
         }
       } catch (error) {
@@ -67,6 +70,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .container {
