@@ -4,31 +4,30 @@ import store from './store';
 const axiosInstance = axios.create({
     baseURL: 'http://micro.roliyal.com',
     timeout: 10000,
-    withCredentials: true, // 允许浏览器在跨域请求中发送 Cookie
+    withCredentials: true,
 });
 
+// 清除已有 Cookie 中的指定字段（可选，但建议）
+function deleteCookie(name) {
+    document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
 axiosInstance.interceptors.request.use(config => {
-    let userId = store.state.userId || localStorage.getItem('userId');
+    let userId = store.state.userId || localStorage.getItem('userId') || '000020';
     let authToken = store.state.authToken || localStorage.getItem('authToken');
 
-    // 1) X-User-ID Cookie
-    if (userId) {
-        // 如果是同域HTTP
-        document.cookie = `X-User-ID=${userId}; path=/; SameSite=None`;
-        // 如果要跨域且HTTPS，需要 `; Secure`
-        //document.cookie = `X-User-ID=${userId}; path=/; SameSite=None; Secure`;
-    }
+    // 清理旧值（如果有）
+    deleteCookie('X-User-ID');
+    deleteCookie('x-pre-higress-tag');
 
-    // 2) x-pre-higress-tag=gray
-    document.cookie = `x-pre-higress-tag=gray; path=/; SameSite=None`;
-    // 如果HTTPS: + Secure
+    document.cookie = `X-User-ID=${userId}; path=/;`;
+    document.cookie = `x-pre-higress-tag=gray; path=/;`;
 
-    // 3) Authorization header
     if (authToken) {
         config.headers['Authorization'] = authToken;
     }
 
-    // 4) Content-Type
+    // ✅ 设置默认 Content-Type
     if (!config.headers['Content-Type']) {
         config.headers['Content-Type'] = 'application/json';
     }
