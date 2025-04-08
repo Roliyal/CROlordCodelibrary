@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import axiosInstance from "../axiosInstance";
+import axiosInstance from "../axiosInstance"; // 引入 axios 实例
 
 export default {
   data() {
@@ -44,7 +44,7 @@ export default {
 
     async submitGuess(guess) {
       try {
-        // 只发送 {number: guess}
+        // 发送请求时需要携带用户信息
         const response = await axiosInstance.post('/game', {
           number: guess,
         });

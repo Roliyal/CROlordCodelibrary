@@ -13,9 +13,8 @@ axiosInstance.interceptors.request.use(
         let userId = store.state.userId || localStorage.getItem('userId');
         let authToken = store.state.authToken || localStorage.getItem('authToken');
 
-        // 写 Cookie: x-pre-higress-tag=gray,X-User-ID=xxx
+        // 设置 Cookie: x-pre-higress-tag=gray,X-User-ID=xxx
         if (userId) {
-            // 如果是同域，不需要 domain=；若跨域，需要 domain=xxx
             document.cookie = `x-pre-higress-tag=gray,X-User-ID=${userId}; path=/; SameSite=None; Secure`;
         }
 
