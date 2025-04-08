@@ -112,6 +112,10 @@ func healthCheckHandler(c *gin.Context) {
 func guessHandler(c *gin.Context) {
 	log.Printf("Received headers: %v", c.Request.Header)
 
+	// 打印所有 cookies，检查是否能正确读取
+	cookies := c.Request.Cookies()
+	log.Printf("Received cookies: %v", cookies)
+
 	// 从 Cookie 中读取 "X-User-ID"
 	userIdStr, err := c.Cookie("X-User-ID")
 	if err != nil {
