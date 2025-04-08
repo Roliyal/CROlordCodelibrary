@@ -42,6 +42,18 @@ func respondWithError(c *gin.Context, code int, message string) {
 }
 
 func main() {
+	// 创建 Gin 引擎
+	r := gin.Default()
+
+	// CORS 配置
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "http://micro.roliyal.com") // 前端地址
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-User-ID")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Next()
+	})
+
 	// 初始化日志目录
 	logDir := "/app/log"
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
@@ -68,9 +80,6 @@ func main() {
 	}
 	initDatabase(dbConfig) // Initialize the database with the configuration from Nacos
 	defer closeDatabase()
-
-	// 创建 Gin 引擎
-	r := gin.Default()
 
 	// 设置路由
 	r.POST("/game", guessHandler)
@@ -103,7 +112,7 @@ func healthCheckHandler(c *gin.Context) {
 func guessHandler(c *gin.Context) {
 	log.Printf("Received headers: %v", c.Request.Header)
 
-	// 1) 从 Cookie 中读取 "X-User-ID"
+	// 从 Cookie 中读取 "X-User-ID"
 	userIdStr, err := c.Cookie("X-User-ID")
 	if err != nil {
 		log.Println("Error: Missing X-User-ID cookie")
@@ -111,7 +120,7 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 2) 可选：从请求头读 Authorization
+	// 读取 Authorization 头
 	authToken := c.GetHeader("Authorization")
 	if authToken == "" {
 		log.Println("Warning: Missing Authorization header, but continuing anyway")
@@ -120,7 +129,7 @@ func guessHandler(c *gin.Context) {
 	log.Printf("Got userIdStr from cookie: %s", userIdStr)
 	log.Printf("Got authToken from header: %s", authToken)
 
-	// 3) 根据 userIdStr, authToken 获取用户信息
+	// 根据 userIdStr 和 authToken 获取用户信息
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
@@ -128,7 +137,7 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 4) 读取请求体
+	// 读取请求体
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		respondWithError(c, 400, "Invalid request body")
@@ -142,7 +151,7 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 5) 获取或创建游戏记录
+	// 获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
 	if err != nil {
 		log.Println("Error getting or creating game:", err)
@@ -150,7 +159,7 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 6) 进行猜数字逻辑
+	// 进行猜数字逻辑
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
