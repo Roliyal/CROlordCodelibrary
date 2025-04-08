@@ -1,4 +1,3 @@
-// src/axiosInstance.js
 import axios from 'axios';
 import store from './store';  // Vuex store
 
@@ -17,7 +16,7 @@ axiosInstance.interceptors.request.use(
         // 写 Cookie: x-pre-higress-tag=gray,X-User-ID=xxx
         if (userId) {
             // 如果是同域，不需要 domain=；若跨域，需要 domain=xxx
-            document.cookie = `x-pre-higress-tag=gray,X-User-ID=${userId}; path=/;`;
+            document.cookie = `x-pre-higress-tag=gray,X-User-ID=${userId}; path=/; SameSite=None; Secure`;
         }
 
         // 如果后端要 Authorization

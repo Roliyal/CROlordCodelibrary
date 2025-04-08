@@ -48,7 +48,7 @@ func main() {
 	// CORS 配置
 	r.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "http://micro.roliyal.com") // 前端地址
-		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Credentials", "true")                // 允许携带 Cookies
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-User-ID")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		c.Next()
