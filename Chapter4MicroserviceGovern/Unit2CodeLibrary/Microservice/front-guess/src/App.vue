@@ -1,3 +1,4 @@
+<!-- src/App.vue -->
 <template>
   <div id="app">
     <nav class="navbar">
@@ -20,31 +21,27 @@ import { mapState, mapActions } from "vuex";
 export default {
   name: "App",
   computed: {
-    ...mapState(["isLoggedIn"]),  // 映射 Vuex 状态到组件的计算属性
+    ...mapState(["isLoggedIn"]),
   },
   methods: {
-    ...mapActions(["logout"]),  // 映射 Vuex actions 到组件方法
-
-    // 退出时清除 Vuex 状态和 localStorage 中的用户信息
+    ...mapActions(["logout"]),
     logout() {
-      this.$store.dispatch('logout');  // 清除 Vuex 状态
-      localStorage.removeItem('userId'); // 清除 localStorage 中的 userId
-      localStorage.removeItem('authToken'); // 清除 localStorage 中的 authToken
-      document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";  // 删除 cookie 中的 X-User-ID
+      this.$store.dispatch('logout');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('authToken');
+      // 删除旧 X-User-ID Cookie
+      document.cookie = "X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     },
   },
-
   mounted() {
-    // 在组件加载时初始化登录状态
     const storedUserId = localStorage.getItem('userId');
     const storedAuthToken = localStorage.getItem('authToken');
-
     if (storedUserId && storedAuthToken) {
-      this.$store.commit('setIsLoggedIn', true);  // 更新 Vuex 中的登录状态
-      this.$store.commit('setUserId', storedUserId);  // 设置 userId
-      this.$store.commit('setAuthToken', storedAuthToken);  // 设置 authToken
+      this.$store.commit('setIsLoggedIn', true);
+      this.$store.commit('setUserId', storedUserId);
+      this.$store.commit('setAuthToken', storedAuthToken);
     } else {
-      this.$store.commit('setIsLoggedIn', false);  // 如果没有 userId 或 authToken，设置为未登录。
+      this.$store.commit('setIsLoggedIn', false);
     }
   },
 };

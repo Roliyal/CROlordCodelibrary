@@ -4,7 +4,7 @@ import LoginComponent from '../components/LoginComponent.vue';
 import GuessNumberComponent from '../components/GuessNumberComponent.vue';
 import ScoreboardComponent from '../components/ScoreboardComponent.vue';
 import RegisterComponent from '../components/RegisterComponent.vue';
-import store from '../store';  // 引入 Vuex store
+import store from '../store';
 
 const routes = [
     { path: '/login', component: LoginComponent },
@@ -18,7 +18,7 @@ const router = createRouter({
     routes,
 });
 
-// 导航守卫：如果未登录则跳转到 login
+// 导航守卫：如果未登录则跳转到 /login
 router.beforeEach((to, from, next) => {
     if (
         to.path !== '/login' &&

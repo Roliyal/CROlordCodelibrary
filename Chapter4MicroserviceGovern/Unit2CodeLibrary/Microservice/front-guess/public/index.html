@@ -12,7 +12,6 @@
             var cookies = document.cookie.split('; ').filter(function(row) {
                 return row.indexOf(grayKey + '=') === 0;
             });
-
             try {
                 if (typeof localStorage !== 'undefined' && localStorage !== null) {
                     var storageValue = localStorage.getItem(grayKey);
@@ -23,11 +22,10 @@
                     }
                 }
             } catch (error) {
-                // Error handling (optional)
+                // ...
             }
         })();
     </script>
-    <script src="../src/axiosInstance.js"></script>
 </head>
 <body>
 <noscript>

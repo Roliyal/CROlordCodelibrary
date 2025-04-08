@@ -21,11 +21,9 @@ export default createStore({
             state.isLoggedIn = false;
             state.userId = null;
             state.authToken = null;
-
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
-
-            // 删除 X-User-ID cookie
+            // 这里可以删除任何Cookie
             document.cookie = 'X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         },
     },
