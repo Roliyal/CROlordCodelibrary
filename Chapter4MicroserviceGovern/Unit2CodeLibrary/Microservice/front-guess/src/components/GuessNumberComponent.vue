@@ -46,6 +46,7 @@ export default {
       try {
         // 调用后端的 /game 接口
         const response = await axiosInstance.post('/game', {
+          userId: store.state.userId, // or localStorage
           number: guess,
         });
 
