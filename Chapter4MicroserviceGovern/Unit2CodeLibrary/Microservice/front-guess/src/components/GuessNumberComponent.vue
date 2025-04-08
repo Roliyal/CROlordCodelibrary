@@ -25,6 +25,8 @@
 
 <script>
 import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
+import store from '../store';       // 这里引入了 store
+
 
 export default {
   data() {
