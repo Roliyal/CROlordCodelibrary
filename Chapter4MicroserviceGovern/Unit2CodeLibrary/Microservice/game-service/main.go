@@ -101,19 +101,31 @@ func healthCheckHandler(c *gin.Context) {
 
 // guessHandler 处理猜数字请求
 func guessHandler(c *gin.Context) {
-	// 输出请求头，确保 X-User-ID 和 Authorization 被接收到
+	// 输出所有请求头，方便排查
 	log.Printf("Received headers: %v", c.Request.Header)
 
-	userIdStr := c.GetHeader("X-User-ID")     // 读取 X-User-ID 请求头
-	authToken := c.GetHeader("Authorization") // 读取 Authorization 请求头
-
-	if userIdStr == "" {
-		log.Println("Error: Missing X-User-ID header")
-		respondWithError(c, 400, "Missing X-User-ID header")
+	// --- 1. 改为从 Cookie 中读取 "X-User-ID"
+	userIdStr, err := c.Cookie("X-User-ID")
+	if err != nil {
+		log.Println("Error: Missing X-User-ID cookie")
+		respondWithError(c, 400, "Missing X-User-ID cookie")
 		return
 	}
 
-	// 使用 userIdStr 和 authToken 从 login-service 获取用户信息
+	// --- 2. Authorization 依旧从请求头取 (如果需要)
+	authToken := c.GetHeader("Authorization")
+	if authToken == "" {
+		// 如果后端强制要求 Authorization，也可以报错
+		// respondWithError(c, 400, "Missing Authorization header")
+		// return
+		log.Println("Warning: Missing Authorization header, but continuing anyway")
+	}
+
+	// 调试输出
+	log.Printf("Got userIdStr from cookie: %s", userIdStr)
+	log.Printf("Got authToken from header: %s", authToken)
+
+	// --- 3. 根据 cookie 里的 userIdStr 和 token 去获取用户信息
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
@@ -121,7 +133,7 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 读取请求体
+	// --- 4. 读取请求体
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Println("Error reading request body:", err)
@@ -130,16 +142,15 @@ func guessHandler(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
-	// 解析请求体
+	// --- 5. 解析 JSON
 	var req guessRequest
-	err = json.Unmarshal(body, &req)
-	if err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		log.Println("Error unmarshalling JSON:", err)
 		respondWithError(c, 400, "Invalid JSON format")
 		return
 	}
 
-	// 获取或创建游戏记录
+	// --- 6. 获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
 	if err != nil {
 		log.Println("Error getting or creating game:", err)
@@ -147,11 +158,11 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// 处理猜测逻辑
+	// --- 7. 进行猜数字逻辑
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
-		res.Message = "Congratulations! You guessed the correct number.this is gary"
+		res.Message = "Congratulations! You guessed the correct number."
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
@@ -160,14 +171,14 @@ func guessHandler(c *gin.Context) {
 	} else {
 		res.Success = false
 		if req.Number < game.TargetNumber {
-			res.Message = "The number is too low.this is gary"
+			res.Message = "The number is too low."
 		} else {
-			res.Message = "The number is too high.this is gary"
+			res.Message = "The number is too high."
 		}
 		incrementAttempts(game)
 		res.Attempts = game.Attempts
 	}
 
-	// 返回响应
+	// --- 8. 返回响应
 	c.JSON(200, res)
 }
