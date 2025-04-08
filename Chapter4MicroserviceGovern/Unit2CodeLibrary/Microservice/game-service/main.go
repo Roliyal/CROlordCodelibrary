@@ -101,10 +101,9 @@ func healthCheckHandler(c *gin.Context) {
 
 // guessHandler 处理猜数字请求
 func guessHandler(c *gin.Context) {
-	// 输出所有请求头，方便排查
 	log.Printf("Received headers: %v", c.Request.Header)
 
-	// --- 1. 改为从 Cookie 中读取 "X-User-ID"
+	// 1) 从 Cookie 中读取 "X-User-ID"
 	userIdStr, err := c.Cookie("X-User-ID")
 	if err != nil {
 		log.Println("Error: Missing X-User-ID cookie")
@@ -112,20 +111,16 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// --- 2. Authorization 依旧从请求头取 (如果需要)
+	// 2) 可选：从请求头读 Authorization
 	authToken := c.GetHeader("Authorization")
 	if authToken == "" {
-		// 如果后端强制要求 Authorization，也可以报错
-		// respondWithError(c, 400, "Missing Authorization header")
-		// return
 		log.Println("Warning: Missing Authorization header, but continuing anyway")
 	}
 
-	// 调试输出
 	log.Printf("Got userIdStr from cookie: %s", userIdStr)
 	log.Printf("Got authToken from header: %s", authToken)
 
-	// --- 3. 根据 cookie 里的 userIdStr 和 token 去获取用户信息
+	// 3) 根据 userIdStr, authToken 获取用户信息
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
 		log.Printf("Error getting user: %v\n", err)
@@ -133,24 +128,21 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// --- 4. 读取请求体
+	// 4) 读取请求体
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		log.Println("Error reading request body:", err)
 		respondWithError(c, 400, "Invalid request body")
 		return
 	}
 	defer c.Request.Body.Close()
 
-	// --- 5. 解析 JSON
 	var req guessRequest
 	if err := json.Unmarshal(body, &req); err != nil {
-		log.Println("Error unmarshalling JSON:", err)
 		respondWithError(c, 400, "Invalid JSON format")
 		return
 	}
 
-	// --- 6. 获取或创建游戏记录
+	// 5) 获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
 	if err != nil {
 		log.Println("Error getting or creating game:", err)
@@ -158,11 +150,11 @@ func guessHandler(c *gin.Context) {
 		return
 	}
 
-	// --- 7. 进行猜数字逻辑
+	// 6) 进行猜数字逻辑
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
-		res.Message = "Congratulations! You guessed the correct number.this is gray"
+		res.Message = "Congratulations! You guessed the correct number."
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
@@ -171,14 +163,13 @@ func guessHandler(c *gin.Context) {
 	} else {
 		res.Success = false
 		if req.Number < game.TargetNumber {
-			res.Message = "The number is too low.this is gray"
+			res.Message = "The number is too low."
 		} else {
-			res.Message = "The number is too high.this is gray"
+			res.Message = "The number is too high."
 		}
 		incrementAttempts(game)
 		res.Attempts = game.Attempts
 	}
 
-	// --- 8. 返回响应
 	c.JSON(200, res)
 }

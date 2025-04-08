@@ -1,25 +1,23 @@
 // src/axiosInstance.js
 import axios from 'axios';
-import store from './store';  // Vuex
+import store from './store';  // Vuex store
 
 const axiosInstance = axios.create({
-    baseURL: 'http://micro.roliyal.com',
+    baseURL: 'http://micro.roliyal.com', // 你的后端地址
     timeout: 10000,
-    withCredentials: true, // 允许携带Cookie
+    withCredentials: true,  // 允许跨域带 Cookie
 });
 
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 1. 取 userId / authToken
+        // 从 Vuex/localStorage 里拿 userId 和 token
         let userId = store.state.userId || localStorage.getItem('userId');
         let authToken = store.state.authToken || localStorage.getItem('authToken');
 
-        // 2. 不再加头 X-User-ID
-        //    只设置一个 Cookie： x-pre-higress-tag=gray,X-User-ID=<userId>
+        // 写 Cookie: x-pre-higress-tag=gray,X-User-ID=xxx
         if (userId) {
+            // 如果是同域，不需要 domain=；若跨域，需要 domain=xxx
             document.cookie = `x-pre-higress-tag=gray,X-User-ID=${userId}; path=/;`;
-        } else {
-            // 如果没登录没有 userId，你也可以不写Cookie或写一个默认
         }
 
         // 如果后端要 Authorization

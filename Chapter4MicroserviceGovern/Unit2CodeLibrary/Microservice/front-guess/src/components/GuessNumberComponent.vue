@@ -24,9 +24,7 @@
 </template>
 
 <script>
-import axiosInstance from "../axiosInstance"; // 使用 axiosInstance
-import store from '../store';       // 这里引入了 store
-
+import axiosInstance from "../axiosInstance";
 
 export default {
   data() {
@@ -46,12 +44,10 @@ export default {
 
     async submitGuess(guess) {
       try {
-        // 调用后端的 /game 接口
+        // 只发送 {number: guess}
         const response = await axiosInstance.post('/game', {
-          userId: store.state.userId, // or localStorage
           number: guess,
         });
-
         const resData = response.data;
         if (resData.success) {
           alert(resData.message);
@@ -70,6 +66,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .container {
