@@ -1,4 +1,3 @@
-//const baseURL = "http://8.217.105.200:80"; // 使用您的 Traefik 外部 IP 和端口
 const baseURL = "http://47.238.211.214:80"; // 使用您的 Traefik 外部 IP 和端口
 
 
