@@ -21,7 +21,7 @@ axiosInstance.interceptors.request.use(config => {
     deleteCookie('x-pre-higress-tag');
 
     document.cookie = `X-User-ID=${userId}; path=/;`;
-    document.cookie = `x-pre-higress-tag=gray; path=/;`;
+    document.cookie = `x-pre-higress-tag=base; path=/;`;
 
     if (authToken) {
         config.headers['Authorization'] = authToken;
