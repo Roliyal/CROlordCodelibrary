@@ -54,7 +54,7 @@ export default {
 
           // ✅ 设置 Cookie（立即生效）
           document.cookie = `X-User-ID=${authResult.id}; path=/;`;
-          document.cookie = `x-pre-higress-tag=base; path=/;`;
+          document.cookie = `x-pre-higress-tag=gary; path=/;`;
 
           // ✅ 不刷新，直接跳转
           this.infoMessage = '登录成功，正在跳转...';
