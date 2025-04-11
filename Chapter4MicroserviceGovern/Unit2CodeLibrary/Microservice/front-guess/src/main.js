@@ -22,5 +22,5 @@ if (justLoggedIn === 'true') {
     window.location.href = '#/game';
 }
 
-// 挂载应用
+// 挂载应用/
 createApp(App).use(store).use(router).mount('#app');
