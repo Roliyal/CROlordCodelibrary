@@ -45,19 +45,21 @@ export default {
         const authResult = await authApi.login(this.username, this.password);
 
         if (authResult) {
-          // 更新 Vuex 和 localStorage
+          // Vuex 和 localStorage
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
           localStorage.setItem('userId', authResult.id);
           localStorage.setItem('authToken', authResult.authToken);
 
+          // ✅ 设置 Cookie（立即生效）
           document.cookie = `X-User-ID=${authResult.id}; path=/;`;
           document.cookie = `x-pre-higress-tag=base; path=/;`;
 
-          this.infoMessage = '登录成功！正在刷新页面以应用配置...';
+          // ✅ 不刷新，直接跳转
+          this.infoMessage = '登录成功，正在跳转...';
           setTimeout(() => {
-            window.location.reload(); // 刷新后用户状态、cookie、灰度策略全生效
+            this.router.push('/game');
           }, 800);
         } else {
           this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
