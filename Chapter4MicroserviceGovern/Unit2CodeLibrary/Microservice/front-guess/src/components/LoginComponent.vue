@@ -40,27 +40,28 @@ export default {
     return { router };
   },
   methods: {
+// login.vue - methods 中
     async login() {
       try {
         const authResult = await authApi.login(this.username, this.password);
 
         if (authResult) {
-          // Vuex 和 localStorage
+          // Vuex 和 localStorage 设置
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
           localStorage.setItem('userId', authResult.id);
           localStorage.setItem('authToken', authResult.authToken);
 
-          // ✅ 设置 Cookie（立即生效）
+          // ✅ 设置 Cookie（用于灰度识别）
           document.cookie = `X-User-ID=${authResult.id}; path=/;`;
-          document.cookie = `x-pre-higress-tag=gary; path=/;`;
+          document.cookie = `x-pre-higress-tag=base; path=/;`;
 
-          // ✅ 不刷新，直接跳转
-          this.infoMessage = '登录成功，正在跳转...';
-          setTimeout(() => {
-            this.router.push('/game');
-          }, 800);
+          // ✅ 设置登录标志位（用于刷新时恢复跳转）
+          localStorage.setItem('justLoggedIn', 'true');
+
+          // ✅ 刷新页面，灰度立即生效
+          window.location.reload();
         } else {
           this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
         }

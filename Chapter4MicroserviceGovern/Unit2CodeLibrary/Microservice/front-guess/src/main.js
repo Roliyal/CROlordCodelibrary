@@ -18,6 +18,9 @@ if (storedUserId && storedAuthToken) {
 } else {
     store.commit('setIsLoggedIn', false);
 }
-
+if (justLoggedIn === 'true') {
+    localStorage.removeItem('justLoggedIn'); // 只执行一次
+    window.location.href = '#/game';         // hash 模式跳转
+}
 // 创建并挂载
 createApp(App).use(store).use(router).mount('#app');
