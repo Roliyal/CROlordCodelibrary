@@ -136,24 +136,10 @@ func loginHandler(c *gin.Context) {
 			return
 		}
 
-		// 设置 X-User-ID Cookie
-		cookie := &http.Cookie{
-			Name:     "X-User-ID",
-			Value:    user.ID, // 设置为用户的ID
-			Path:     "/",
-			Domain:   "micro.roliyal.com",   // 跨域时要设置域名为正确的前端地址
-			HttpOnly: true,                  // 设置 HttpOnly，防止 JavaScript 访问
-			Secure:   false,                 // 如果你的站点使用 HTTPS，要设置为 true
-			SameSite: http.SameSiteNoneMode, // 允许跨域发送
-		}
-
-		http.SetCookie(c.Writer, cookie)
-
-		// 返回登录成功响应
 		res := loginResponse{
 			Success:   true,
 			AuthToken: newAuthToken,
-			ID:        user.ID, // 用户ID
+			ID:        user.ID, // 现在是string类型
 		}
 
 		c.JSON(http.StatusOK, res)
