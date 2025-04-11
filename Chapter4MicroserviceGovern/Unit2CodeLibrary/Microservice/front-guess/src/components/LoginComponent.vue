@@ -53,14 +53,14 @@ export default {
           localStorage.setItem('userId', authResult.id);
           localStorage.setItem('authToken', authResult.authToken);
 
-          // ✅ 设置 Cookie（用于灰度识别）
+          //  设置 Cookie（用于灰度识别）
           document.cookie = `X-User-ID=${authResult.id}; path=/;`;
-          document.cookie = `x-pre-higress-tag=base; path=/;`;
+          document.cookie = `x-pre-higress-tag=gray; path=/;`;
 
-          // ✅ 设置登录标志位（用于刷新时恢复跳转）
+          //  设置登录标志位（用于刷新时恢复跳转）
           localStorage.setItem('justLoggedIn', 'true');
 
-          // ✅ 刷新页面，灰度立即生效
+          // 刷新页面，灰度立即生效
           window.location.reload();
         } else {
           this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
