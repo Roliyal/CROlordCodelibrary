@@ -6,31 +6,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
-    <script>
-        (function() {
-            var grayKey = '@@X_GRAY_KEY';
-            var cookies = document.cookie.split('; ').filter(function(row) {
-                return row.indexOf(grayKey + '=') === 0;
-            });
-            try {
-                if (typeof localStorage !== 'undefined' && localStorage !== null) {
-                    var storageValue = localStorage.getItem(grayKey);
-                    var cookieValue = cookies.length > 0 ? decodeURIComponent(cookies[0].split('=')[1]) : null;
-                    if (storageValue && storageValue.indexOf('=') < 0 && cookieValue && cookieValue !== storageValue) {
-                        document.cookie = grayKey + '=' + encodeURIComponent(storageValue) + '; path=/;';
-                        window.location.reload();
-                    }
-                }
-            } catch (error) {
-                // ...
-            }
-        })();
-    </script>
+
 </head>
 <body>
 <noscript>
     <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-
 </noscript>
 <div id="app"></div>
 </body>
