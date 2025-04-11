@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -112,77 +111,74 @@ func healthCheckHandler(c *gin.Context) {
 func guessHandler(c *gin.Context) {
 	log.Printf("Received headers: %v", c.Request.Header)
 
-	// 打印所有 cookies，检查是否能正确读取
+	// 打印所有 cookies
 	cookies := c.Request.Cookies()
 	log.Printf("Received cookies: %v", cookies)
 
-	// 从 Cookie 中读取 "X-User-ID"
 	userIdStr, err := c.Cookie("X-User-ID")
-	if err != nil {
-		log.Println("Error: Missing X-User-ID cookie")
-		respondWithError(c, 400, "Missing X-User-ID cookie")
+	if err != nil || userIdStr == "" {
+		userIdStr = c.GetHeader("X-User-ID")
+	}
+	if userIdStr == "" {
+		log.Println(" Error: Missing X-User-ID from Cookie or Header")
+		respondWithError(c, http.StatusBadRequest, "Missing X-User-ID")
 		return
 	}
+	log.Printf(" Got X-User-ID: %s", userIdStr)
 
-	// 读取 Authorization 头
 	authToken := c.GetHeader("Authorization")
 	if authToken == "" {
-		log.Println("Warning: Missing Authorization header, but continuing anyway")
+		log.Println(" Warning: Missing Authorization header")
+		respondWithError(c, http.StatusUnauthorized, "Missing Authorization token")
+		return
 	}
+	log.Printf(" Got Authorization: %s", authToken)
 
-	log.Printf("Got userIdStr from cookie: %s", userIdStr)
-	log.Printf("Got authToken from header: %s", authToken)
-
-	// 根据 userIdStr 和 authToken 获取用户信息
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
-		log.Printf("Error getting user: %v\n", err)
-		respondWithError(c, 401, "Unauthorized")
+		log.Printf(" Error getting user from login-service: %v", err)
+		respondWithError(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	// 读取请求体
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		respondWithError(c, 400, "Invalid request body")
-		return
-	}
-	defer c.Request.Body.Close()
-
+	//  读取 JSON 请求体
 	var req guessRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		respondWithError(c, 400, "Invalid JSON format")
+	if err := c.BindJSON(&req); err != nil {
+		log.Println(" Error decoding request body:", err)
+		respondWithError(c, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+	log.Printf("📥 User guessed number: %d", req.Number)
 
-	// 获取或创建游戏记录
+	//  获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
 	if err != nil {
-		log.Println("Error getting or creating game:", err)
-		respondWithError(c, 500, "Internal Server Error")
+		log.Println(" Error getting or creating game:", err)
+		respondWithError(c, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
-	// 进行猜数字逻辑
+	//  猜数字逻辑
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
-		res.Message = "Congratulations! You guessed the correct number.the is Gary "
+		res.Message = " Congratulations! You guessed the correct number. - Gary"
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
-			log.Printf("Error updating game: %v", err)
+			log.Printf(" Error updating game: %v", err)
 		}
 	} else {
 		res.Success = false
 		if req.Number < game.TargetNumber {
-			res.Message = "The number is too low. the is Gary"
+			res.Message = " Too low. Try again!"
 		} else {
-			res.Message = "The number is too high. the is Gary"
+			res.Message = " Too high. Try again!"
 		}
 		incrementAttempts(game)
 		res.Attempts = game.Attempts
 	}
 
-	c.JSON(200, res)
+	//  返回 JSON 响应
+	c.JSON(http.StatusOK, res)
 }
