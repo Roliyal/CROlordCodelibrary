@@ -23,7 +23,7 @@ axiosInstance.interceptors.request.use(config => {
 
     // 固定设置版本灰度标签
     deleteCookie('x-pre-higress-tag');
-    document.cookie = `x-pre-higress-tag=gary; path=/;`;
+    document.cookie = `x-pre-higress-tag=base; path=/;`;
 
     if (authToken) {
         config.headers['Authorization'] = authToken;

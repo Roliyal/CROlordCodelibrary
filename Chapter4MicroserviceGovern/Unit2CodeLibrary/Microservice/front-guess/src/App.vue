@@ -8,8 +8,8 @@
         <router-link to="/register">注册</router-link>
       </div>
       <a v-else href="#" @click="logout">退出</a>
-      <router-link to="/game">猜数字游戏gary</router-link>
-      <router-link to="/scoreboard">猜测次数最少排行榜gary</router-link>
+      <router-link to="/game">猜数字游戏</router-link>
+      <router-link to="/scoreboard">猜测次数最少排行榜</router-link>
     </nav>
     <router-view></router-view>
   </div>

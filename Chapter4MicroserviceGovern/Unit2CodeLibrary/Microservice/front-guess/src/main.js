@@ -1,15 +1,13 @@
-// src/main.js
 import { createApp } from 'vue';
 import App from './App.vue';
 import store from './store';
 import router from './router';
 import './styles.css';
 
-
-
-// 同步
+// 同步用户状态
 const storedUserId = localStorage.getItem('userId');
 const storedAuthToken = localStorage.getItem('authToken');
+const justLoggedIn = localStorage.getItem('justLoggedIn');
 
 if (storedUserId && storedAuthToken) {
     store.commit('setUserId', storedUserId);
@@ -18,9 +16,11 @@ if (storedUserId && storedAuthToken) {
 } else {
     store.commit('setIsLoggedIn', false);
 }
+
 if (justLoggedIn === 'true') {
-    localStorage.removeItem('justLoggedIn'); // 只执行一次
-    window.location.href = '#/game';         // hash 模式跳转
+    localStorage.removeItem('justLoggedIn');
+    window.location.href = '#/game';
 }
-// 创建并挂载
+
+// 挂载应用
 createApp(App).use(store).use(router).mount('#app');
