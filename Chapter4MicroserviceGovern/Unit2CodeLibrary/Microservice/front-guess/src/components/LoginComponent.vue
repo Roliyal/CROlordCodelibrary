@@ -42,23 +42,23 @@ export default {
   methods: {
     async login() {
       try {
-        // 调用后端登录接口
         const authResult = await authApi.login(this.username, this.password);
 
         if (authResult) {
-          // ====== 在这里“用到”store，更新 Vuex 中的登录状态 ======
+          // 更新 Vuex 和 localStorage
           store.commit('setUserId', authResult.id);
           store.commit('setAuthToken', authResult.authToken);
           store.commit('setIsLoggedIn', true);
-
-          // 你也可以把 userId 和 token 同步到 localStorage
           localStorage.setItem('userId', authResult.id);
           localStorage.setItem('authToken', authResult.authToken);
 
-          this.infoMessage = '登录成功！正在跳转...';
+          document.cookie = `X-User-ID=${authResult.id}; path=/;`;
+          document.cookie = `x-pre-higress-tag=base; path=/;`;
+
+          this.infoMessage = '登录成功！正在刷新页面以应用配置...';
           setTimeout(() => {
-            this.router.push('/game'); // 比如跳转到游戏页面
-          }, 1000);
+            window.location.reload(); // 刷新后用户状态、cookie、灰度策略全生效
+          }, 800);
         } else {
           this.errorMessage = '登录失败，请检查用户名和密码是否正确。';
         }
@@ -66,7 +66,7 @@ export default {
         console.error('Error during login:', error);
         this.errorMessage = '登录过程中发生错误，请稍后再试。';
       }
-    },
+    }
   },
 };
 </script>
