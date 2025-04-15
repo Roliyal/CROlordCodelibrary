@@ -6,7 +6,7 @@ WORKDIR /app
 
 
 # 设置 Go 代理为阿里云镜像
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
+#ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
@@ -28,7 +28,6 @@ COPY go.mod go.sum .env ./
 # 下载依赖
 RUN go mod download
 
-RUN go mod tidy
 
 
 # 复制源代码到工作目录
