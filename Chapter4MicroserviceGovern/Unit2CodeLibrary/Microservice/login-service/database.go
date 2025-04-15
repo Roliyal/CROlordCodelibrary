@@ -88,8 +88,8 @@ func initDatabase() {
 	}
 
 	// 获取 Nacos 中的数据库配置
-	dataId := "Prod_DATABASE" //
-	group := "DEFAULT_GROUP"  //
+	dataId := "Prod_DATABASE"
+	group := "DEFAULT_GROUP"
 	dbConfigContent, err := configClient.GetConfig(vo.ConfigParam{
 		DataId: dataId,
 		Group:  group,
@@ -179,8 +179,8 @@ func getHealthyInstance(instances []model.Instance) *model.Instance {
 	return nil
 }
 
-// 生成 1 到 100 之间的随机数
+// 生成 1 到 100 之间的随机数（示例函数，可自行删除）
 func generateTargetNumber() int {
-	rand.Seed(time.Now().UnixNano()) // 使用 math/rand 包
-	return rand.Intn(100) + 1        // 1 到 100
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(100) + 1
 }

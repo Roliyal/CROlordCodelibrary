@@ -5,14 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-contrib/cors" // 引入 Gin 的 CORS 中间件
-	"github.com/gin-gonic/gin"    // 引入 Gin 框架
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"time" // 添加 time 包
+	"time"
 )
 
 // 定义请求结构体
@@ -33,8 +33,8 @@ type loginResponse struct {
 }
 
 func main() {
-	initNacos()    // 初始化 Nacos 客户端
-	initDatabase() // 初始化数据库连接
+	initNacos()    // 初始化 Nacos 客户端（在 nacos.go 里）
+	initDatabase() // 初始化数据库连接（在 database.go 里）
 	defer closeDatabase()
 
 	// 获取主机 IP 地址
@@ -49,20 +49,18 @@ func main() {
 		fmt.Printf("Error registering login service instance: %v\n", err)
 		os.Exit(1)
 	}
-	defer deregisterLoginService() // 确保 deregisterLoginService 已定义
+	defer deregisterLoginService()
 
 	// 使用 Gin 创建一个 HTTP 引擎
 	r := gin.Default()
 
 	// 配置 CORS
 	corsMiddleware := cors.New(cors.Config{
-		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 明确指定前端地址
+		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 前端地址
 		AllowCredentials: true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},    // 包含 OPTIONS 方法
-		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"}, // 明确列出允许的请求头
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
 	})
-
-	// 使用 gin.WrapF 将 cors.Handler 包装为 Gin 的中间件
 	r.Use(corsMiddleware)
 
 	// 定义路由
@@ -117,52 +115,79 @@ func loginHandler(c *gin.Context) {
 
 	var user User
 	// db 已在 database.go 中定义为全局变量
-	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").Where("username = ?", req.Username).First(&user).Error; err == nil {
-		log.Println("User found:", user)
+	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").
+		Where("username = ?", req.Username).
+		First(&user).Error; err != nil {
 
-		// 生成新的 AuthToken
-		newAuthToken, err := generateAuthToken()
-		if err != nil {
-			log.Println("Error generating auth token:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating auth token"})
-			return
-		}
-
-		// 更新用户的 AuthToken
-		user.AuthToken = newAuthToken
-		if err := db.Save(&user).Error; err != nil {
-			log.Println("Error updating user with new AuthToken:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating auth token"})
-			return
-		}
-
-		res := loginResponse{
-			Success:   true,
-			AuthToken: newAuthToken,
-			ID:        user.ID, // 现在是string类型
-		}
-
-		c.JSON(http.StatusOK, res)
-	} else {
+		// 如果查询不到该用户
 		log.Println("User not found, error:", err)
-		res := loginResponse{
+		c.JSON(http.StatusOK, loginResponse{
 			Success: false,
-		}
-
-		c.JSON(http.StatusOK, res)
+		})
+		return
 	}
+
+	// 查到了用户，检查密码是否匹配
+	if user.Password != req.Password {
+		// 密码错误
+		log.Println("Password mismatch for user:", req.Username)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	// 密码校验成功，生成新的 AuthToken 并更新到数据库
+	newAuthToken, err := generateAuthToken()
+	if err != nil {
+		log.Println("Error generating auth token:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating auth token"})
+		return
+	}
+
+	user.AuthToken = newAuthToken
+	if err := db.Save(&user).Error; err != nil {
+		log.Println("Error updating user with new AuthToken:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating auth token"})
+		return
+	}
+
+	// 登录成功，设置 Cookie（有效期1小时）
+	c.SetCookie(
+		"X-User-ID",
+		user.ID,
+		3600,                // 单位：秒，这里是 1 小时
+		"/",                 // Cookie 作用路径
+		"micro.roliyal.com", // 替换为你的域名或为空字符串
+		false,               // 是否只能通过 HTTPS 发送
+		true,                // HttpOnly，JS无法读写
+	)
+
+	// 返回登录结果
+	res := loginResponse{
+		Success:   true,
+		AuthToken: newAuthToken,
+		ID:        user.ID,
+	}
+	c.JSON(http.StatusOK, res)
 }
 
 // userHandler 处理获取用户信息的请求
 func userHandler(c *gin.Context) {
 	authToken := c.GetHeader("Authorization")
-	userID := c.GetHeader("X-User-ID") // 获取 X-User-ID 请求头
+
+	// 先从 Header 获取 X-User-ID
+	userID := c.GetHeader("X-User-ID")
+	// 如果 Header 中没有，再尝试从 Cookie 获取
+	if userID == "" {
+		if cookieUserID, err := c.Cookie("X-User-ID"); err == nil {
+			userID = cookieUserID
+		}
+	}
 
 	log.Printf("Received headers: Authorization=%s, X-User-ID=%s", authToken, userID)
 
 	if authToken == "" || userID == "" {
-		log.Println("Error: Missing Authorization or X-User-ID header")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization or X-User-ID header"})
+		log.Println("Error: Missing Authorization or X-User-ID")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization or X-User-ID"})
 		return
 	}
 
@@ -236,7 +261,7 @@ func registerHandler(c *gin.Context) {
 	user := User{
 		ID:        nextID,
 		Username:  req.Username,
-		Password:  req.Password, // 可替换为密码哈希
+		Password:  req.Password, // 可自行改为哈希
 		AuthToken: generateToken(),
 		Wins:      0,
 		Attempts:  0,

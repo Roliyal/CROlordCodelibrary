@@ -91,7 +91,7 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 	}
 
 	success, err := client.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          hostIP, // 使用动态获取的宿主机 IP 地址
+		Ip:          hostIP,
 		Port:        port,
 		ServiceName: serviceName,
 		Weight:      10,
