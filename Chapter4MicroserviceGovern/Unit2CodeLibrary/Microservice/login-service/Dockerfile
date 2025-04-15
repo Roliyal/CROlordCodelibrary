@@ -4,6 +4,7 @@ FROM golang:1.24 AS builder
 # 设置工作目录
 WORKDIR /app
 
+
 # 设置 Go 代理为阿里云镜像
 ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
