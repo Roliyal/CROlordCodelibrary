@@ -1,5 +1,5 @@
 # 使用官方 Golang 镜像作为基础镜像
-FROM golang:1.24 AS builder
+FROM golang:1.22 AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -28,6 +28,7 @@ COPY go.mod go.sum .env ./
 # 下载依赖
 RUN go mod download
 
+RUN	go mod tidy
 
 
 # 复制源代码到工作目录
