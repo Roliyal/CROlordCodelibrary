@@ -27,6 +27,9 @@ COPY go.mod go.sum .env ./
 # 下载依赖
 RUN go mod download
 
+RUN go mod tidy
+
+
 # 复制源代码到工作目录
 COPY . .
 
