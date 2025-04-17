@@ -8,14 +8,14 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
-// 定义请求结构体
+// ---------- 请求/响应结构 ----------
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -28,183 +28,136 @@ type registerRequest struct {
 
 type loginResponse struct {
 	Success   bool   `json:"success"`
-	AuthToken string `json:"authToken"`
-	ID        string `json:"id"`
+	AuthToken string `json:"authToken,omitempty"`
+	ID        string `json:"id,omitempty"`
 }
 
+// ---------- main ----------
 func main() {
-	initNacos()    // 初始化 Nacos 客户端（在 nacos.go 里）
-	initDatabase() // 初始化数据库连接（在 database.go 里）
+	initNacos()
+	initDatabase()
 	defer closeDatabase()
 
-	// 获取主机 IP 地址
 	hostIP, err := getHostIP()
 	if err != nil {
 		log.Fatalf("Failed to get host IP: %v", err)
 	}
-
-	// 注册服务到 Nacos
-	err = registerService(NamingClient, "login-service", hostIP, 8083)
-	if err != nil {
-		fmt.Printf("Error registering login service instance: %v\n", err)
-		os.Exit(1)
+	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
+		log.Fatalf("register service: %v", err)
 	}
 	defer deregisterLoginService()
 
-	// 使用 Gin 创建一个 HTTP 引擎
 	r := gin.Default()
-
-	// 配置 CORS
-	corsMiddleware := cors.New(cors.Config{
-		AllowOrigins:     []string{"http://micro.roliyal.com"}, // 前端地址
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://micro.roliyal.com"},
 		AllowCredentials: true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
-	})
-	r.Use(corsMiddleware)
+	}))
 
-	// 定义路由
 	r.POST("/login", loginHandler)
 	r.POST("/register", registerHandler)
 	r.GET("/user", userHandler)
 
-	// 启动服务
-	fmt.Println("Starting server on port 8083")
-	r.Run(":8083")
+	fmt.Println("login‑service listening :8083")
+	if err := r.Run(":8083"); err != nil {
+		log.Fatalf("Gin run: %v", err)
+	}
 }
 
-// generateAuthToken 生成认证令牌
-func generateAuthToken() (string, error) {
-	return generateRandomToken(32)
-}
+// ---------- token helpers ----------
+func generateAuthToken() (string, error) { return generateRandomToken(32) }
 
-// generateRandomToken 生成指定长度的随机令牌
 func generateRandomToken(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(bytes), nil
+	return hex.EncodeToString(b), nil
 }
 
-// loginHandler 处理登录请求
+func generateToken() string {
+	tkn, _ := generateAuthToken()
+	return tkn
+}
+
+// ---------- handlers ----------
 func loginHandler(c *gin.Context) {
-	fmt.Println("Received login request")
-	if c.Request.Method != "POST" {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"success": false, "error": "Invalid method"})
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"success": false, "error": "invalid method"})
 		return
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Println("Error reading request body:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error reading request body"})
-		return
-	}
+	body, _ := ioutil.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close()
 
 	var req loginRequest
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		log.Println("Error unmarshalling JSON:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+	if err := json.Unmarshal(body, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
-
-	log.Printf("Received login request with username: %s\n", req.Username)
 
 	var user User
-	// db 已在 database.go 中定义为全局变量
 	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").
-		Where("username = ?", req.Username).
-		First(&user).Error; err != nil {
+		Where("username = ?", req.Username).First(&user).Error; err != nil {
 
-		// 如果查询不到该用户
-		log.Println("User not found, error:", err)
-		c.JSON(http.StatusOK, loginResponse{
-			Success: false,
-		})
+		if gorm.IsRecordNotFoundError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		}
 		return
 	}
 
-	// 查到了用户，检查密码是否匹配
-	if user.Password != req.Password {
-		// 密码错误
-		log.Println("Password mismatch for user:", req.Username)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+	// ------- 密码校验（哈希或旧明文） -------
+	pwOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
+		user.Password == req.Password
+	if !pwOK {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	// 密码校验成功，生成新的 AuthToken 并更新到数据库
-	newAuthToken, err := generateAuthToken()
+	// ------- 生成/保存新 token -------
+	token, err := generateAuthToken()
 	if err != nil {
-		log.Println("Error generating auth token:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating auth token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "token error"})
+		return
+	}
+	user.AuthToken = token
+	if err = db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
 
-	user.AuthToken = newAuthToken
-	if err := db.Save(&user).Error; err != nil {
-		log.Println("Error updating user with new AuthToken:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating auth token"})
-		return
-	}
-
-	// 登录成功，设置 Cookie（有效期1小时）
-	c.SetCookie(
-		"X-User-ID",
-		user.ID,
-		3600,                // 单位：秒，这里是 1 小时
-		"/",                 // Cookie 作用路径
-		"micro.roliyal.com", // 替换为你的域名或为空字符串
-		false,               // 是否只能通过 HTTPS 发送
-		true,                // HttpOnly，JS无法读写
-	)
-
-	// 返回登录结果
-	res := loginResponse{
-		Success:   true,
-		AuthToken: newAuthToken,
-		ID:        user.ID,
-	}
-	c.JSON(http.StatusOK, res)
+	writeAuthCookies(c, token, user.ID)
+	c.JSON(http.StatusOK, loginResponse{Success: true, AuthToken: token, ID: user.ID})
 }
 
-// userHandler 处理获取用户信息的请求
 func userHandler(c *gin.Context) {
 	authToken := c.GetHeader("Authorization")
-
-	// 先从 Header 获取 X-User-ID
 	userID := c.GetHeader("X-User-ID")
-	// 如果 Header 中没有，再尝试从 Cookie 获取
-	if userID == "" {
-		if cookieUserID, err := c.Cookie("X-User-ID"); err == nil {
-			userID = cookieUserID
-		}
+	if authToken == "" {
+		authToken, _ = c.Cookie("AuthToken")
 	}
-
-	log.Printf("Received headers: Authorization=%s, X-User-ID=%s", authToken, userID)
-
+	if userID == "" {
+		userID, _ = c.Cookie("X-User-ID")
+	}
 	if authToken == "" || userID == "" {
-		log.Println("Error: Missing Authorization or X-User-ID")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization or X-User-ID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
 		return
 	}
 
-	// 使用 authToken 和 userID 查询用户
 	var user User
 	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
-		log.Printf("Error finding user by AuthToken and ID: %v\n", err)
 		if gorm.IsRecordNotFoundError(err) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		}
 		return
 	}
 
-	// 返回用户数据（不包括密码）
-	type userResponse struct {
+	type userResp struct {
 		ID        string    `json:"ID"`
 		Username  string    `json:"Username"`
 		AuthToken string    `json:"AuthToken"`
@@ -213,8 +166,7 @@ func userHandler(c *gin.Context) {
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 	}
-
-	res := userResponse{
+	c.JSON(http.StatusOK, userResp{
 		ID:        user.ID,
 		Username:  user.Username,
 		AuthToken: user.AuthToken,
@@ -222,73 +174,57 @@ func userHandler(c *gin.Context) {
 		Attempts:  user.Attempts,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
-	}
-
-	c.JSON(http.StatusOK, res)
+	})
 }
 
-// registerHandler 处理用户注册请求
 func registerHandler(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
-	log.Printf("Received register request with username: %s\n", req.Username)
-
-	var existingUser User
-	err := db.Where("Username = ?", req.Username).First(&existingUser).Error
-	if err == nil {
-		log.Println("Username already exists:", req.Username)
-		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
+	var exist User
+	if err := db.Where("Username = ?", req.Username).First(&exist).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "username exists"})
 		return
-	}
-
-	if !gorm.IsRecordNotFoundError(err) {
-		log.Println("Error checking for existing user:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+	} else if !gorm.IsRecordNotFoundError(err) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
 
 	nextID, err := getNextUserID()
 	if err != nil {
-		log.Println("Error generating User ID:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "id error"})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "pwd hash error"})
 		return
 	}
 
 	user := User{
 		ID:        nextID,
 		Username:  req.Username,
-		Password:  req.Password, // 可自行改为哈希
+		Password:  string(hash),
 		AuthToken: generateToken(),
 		Wins:      0,
 		Attempts:  0,
 	}
-
-	err = db.Create(&user).Error
-	if err != nil {
-		log.Println("Error creating new user:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+	if err = db.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
 
-	res := loginResponse{
-		Success:   true,
-		AuthToken: user.AuthToken,
-		ID:        user.ID,
-	}
-
-	c.JSON(http.StatusCreated, res)
+	writeAuthCookies(c, user.AuthToken, user.ID)
+	c.JSON(http.StatusCreated, loginResponse{Success: true, AuthToken: user.AuthToken, ID: user.ID})
 }
 
-// generateToken 生成认证令牌（简单示例）
-func generateToken() string {
-	token, err := generateRandomToken(32)
-	if err != nil {
-		log.Println("Error generating token:", err)
-		return ""
-	}
-	return token
+// ---------- cookie util ----------
+func writeAuthCookies(c *gin.Context, token, id string) {
+	age := 7 * 24 * 3600
+	c.SetCookie("AuthToken", token, age, "/", "", false, true)
+	c.SetCookie("X-User-ID", id, age, "/", "", false, true)
 }
