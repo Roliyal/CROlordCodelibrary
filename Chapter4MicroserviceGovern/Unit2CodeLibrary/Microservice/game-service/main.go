@@ -162,7 +162,7 @@ func guessHandler(c *gin.Context) {
 	var res guessResponse
 	if req.Number == game.TargetNumber {
 		res.Success = true
-		res.Message = " Congratulations! You guessed the correct number. -this is gray"
+		res.Message = " Congratulations! You guessed the correct number. this is gray"
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
