@@ -110,25 +110,33 @@ func loginHandler(c *gin.Context) {
 	}
 
 	// ------- 密码校验（哈希或旧明文） -------
-	pwOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
+	passOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
 		user.Password == req.Password
-	if !pwOK {
+	if !passOK {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	// ------- 生成/保存新 token -------
-	token, err := generateAuthToken()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "token error"})
-		return
-	}
-	user.AuthToken = token
-	if err = db.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
-		return
+	// ------- 复用或生成 token -------
+	token := user.AuthToken
+
+	// 如需“强制刷新 token”，前端可加 ?force=true
+	forceRefresh := c.Query("force") == "true"
+	if token == "" || forceRefresh {
+		var err error
+		token, err = generateAuthToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "token error"})
+			return
+		}
+		user.AuthToken = token
+		if err = db.Save(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+			return
+		}
 	}
 
+	// ------- 写 cookie & 返回 -------
 	writeAuthCookies(c, token, user.ID)
 	c.JSON(http.StatusOK, loginResponse{Success: true, AuthToken: token, ID: user.ID})
 }
