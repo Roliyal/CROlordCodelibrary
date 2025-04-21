@@ -20,7 +20,7 @@ metadata:
   labels:
     app: micro-vue-front
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -34,27 +34,60 @@ spec:
       labels:
         app: micro-vue-front
     spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 101
+        runAsNonRoot: true
       containers:
         - name: micro-vue-front
           image: crolord-uat-registry-vpc.cn-hongkong.cr.aliyuncs.com/micro/micro-front-uat:1.0.17
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           resources:
-            limits:
-              cpu: 1
-              memory: 512Mi
             requests:
-              cpu: 500m
-              memory: 256Mi
+              cpu: "250m"
+              memory: "128Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 101
+            capabilities:
+              drop: ["ALL"]
           lifecycle:
             postStart:
               exec:
-                command: ["/bin/sh", "-c", "echo 'postStart hook executed' > /tmp/postStart.log"]
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "$(date) postStart hook" >> /usr/share/nginx/html/app-vue-front-storage/hook.log
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "nginx -s quit; sleep 10"]
-          securityContext:
-            runAsUser: 0  # 以 root 用户运行
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "$(date) preStop graceful quit" >> /usr/share/nginx/html/app-vue-front-storage/hook.log
+                    nginx -s quit
+                    sleep 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
@@ -90,15 +123,48 @@ metadata:
 data:
   default.conf: |
     server {
-      listen 80;
-      server_name _;
-      root /usr/share/nginx/html;
-      index index.html;
-      location / {
-        try_files $uri $uri/ /index.html;
-      }
-      location = /healthz {
-        return 200 'ok';
-        access_log off;
-      }
+        listen 80 default_server;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+        access_log  /var/log/nginx/access.log  main buffer=32k flush=5s;
+        error_log   /var/log/nginx/error.log   warn;
+        gzip              on;
+        gzip_comp_level   5;               
+        gzip_min_length   512;
+        gzip_vary         on;
+        gzip_types        text/plain text/css text/javascript application/javascript \
+                          application/json application/xml font/woff2 image/svg+xml;
+        #brotli            on;
+        #brotli_comp_level 5;
+        #brotli_types      text/plain text/css application/javascript application/json image/svg+xml;
+        location ~* \.(?:css|js|woff2?|ttf|otf|eot|svg|gif|jpe?g|png|webp)$ {
+            try_files $uri =404;
+
+            if ($uri ~* "\.[0-9a-f]{8,}\.") {
+                expires 365d;
+            }
+            if ($uri !~* "\.[0-9a-f]{8,}\.") {
+                expires 7d;
+            }
+            add_header Cache-Control "public";
+            access_log off;
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+        location = /healthz {
+            default_type text/plain;
+            return 200 'ok';
+            access_log off;
+        }
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "geolocation=(), microphone=()" always;
+        sendfile            on;
+        tcp_nopush          on;
+        tcp_nodelay         on;
+        keepalive_timeout   30;
+        client_max_body_size 10m;
     }
