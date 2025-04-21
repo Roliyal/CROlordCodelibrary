@@ -35,9 +35,6 @@ spec:
         app: micro-vue-front
     spec:
       terminationGracePeriodSeconds: 30
-      securityContext:
-        fsGroup: 101
-        runAsNonRoot: true
       containers:
         - name: micro-vue-front
           image: crolord-uat-registry-vpc.cn-hongkong.cr.aliyuncs.com/micro/micro-front-uat:1.0.17
@@ -51,12 +48,6 @@ spec:
             limits:
               cpu: "1"
               memory: "512Mi"
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsUser: 101
-            capabilities:
-              drop: ["ALL"]
           lifecycle:
             postStart:
               exec:
