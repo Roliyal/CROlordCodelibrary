@@ -79,11 +79,16 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
+          env:
+            - name: TZ
+              value: Asia/Shanghai
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
             - name: app-vue-front-storage
               mountPath: /usr/share/nginx/html/app-vue-front-storage
+            - name: nginx-logs
+              mountPath: /var/log/nginx
       volumes:
         - name: nginx-config
           configMap:
@@ -91,6 +96,8 @@ spec:
         - name: app-vue-front-storage
           persistentVolumeClaim:
             claimName: app-vue-front-pvc
+        - name: nginx-logs
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -113,7 +120,26 @@ metadata:
   namespace: crolord
 data:
   default.conf: |
-    server {
+  log_format json escape=json '{'
+  '"time":"$time_iso8601",'
+  '"remote_addr":"$remote_addr",'
+  '"x_forwarded_for":"$http_x_forwarded_for",'
+  '"request_method":"$request_method",'
+  '"uri":"$request_uri",'
+  '"status":$status,'
+  '"body_bytes_sent":$body_bytes_sent,'
+  '"request_length":$request_length,'
+  '"request_time":$request_time,'
+  '"upstream_addr":"$upstream_addr",'
+  '"upstream_status":"$upstream_status",'
+  '"upstream_response_time":"$upstream_response_time",'
+  '"referer":"$http_referer",'
+  '"user_agent":"$http_user_agent",'
+  '"host":"$host",'
+  '"cache":"$upstream_cache_status"'
+  '}';
+  
+  server {
         listen 80 default_server;
         server_name _;
         root /usr/share/nginx/html;
