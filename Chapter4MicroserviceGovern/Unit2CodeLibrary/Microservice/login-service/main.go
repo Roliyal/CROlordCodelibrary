@@ -142,6 +142,16 @@ func userHandler(c *gin.Context) {
 	if userID == "" {
 		userID, _ = c.Cookie("X-User-ID")
 	}
+
+	// ★★★ BEGIN: 用 token 反查 ID（缺 ID 时） ★★★
+	if userID == "" && authToken != "" {
+		var u User
+		if err := db.Select("ID").Where("AuthToken = ?", authToken).First(&u).Error; err == nil {
+			userID = u.ID
+		}
+	}
+	// ★★★ END ★★★
+
 	if authToken == "" || userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
 		return
