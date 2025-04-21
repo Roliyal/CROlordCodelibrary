@@ -122,7 +122,9 @@ metadata:
   namespace: crolord
 data:
   default.conf: |
-    log_format json escape=json '{'
+    # put the entire JSON on one multi-line single‑quoted string
+    log_format json escape=json '
+    {
       "time":"$time_iso8601",
       "remote_addr":"$remote_addr",
       "x_forwarded_for":"$http_x_forwarded_for",
@@ -133,15 +135,17 @@ data:
       "request_time":"$request_time",
       "referer":"$http_referer",
       "user_agent":"$http_user_agent"
-    }';
-
+    }
+    ';
+    access_log  /dev/stdout  json;
+    error_log   /dev/stderr warn;
     server {
         listen 80 default_server;
         server_name _;
         root /usr/share/nginx/html;
         index index.html;
-        access_log  /var/log/nginx/access.log  main buffer=32k flush=5s;
-        error_log   /var/log/nginx/error.log   warn;
+        #access_log  /var/log/nginx/access.log  main buffer=32k flush=5s;
+        #error_log   /var/log/nginx/error.log   warn;
         gzip              on;
         gzip_comp_level   5;
         gzip_min_length   512;
@@ -172,3 +176,4 @@ data:
             access_log off;
         }
     }
+
