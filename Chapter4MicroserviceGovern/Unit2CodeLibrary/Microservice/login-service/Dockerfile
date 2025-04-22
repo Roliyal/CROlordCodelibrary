@@ -42,6 +42,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./instgo go build -o main-arm64 .
 # 使用 Alpine 镜像作为基础镜像
 FROM alpine
 
+# 安装 curl（和 ca-certificates，以支持 HTTPS）
+RUN apk update && \
+    apk add --no-cache curl ca-certificates \
+    && rm -rf /var/cache/apk/* \
+
 # 添加非 root 用户
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
