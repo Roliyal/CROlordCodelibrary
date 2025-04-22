@@ -1,22 +1,18 @@
 package main
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"time"
 )
 
 // ---------- 请求/响应结构 ----------
@@ -36,17 +32,12 @@ type loginResponse struct {
 	ID        string `json:"id,omitempty"`
 }
 
-// ---------- 全局变量（假设 initNacos 会设置 NamingClient） ----------
-var db *gorm.DB
-
 // ---------- main ----------
 func main() {
-	// 1. 初始化 Nacos 客户端、数据库
 	initNacos()
 	initDatabase()
 	defer closeDatabase()
 
-	// 2. 获取本机 IP 并注册到 Nacos
 	hostIP, err := getHostIP()
 	if err != nil {
 		log.Fatalf("Failed to get host IP: %v", err)
@@ -54,9 +45,8 @@ func main() {
 	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
 		log.Fatalf("register service: %v", err)
 	}
-	log.Printf(" 已注册 login-service 到 Nacos: %s:8083", hostIP)
+	defer deregisterLoginService()
 
-	// 3. Gin 路由及 CORS 设置
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://micro.roliyal.com"},
@@ -68,44 +58,11 @@ func main() {
 	r.POST("/login", loginHandler)
 	r.POST("/register", registerHandler)
 	r.GET("/user", userHandler)
-	r.GET("/healthz", func(c *gin.Context) { c.String(http.StatusOK, "ok") })
 
-	// 4. 用 http.Server 包装 Gin，实现优雅关闭
-	srv := &http.Server{
-		Addr:    ":8083",
-		Handler: r,
+	fmt.Println("login‑service listening :8083")
+	if err := r.Run(":8083"); err != nil {
+		log.Fatalf("Gin run: %v", err)
 	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Gin listen error: %v", err)
-		}
-	}()
-	log.Println(" login-service listening on :8083")
-
-	// 5. 信号捕获：收到终止信号后优雅下线
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit // 阻塞直到收到 SIGINT/SIGTERM
-	log.Println(" 收到终止信号，开始优雅下线...")
-
-	// 5.1 反注册 Nacos
-	if err := deregisterLoginService(); err != nil {
-		log.Printf("️ deregisterLoginService error: %v", err)
-	} else {
-		log.Println("已从 Nacos 注销 login-service")
-	}
-
-	// 5.2 优雅关闭 HTTP server，留 20s 给正在处理请求
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf(" HTTP server Shutdown error: %v", err)
-	} else {
-		log.Println(" HTTP server 已优雅退出")
-	}
-
-	log.Println("👋 服务已完全退出")
 }
 
 // ---------- token helpers ----------
@@ -143,6 +100,7 @@ func loginHandler(c *gin.Context) {
 	var user User
 	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").
 		Where("username = ?", req.Username).First(&user).Error; err != nil {
+
 		if gorm.IsRecordNotFoundError(err) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 		} else {
@@ -151,6 +109,7 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
+	// ------- 密码校验（哈希或旧明文） -------
 	passOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
 		user.Password == req.Password
 	if !passOK {
@@ -158,7 +117,10 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
+	// ------- 复用或生成 token -------
 	token := user.AuthToken
+
+	// 如需“ 强制刷新 token”，前端可加 ?force=true
 	forceRefresh := c.Query("force") == "true"
 	if token == "" || forceRefresh {
 		var err error
@@ -174,6 +136,7 @@ func loginHandler(c *gin.Context) {
 		}
 	}
 
+	// ------- 写 cookie & 返回 -------
 	writeAuthCookies(c, token, user.ID)
 	c.JSON(http.StatusOK, loginResponse{Success: true, AuthToken: token, ID: user.ID})
 }
@@ -188,12 +151,14 @@ func userHandler(c *gin.Context) {
 		userID, _ = c.Cookie("X-User-ID")
 	}
 
+	// ★★★ BEGIN: 用 token 反查 ID（缺 ID 时） ★★★
 	if userID == "" && authToken != "" {
 		var u User
 		if err := db.Select("ID").Where("AuthToken = ?", authToken).First(&u).Error; err == nil {
 			userID = u.ID
 		}
 	}
+	// ★★★ END ★★★
 
 	if authToken == "" || userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
@@ -275,6 +240,7 @@ func registerHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, loginResponse{Success: true, AuthToken: user.AuthToken, ID: user.ID})
 }
 
+// ---------- cookie util ----------
 func writeAuthCookies(c *gin.Context, token, id string) {
 	age := 7 * 24 * 3600
 	c.SetCookie("AuthToken", token, age, "/", "", false, true)
