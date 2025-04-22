@@ -3,8 +3,15 @@ kind: Deployment
 metadata:
   name: micro-go-login
   namespace: crolord
+  labels:
+    app: micro-go-login
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: micro-go-login
@@ -17,26 +24,84 @@ spec:
         msePilotCreateAppName: "micro-go-login"
         aliyun.com/app-language: golang
     spec:
+      # 收到 SIGTERM 后，最多给 30s 做 preStop
+      terminationGracePeriodSeconds: 30
+
       containers:
         - name: micro-go-login
           image: registry.cn-hongkong.aliyuncs.com/crolord_acr_personal/microservice_code_go:micro_loginv1
           ports:
             - containerPort: 8083
+
+          # 应用在 /app/.env.production 已经加载了 NACOS_XXX 的配置
           env:
             - name: ENV_FILE
               value: "/app/.env.production"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SERVICE_NAME
+              value: "micro-go-login"
+            - name: SERVICE_PORT
+              value: "8083"
+            - name: TZ
+              value: Asia/Shanghai
           volumeMounts:
             - name: app-log
               mountPath: /app/log
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    set -eux
+                    # 加载 Nacos 相关环境变量
+                    . ${ENV_FILE}
+                    echo "[$(date)] postStart: 向 Nacos 注册 ${SERVICE_NAME} → ${POD_IP}:${SERVICE_PORT}" >> /app/log/lifecycle.log
+                    curl -s -X POST \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}" \
+                      >> /app/log/lifecycle.log 2>&1 || echo "⚠️ 注册失败" >> /app/log/lifecycle.log
+
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    set -eux
+                    . ${ENV_FILE}
+                    LOG=/app/log/lifecycle.log
+                    echo "[$(date)] preStop: 标记不健康 ${POD_IP}:${SERVICE_PORT}" >> $LOG
+                    curl -s -X PUT \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&healthy=false" \
+                      >> $LOG 2>&1 || echo " 标记不健康失败" >> $LOG
+
+                    # ① 等待流量排空
+                    DRAIN=15
+                    echo "[$(date)] 等待 ${DRAIN}s 排空连接" >> $LOG
+                    sleep ${DRAIN}
+
+                    # ② 真正下线
+                    echo "[$(date)] preStop: 从 Nacos 彻底下线 ${POD_IP}:${SERVICE_PORT}" >> $LOG
+                    curl -s -X DELETE \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}" \
+                      >> $LOG 2>&1 || echo " 反注册失败" >> $LOG
+
       volumes:
         - name: app-log
           emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: micro-go-login
   namespace: crolord
+  labels:
+    app: micro-go-login
 spec:
   selector:
     app: micro-go-login
@@ -45,4 +110,3 @@ spec:
       port: 8083
       targetPort: 8083
   type: ClusterIP
-
