@@ -21,14 +21,12 @@ spec:
         app: micro-go-login
     spec:
       terminationGracePeriodSeconds: 40  # 留 40s 给 preStop + 应用优雅退出
-
       containers:
         - name: micro-go-login
           image: registry.ap-southeast-1.aliyuncs.com/micro1/micro-login-test-gary:1.0.145
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
-
           env:
             - name: ENV_FILE
               value: "/app/.env.production"
@@ -37,7 +35,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: SERVICE_NAME
-              value: "micro-go-login"
+              value: "login-service"
             - name: SERVICE_PORT
               value: "8083"
             - name: NACOS_SERVER_IP
