@@ -20,17 +20,19 @@ spec:
       labels:
         app: micro-go-login
     spec:
-      # 给 preStop + 应用优雅退出 留足够时间
+      # 给 preStop + 应用优雅退出留足够时间
       terminationGracePeriodSeconds: 45
 
       containers:
         - name: micro-go-login
-          image: registry.ap-southeast-1.aliyuncs.com/micro1/micro-login-test-gary:1.0.145
+          # 请确保镜像已包含 curl，或保持下面脚本里的自动安装逻辑
+          image: registry.ap-southeast-1.aliyuncs.com/micro1/micro-login-test-gary:1.0.146
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
 
           env:
+            # 基础服务信息
             - name: ENV_FILE
               value: "/app/.env.production"
             - name: POD_IP
@@ -41,18 +43,24 @@ spec:
               value: "login-service"
             - name: SERVICE_PORT
               value: "8083"
+
+            # Nacos 连接信息
             - name: NACOS_SERVER_IP
               value: "mse-95bb82810-nacos-ans.mse.aliyuncs.com"
             - name: NACOS_SERVER_PORT
               value: "8848"
             - name: NACOS_CONTEXT_PATH
               value: "/nacos"
-            - name: NACOS_NAMESPACE
-              value: "public"
             - name: NACOS_GROUP
               value: "DEFAULT_GROUP"
             - name: NACOS_CLUSTER
               value: "DEFAULT"
+
+            # —— 新增：配置中心 Data ID 与 Namespace ——
+            - name: NACOS_CONF_DATAID
+              value: "Prod_DATABASE"      # 现有 Data ID
+            - name: NACOS_CONF_NAMESPACE
+              value: ""                   # public namespace ➜ 空串
 
           volumeMounts:
             - name: app-log
@@ -65,19 +73,56 @@ spec:
                   - /bin/sh
                   - -c
                   - |
-                    # Load environment file
+                    set -e
                     [ -f "${ENV_FILE}" ] && . "${ENV_FILE}"
                     LOG=/app/log/lifecycle.log
                     mkdir -p "$(dirname "$LOG")" || true
 
-                    # 1) Report normal weight
-                    echo "$(date +'%F %T') postStart: set weight=100.0 for ${SERVICE_NAME} ${POD_IP}:${SERVICE_PORT}" >> "$LOG" 2>&1
-                    curl -s -X PUT \
-                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&weight=100.0" \
-                      >> "$LOG" 2>&1 || echo "$(date +'%F %T') postStart: weight update failed" >> "$LOG" 2>&1
+                    # ---------- 0) 保证 curl 可用 ----------
+                    if ! command -v curl >/dev/null 2>&1; then
+                      echo "$(date +'%F %T') postStart: curl not found, installing..." >>"$LOG"
+                      if command -v apk >/dev/null 2>&1; then
+                        apk add --no-cache curl >>"$LOG" 2>&1 || true
+                      elif command -v apt-get >/dev/null 2>&1; then
+                        apt-get update >>"$LOG" 2>&1 && apt-get install -y curl >>"$LOG" 2>&1 || true
+                      elif command -v yum >/dev/null 2>&1; then
+                        yum install -y curl >>"$LOG" 2>&1 || true
+                      fi
+                      if ! command -v curl >/dev/null 2>&1; then
+                        echo "$(date +'%F %T') postStart: curl install failed, abort lifecycle" >>"$LOG"
+                        exit 1
+                      fi
+                    fi
 
-                    # 2) Done
-                    echo "$(date +'%F %T') postStart: complete" >> "$LOG" 2>&1
+                    echo "$(date +'%F %T') postStart: ===== BEGIN =====" >>"$LOG"
+
+                    # 1) 设置正常权重
+                    curl -s -X PUT \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_CONF_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&weight=100.0" \
+                      >>"$LOG" 2>&1 || echo "$(date +'%F %T') postStart: weight update failed" >>"$LOG"
+
+                    # 2) 读取数据库配置
+                    CONF_URL="http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/cs/configs?dataId=${NACOS_CONF_DATAID}&group=${NACOS_GROUP}"
+                    [ -n "${NACOS_CONF_NAMESPACE}" ] && CONF_URL="${CONF_URL}&tenant=${NACOS_CONF_NAMESPACE}"
+
+                    DB_CONF=$(curl -s "$CONF_URL")
+                    echo "$DB_CONF" >>"$LOG"
+
+                    DB_HOST=$(echo "$DB_CONF" | grep -E '^DB_HOST=' | cut -d= -f2-)
+                    DB_PORT=$(echo "$DB_CONF" | grep -E '^DB_PORT=' | cut -d= -f2-)
+
+                    if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
+                      echo "$(date +'%F %T') postStart: *** DB config missing, skip connectivity check ***" >>"$LOG"
+                    else
+                      echo "$(date +'%F %T') postStart: curl telnet test to ${DB_HOST}:${DB_PORT}" >>"$LOG"
+                      if curl -s --connect-timeout 5 "telnet://${DB_HOST}:${DB_PORT}" >/dev/null 2>&1; then
+                        echo "$(date +'%F %T') postStart: DB connection OK" >>"$LOG"
+                      else
+                        echo "$(date +'%F %T') postStart: DB connection FAILED" >>"$LOG"
+                      fi
+                    fi
+
+                    echo "$(date +'%F %T') postStart: ===== COMPLETE =====" >>"$LOG"
                     exit 0
 
             preStop:
@@ -86,28 +131,34 @@ spec:
                   - /bin/sh
                   - -c
                   - |
-                    # Load environment file
                     [ -f "${ENV_FILE}" ] && . "${ENV_FILE}"
                     LOG=/app/log/lifecycle.log
+                    echo "$(date +'%F %T') preStop: ===== BEGIN =====" >>"$LOG"
 
-                    # 1) Set weight = 0
-                    echo "$(date +'%F %T') preStop: set weight=0.0 for ${SERVICE_NAME} ${POD_IP}:${SERVICE_PORT}" >> "$LOG" 2>&1
+                    # 1) 权重降为 0
                     curl -s -X PUT \
-                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&weight=0.0" \
-                      >> "$LOG" 2>&1 || echo "$(date +'%F %T') preStop: weight update failed" >> "$LOG" 2>&1
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_CONF_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&weight=0.0" \
+                      >>"$LOG" 2>&1 || echo "$(date +'%F %T') preStop: weight update failed" >>"$LOG"
 
-                    # 2) Disable instance
-                    echo "$(date +'%F %T') preStop: disable instance ${SERVICE_NAME} ${POD_IP}:${SERVICE_PORT}" >> "$LOG" 2>&1
+                    # 2) 设置 unhealthy
                     curl -s -X PUT \
-                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&enabled=false" \
-                      >> "$LOG" 2>&1 || echo "$(date +'%F %T') preStop: disable failed" >> "$LOG" 2>&1
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_CONF_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&healthy=false" \
+                      >>"$LOG" 2>&1 || echo "$(date +'%F %T') preStop: healthy=false failed" >>"$LOG"
 
-                    # 3) Wait to drain
-                    echo "$(date +'%F %T') preStop: sleeping 15s for drain" >> "$LOG" 2>&1
+                    # 3) 禁用实例
+                    curl -s -X PUT \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_CONF_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}&enabled=false" \
+                      >>"$LOG" 2>&1 || echo "$(date +'%F %T') preStop: disable failed" >>"$LOG"
+
+                    # 4) 等待流量排空
                     sleep 15 || true
 
-                    # 4) Done
-                    echo "$(date +'%F %T') preStop: complete" >> "$LOG" 2>&1
+                    # 5) 删除实例
+                    curl -s -X DELETE \
+                      "http://${NACOS_SERVER_IP}:${NACOS_SERVER_PORT}${NACOS_CONTEXT_PATH}/v1/ns/instance?serviceName=${SERVICE_NAME}&ip=${POD_IP}&port=${SERVICE_PORT}&namespaceId=${NACOS_CONF_NAMESPACE}&groupName=${NACOS_GROUP}&clusterName=${NACOS_CLUSTER}" \
+                      >>"$LOG" 2>&1 || echo "$(date +'%F %T') preStop: delete failed" >>"$LOG"
+
+                    echo "$(date +'%F %T') preStop: ===== COMPLETE =====" >>"$LOG"
                     exit 0
 
       volumes:
