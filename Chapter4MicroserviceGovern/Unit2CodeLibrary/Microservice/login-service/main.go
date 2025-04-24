@@ -1,21 +1,26 @@
+// main.go
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"time"
 )
 
-// ---------- 请求/响应结构 ----------
+/* ----------- 用到的类型 ----------- */
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -32,73 +37,28 @@ type loginResponse struct {
 	ID        string `json:"id,omitempty"`
 }
 
-// ---------- main ----------
-func main() {
-	initNacos()
-	initDatabase()
-	defer closeDatabase()
+/* ----------- token helpers ----------- */
 
-	hostIP, err := getHostIP()
-	if err != nil {
-		log.Fatalf("Failed to get host IP: %v", err)
-	}
-	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
-		log.Fatalf("register service: %v", err)
-	}
-	defer deregisterLoginService()
-
-	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://micro.roliyal.com"},
-		AllowCredentials: true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
-	}))
-
-	r.POST("/login", loginHandler)
-	r.POST("/register", registerHandler)
-	r.GET("/user", userHandler)
-
-	fmt.Println("login‑service listening :8083")
-	if err := r.Run(":8083"); err != nil {
-		log.Fatalf("Gin run: %v", err)
-	}
-}
-
-// ---------- token helpers ----------
-func generateAuthToken() (string, error) { return generateRandomToken(32) }
-
-func generateRandomToken(length int) (string, error) {
-	b := make([]byte, length)
+func generateRandomToken(n int) (string, error) {
+	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
 }
+func generateAuthToken() (string, error) { return generateRandomToken(32) }
 
-func generateToken() string {
-	tkn, _ := generateAuthToken()
-	return tkn
-}
+/* ----------- handlers ----------- */
 
-// ---------- handlers ----------
 func loginHandler(c *gin.Context) {
-	if c.Request.Method != http.MethodPost {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"success": false, "error": "invalid method"})
-		return
-	}
-
-	body, _ := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
-
 	var req loginRequest
-	if err := json.Unmarshal(body, &req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
 	var user User
-	if err := db.Select("ID, Username, Password, Wins, Attempts, AuthToken").
+	if err := db.Select("ID, Username, Password, AuthToken, Wins, Attempts").
 		Where("username = ?", req.Username).First(&user).Error; err != nil {
 
 		if gorm.IsRecordNotFoundError(err) {
@@ -109,7 +69,6 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
-	// ------- 密码校验（哈希或旧明文） -------
 	passOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
 		user.Password == req.Password
 	if !passOK {
@@ -117,12 +76,8 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
-	// ------- 复用或生成 token -------
 	token := user.AuthToken
-
-	// 如需“ 强制刷新 token”，前端可加 ?force=true
-	forceRefresh := c.Query("force") == "true"
-	if token == "" || forceRefresh {
+	if token == "" {
 		var err error
 		token, err = generateAuthToken()
 		if err != nil {
@@ -130,69 +85,11 @@ func loginHandler(c *gin.Context) {
 			return
 		}
 		user.AuthToken = token
-		if err = db.Save(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
-			return
-		}
+		_ = db.Save(&user).Error
 	}
 
-	// ------- 写 cookie & 返回 -------
 	writeAuthCookies(c, token, user.ID)
 	c.JSON(http.StatusOK, loginResponse{Success: true, AuthToken: token, ID: user.ID})
-}
-
-func userHandler(c *gin.Context) {
-	authToken := c.GetHeader("Authorization")
-	userID := c.GetHeader("X-User-ID")
-	if authToken == "" {
-		authToken, _ = c.Cookie("AuthToken")
-	}
-	if userID == "" {
-		userID, _ = c.Cookie("X-User-ID")
-	}
-
-	// ★★★ BEGIN: 用 token 反查 ID（缺 ID 时） ★★★
-	if userID == "" && authToken != "" {
-		var u User
-		if err := db.Select("ID").Where("AuthToken = ?", authToken).First(&u).Error; err == nil {
-			userID = u.ID
-		}
-	}
-	// ★★★ END ★★★
-
-	if authToken == "" || userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
-		return
-	}
-
-	var user User
-	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
-		}
-		return
-	}
-
-	type userResp struct {
-		ID        string    `json:"ID"`
-		Username  string    `json:"Username"`
-		AuthToken string    `json:"AuthToken"`
-		Wins      int       `json:"Wins"`
-		Attempts  int       `json:"Attempts"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-	}
-	c.JSON(http.StatusOK, userResp{
-		ID:        user.ID,
-		Username:  user.Username,
-		AuthToken: user.AuthToken,
-		Wins:      user.Wins,
-		Attempts:  user.Attempts,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	})
 }
 
 func registerHandler(c *gin.Context) {
@@ -217,17 +114,13 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "pwd hash error"})
-		return
-	}
+	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 
 	user := User{
 		ID:        nextID,
 		Username:  req.Username,
 		Password:  string(hash),
-		AuthToken: generateToken(),
+		AuthToken: "",
 		Wins:      0,
 		Attempts:  0,
 	}
@@ -240,9 +133,96 @@ func registerHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, loginResponse{Success: true, AuthToken: user.AuthToken, ID: user.ID})
 }
 
-// ---------- cookie util ----------
+func userHandler(c *gin.Context) {
+	authToken := c.GetHeader("Authorization")
+	userID := c.GetHeader("X-User-ID")
+	if authToken == "" {
+		authToken, _ = c.Cookie("AuthToken")
+	}
+	if userID == "" {
+		userID, _ = c.Cookie("X-User-ID")
+	}
+
+	if authToken == "" || userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
+		return
+	}
+
+	var user User
+	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+/* ----------- cookie util ----------- */
+
 func writeAuthCookies(c *gin.Context, token, id string) {
 	age := 7 * 24 * 3600
 	c.SetCookie("AuthToken", token, age, "/", "", false, true)
 	c.SetCookie("X-User-ID", id, age, "/", "", false, true)
+}
+
+func main() {
+	/* ------- 初始化 Nacos / 数据库 ------- */
+	initNacos()
+	initDatabase()
+	defer closeDatabase()
+
+	/* ------- Gin 路由 ------- */
+	router := gin.Default()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://micro.roliyal.com"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
+		AllowCredentials: true,
+	}))
+	router.POST("/login", loginHandler)
+	router.POST("/register", registerHandler)
+	router.GET("/user", userHandler)
+
+	/* ------- HTTP 服务器 ------- */
+	srv := &http.Server{
+		Addr:    ":8083",
+		Handler: router,
+	}
+
+	/* ------- 后台启动 ------- */
+	go func() {
+		fmt.Println("login-service listening :8083")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %v", err)
+		}
+	}()
+
+	/* ------- 注册实例到 Nacos ------- */
+	hostIP, err := getHostIP()
+	if err != nil {
+		log.Fatalf("get host IP: %v", err)
+	}
+	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
+		log.Fatalf("register service: %v", err)
+	}
+	defer deregisterLoginService()
+
+	/* ------- 捕获 SIGTERM / SIGINT ------- */
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+	log.Println("received termination signal, shutting down...")
+
+	/* ------- 30 秒内优雅关机 ------- */
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("http shutdown error: %v", err)
+	}
+
+	log.Println("server exited gracefully")
 }
