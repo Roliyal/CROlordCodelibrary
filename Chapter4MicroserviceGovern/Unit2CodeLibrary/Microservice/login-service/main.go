@@ -186,6 +186,7 @@ func main() {
 	router.POST("/login", loginHandler)
 	router.POST("/register", registerHandler)
 	router.GET("/user", userHandler)
+	router.GET("/health", func(c *gin.Context) { c.String(200, "ok") })
 
 	/* ------- HTTP 服务器 ------- */
 	srv := &http.Server{
