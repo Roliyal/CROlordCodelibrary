@@ -19,10 +19,13 @@ spec:
     metadata:
       labels:
         app: micro-go-login
+        msePilotAutoEnable: "on"
+        mseNamespace: "crolord"
+        msePilotCreateAppName: "micro-go-login"
+        aliyun.com/app-language: golang
     spec:
       # 给 preStop + 应用优雅退出留足够时间
       terminationGracePeriodSeconds: 45
-
       containers:
         - name: micro-go-login
           # 请确保镜像已包含 curl，或保持下面脚本里的自动安装逻辑
@@ -30,7 +33,6 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
-
           env:
             # 基础服务信息
             - name: ENV_FILE
