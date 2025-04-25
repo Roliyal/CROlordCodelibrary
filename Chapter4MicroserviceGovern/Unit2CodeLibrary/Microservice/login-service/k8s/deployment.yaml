@@ -21,7 +21,7 @@ spec:
         app: micro-go-login
         msePilotAutoEnable: "on"
         mseNamespace: "crolord"
-        msePilotCreateAppName: "micro-go-login"
+        msePilotCreateAppName: "micro-go-login-ing"
         aliyun.com/app-language: golang
     spec:
       # 给 preStop + 应用优雅退出留足够时间
@@ -45,7 +45,6 @@ spec:
               value: "login-service"
             - name: SERVICE_PORT
               value: "8083"
-
             # Nacos 连接信息
             - name: NACOS_SERVER_IP
               value: "mse-95bb82810-nacos-ans.mse.aliyuncs.com"
