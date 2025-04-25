@@ -25,7 +25,7 @@ spec:
         aliyun.com/app-language: golang
     spec:
       # 给 preStop + 应用优雅退出留足够时间
-      terminationGracePeriodSeconds: 45
+      terminationGracePeriodSeconds: 60
       containers:
         - name: micro-go-login-ing
           # 请确保镜像已包含 curl，或保持下面脚本里的自动安装逻辑
