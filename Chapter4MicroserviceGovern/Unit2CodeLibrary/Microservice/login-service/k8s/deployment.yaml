@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: micro-go-login
+  name: micro-go-login-ing
   namespace: crolord
   labels:
-    app: micro-go-login
+    app: micro-go-login-ing
 spec:
   replicas: 1
   strategy:
@@ -14,7 +14,7 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: micro-go-login
+      app: micro-go-login-ing
   template:
     metadata:
       labels:
