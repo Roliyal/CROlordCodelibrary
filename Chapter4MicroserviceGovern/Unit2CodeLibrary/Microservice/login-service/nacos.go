@@ -30,16 +30,15 @@ func initNacos() {
 	}}
 	var err error
 	NamingClient, err = clients.CreateNamingClient(map[string]interface{}{
-		"serverConfigs": sc, "clientConfig": cc,
-	})
+		"serverConfigs": sc, "clientConfig": cc})
 	if err != nil {
-		logger.Fatal("create naming client", zap.Error(err))
+		logger.Fatal("create naming", zap.Error(err))
 	}
+
 	ConfigClient, err = clients.CreateConfigClient(map[string]interface{}{
-		"serverConfigs": sc, "clientConfig": cc,
-	})
+		"serverConfigs": sc, "clientConfig": cc})
 	if err != nil {
-		logger.Fatal("create config client", zap.Error(err))
+		logger.Fatal("create config", zap.Error(err))
 	}
 }
 
@@ -53,11 +52,10 @@ func getHostIP() (string, error) {
 	return "", fmt.Errorf("no IP found")
 }
 
-func registerService(c naming_client.INamingClient, name, ip string, port uint64) error {
-	ok, err := c.RegisterInstance(vo.RegisterInstanceParam{
+func registerService(cli naming_client.INamingClient, name, ip string, port uint64) error {
+	ok, err := cli.RegisterInstance(vo.RegisterInstanceParam{
 		Ip: ip, Port: port, ServiceName: name,
-		Weight: 10, Enable: true, Healthy: true, Ephemeral: true,
-	})
+		Weight: 10, Enable: true, Healthy: true, Ephemeral: true})
 	if err != nil {
 		return err
 	}
@@ -68,10 +66,7 @@ func registerService(c naming_client.INamingClient, name, ip string, port uint64
 }
 
 func deregisterLoginService() {
-	hostIP, _ := getHostIP()
-	if _, err := NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip: hostIP, Port: 8083, ServiceName: "login-service",
-	}); err != nil {
-		logger.Error("deregister error", zap.Error(err))
-	}
+	ip, _ := getHostIP()
+	_, _ = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+		Ip: ip, Port: 8083, ServiceName: "login-service"})
 }
