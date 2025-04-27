@@ -1,5 +1,4 @@
 // database.go
-
 package main
 
 import (
@@ -9,7 +8,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -60,7 +58,7 @@ func initDatabase(dbConfig map[string]string) {
 	)
 
 	// 打印 DSN，供调试使用（请注意安全性，生产环境下不要打印密码）
-	log.Printf("Connecting to database with DSN: %s", dsn)
+	zapLog.Infof("Connecting to database with DSN: %s", dsn)
 
 	db, err = gorm.Open("mysql", dsn)
 	if err != nil {
@@ -74,7 +72,7 @@ func initDatabase(dbConfig map[string]string) {
 func getOrCreateGame(user *User) (*Game, error) {
 	var game Game
 	if err := db.Where("id = ?", user.ID).First(&game).Error; err != nil {
-		log.Println("No game record found for user:", user.ID)
+		zapLog.Infof("No game record found for user: %s", user.ID)
 
 		if gorm.IsRecordNotFoundError(err) {
 			game.ID = user.ID // 使用 user.ID 作为游戏记录的 ID
@@ -84,7 +82,7 @@ func getOrCreateGame(user *User) (*Game, error) {
 				return nil, err
 			}
 		} else {
-			log.Println("Error querying game record:", err)
+			zapLog.Errorf("Error querying game record: %v", err)
 			return nil, err
 		}
 	}
@@ -109,13 +107,13 @@ func getUserFromUserID(userID string, authToken string) (User, error) {
 	}
 
 	if len(service.Hosts) == 0 {
-		log.Println("No instances found for login-service in Nacos")
+		zapLog.Warn("No instances found for login-service in Nacos")
 		return User{}, fmt.Errorf("no healthy login service instance found")
 	}
 
-	log.Printf("Found %d instances for login-service in Nacos", len(service.Hosts))
+	zapLog.Infof("Found %d instances for login-service in Nacos", len(service.Hosts))
 	for i, host := range service.Hosts {
-		log.Printf("Instance %d: IP=%s, Port=%d, Healthy=%t", i+1, host.Ip, host.Port, host.Healthy)
+		zapLog.Infof("Instance %d: IP=%s, Port=%d, Healthy=%t", i+1, host.Ip, host.Port, host.Healthy)
 	}
 
 	instance := getHealthyInstance(service.Hosts)
@@ -186,7 +184,7 @@ func getDatabaseConfigFromNacos() (map[string]string, error) {
 	DataId := "Prod_DATABASE"
 	Group := "DEFAULT_GROUP"
 
-	fmt.Printf("Requesting Nacos config with DataId: %s, Group: %s\n", DataId, Group)
+	zapLog.Infof("Requesting Nacos config with DataId: %s, Group: %s", DataId, Group)
 
 	config, err := ConfigClient.GetConfig(vo.ConfigParam{
 		DataId: DataId,
@@ -196,7 +194,7 @@ func getDatabaseConfigFromNacos() (map[string]string, error) {
 		return nil, err
 	}
 
-	fmt.Printf("Received Nacos config: %s\n", config)
+	zapLog.Infof("Received Nacos config: %s", config)
 
 	var dbConfig map[string]string
 	err = json.Unmarshal([]byte(config), &dbConfig)

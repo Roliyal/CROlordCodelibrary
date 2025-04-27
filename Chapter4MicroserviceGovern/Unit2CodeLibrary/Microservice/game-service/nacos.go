@@ -1,5 +1,4 @@
 // nacos.go
-
 package main
 
 import (
@@ -11,7 +10,6 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log" // 确保导入 log 包
 	"net"
 	"os"
 	"strconv"
@@ -43,7 +41,7 @@ func initNacos() {
 			Port:        uint64(parseInt(os.Getenv("NACOS_SERVER_PORT"), 8848)),
 		},
 	}
-	fmt.Printf("Nacos server config: %v\n", serverConfigs) // 输出 Nacos 服务器配置
+	zapLog.Infof("Nacos server config: %v\n", serverConfigs) // 输出 Nacos 服务器配置
 
 	// 创建命名客户端
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
@@ -74,20 +72,20 @@ func subscribeLoginService() {
 		Clusters:    []string{"DEFAULT"},
 		SubscribeCallback: func(services []model.SubscribeService, err error) {
 			if err != nil {
-				fmt.Printf("Error in SubscribeCallback: %v\n", err)
+				zapLog.Errorf("Error in SubscribeCallback: %v\n", err)
 				return
 			}
 
-			fmt.Println("Login service instances update:")
+			zapLog.Info("Login service instances update:")
 			for _, service := range services {
-				fmt.Printf("Instance: IP=%s, Port=%d\n", service.Ip, service.Port)
+				zapLog.Infof("Instance: IP=%s, Port=%d\n", service.Ip, service.Port)
 			}
 		},
 	})
 	if err != nil {
 		panic("failed to subscribe to login-service")
 	} else {
-		fmt.Println("Successfully subscribed to login-service") // 输出订阅成功信息
+		zapLog.Info("Successfully subscribed to login-service") // 输出订阅成功信息
 	}
 }
 
@@ -152,7 +150,7 @@ func registerService(client naming_client.INamingClient, serviceName, ip string,
 func deregisterGameService() {
 	hostIP, err := getHostIP()
 	if err != nil {
-		log.Printf("Failed to get host IP for deregistration: %v\n", err)
+		zapLog.Errorf("Failed to get host IP for deregistration: %v\n", err)
 		return
 	}
 
@@ -163,8 +161,8 @@ func deregisterGameService() {
 		GroupName:   "DEFAULT_GROUP",
 	})
 	if err != nil {
-		log.Printf("Error deregistering game service instance: %v\n", err)
+		zapLog.Errorf("Error deregistering game service instance: %v\n", err)
 	} else {
-		log.Println("Game service deregistered successfully")
+		zapLog.Info("Game service deregistered successfully")
 	}
 }

@@ -1,14 +1,27 @@
+// main.go
 package main
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 )
+
+// 全局 logger
+var zapLog *zap.SugaredLogger
+
+// 初始化 logger
+func initLogger() {
+	z, err := zap.NewProduction()
+	if err != nil {
+		panic(fmt.Sprintf("cannot initialize zap logger: %v", err))
+	}
+	zapLog = z.Sugar()
+}
 
 // 定义请求和响应结构体
 type guessRequest struct {
@@ -41,6 +54,9 @@ func respondWithError(c *gin.Context, code int, message string) {
 }
 
 func main() {
+	initLogger()
+	defer zapLog.Sync()
+
 	// 创建 Gin 引擎
 	r := gin.Default()
 
@@ -65,8 +81,7 @@ func main() {
 	// 注册 game-service 到 Nacos
 	err := registerService(NamingClient, "game-service", "127.0.0.1", 8084)
 	if err != nil {
-		fmt.Printf("Error registering game service instance: %v\n", err)
-		os.Exit(1)
+		zapLog.Fatalf("Error registering game service instance: %v", err)
 	}
 
 	// 订阅 login-service 的变化
@@ -87,7 +102,7 @@ func main() {
 	// 启动 Gin HTTP 服务器
 	go func() {
 		if err := r.Run(":8084"); err != nil {
-			log.Fatal("Error starting server: ", err)
+			zapLog.Fatalf("Error starting server: %v", err)
 		}
 	}()
 
@@ -109,34 +124,34 @@ func healthCheckHandler(c *gin.Context) {
 
 // guessHandler 处理猜数字请求
 func guessHandler(c *gin.Context) {
-	log.Printf("Received headers: %v", c.Request.Header)
+	zapLog.Infof("Received headers: %v", c.Request.Header)
 
 	// 打印所有 cookies
 	cookies := c.Request.Cookies()
-	log.Printf("Received cookies: %v", cookies)
+	zapLog.Infof("Received cookies: %v", cookies)
 
 	userIdStr, err := c.Cookie("X-User-ID")
 	if err != nil || userIdStr == "" {
 		userIdStr = c.GetHeader("X-User-ID")
 	}
 	if userIdStr == "" {
-		log.Println(" Error: Missing X-User-ID from Cookie or Header")
+		zapLog.Error("Missing X-User-ID from Cookie or Header")
 		respondWithError(c, http.StatusBadRequest, "Missing X-User-ID")
 		return
 	}
-	log.Printf(" Got X-User-ID: %s", userIdStr)
+	zapLog.Infof("Got X-User-ID: %s", userIdStr)
 
 	authToken := c.GetHeader("Authorization")
 	if authToken == "" {
-		log.Println(" Warning: Missing Authorization header")
+		zapLog.Warn("Missing Authorization header")
 		respondWithError(c, http.StatusUnauthorized, "Missing Authorization token")
 		return
 	}
-	log.Printf(" Got Authorization: %s", authToken)
+	zapLog.Infof("Got Authorization: %s", authToken)
 
 	user, err := getUserFromUserID(userIdStr, authToken)
 	if err != nil {
-		log.Printf(" Error getting user from login-service: %v", err)
+		zapLog.Errorf("Error getting user from login-service: %v", err)
 		respondWithError(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
@@ -144,16 +159,16 @@ func guessHandler(c *gin.Context) {
 	//  读取 JSON 请求体
 	var req guessRequest
 	if err := c.BindJSON(&req); err != nil {
-		log.Println(" Error decoding request body:", err)
+		zapLog.Errorf("Error decoding request body:", err)
 		respondWithError(c, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	log.Printf("📥 User guessed number: %d", req.Number)
+	zapLog.Infof("📥 User guessed number: %d", req.Number)
 
 	//  获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
 	if err != nil {
-		log.Println(" Error getting or creating game:", err)
+		zapLog.Errorf("Error getting or creating game:", err)
 		respondWithError(c, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
@@ -166,7 +181,7 @@ func guessHandler(c *gin.Context) {
 		res.Attempts = game.Attempts
 		game.CorrectGuesses++
 		if err := db.Save(game).Error; err != nil {
-			log.Printf(" Error updating game: %v", err)
+			zapLog.Errorf("Error updating game: %v", err)
 		}
 	} else {
 		res.Success = false
