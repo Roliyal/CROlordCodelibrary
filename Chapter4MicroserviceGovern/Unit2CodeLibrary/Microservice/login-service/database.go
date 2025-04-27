@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -18,46 +19,65 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-/* ---------- 全局 logger ---------- */
-
-var logger *zap.Logger
-
-func init() {
-	_ = godotenv.Load(".env")
-
-	enc := zapcore.NewJSONEncoder(zapcore.EncoderConfig{
-		TimeKey:      "timestamp",
-		EncodeTime:   zapcore.ISO8601TimeEncoder,
-		LevelKey:     "severity",
-		EncodeLevel:  zapcore.CapitalLevelEncoder,
-		MessageKey:   "service",
-		CallerKey:    "caller",
-		EncodeCaller: zapcore.ShortCallerEncoder,
-	})
-	core := zapcore.NewCore(enc, zapcore.AddSync(os.Stdout), zap.InfoLevel)
-	logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
-}
-
 /* ---------- 数据模型 ---------- */
 
 type User struct {
-	ID        string    `gorm:"column:ID;primary_key"`
-	Username  string    `gorm:"column:Username;unique;not null"`
-	Password  string    `gorm:"column:Password;not null"`
-	AuthToken string    `gorm:"column:AuthToken;not null"`
-	Wins      int       `gorm:"column:Wins;default:0"`
-	Attempts  int       `gorm:"column:Attempts;default:0"`
-	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	ID             string    `gorm:"column:ID;primary_key"`
+	Username       string    `gorm:"column:Username;unique;not null"`
+	Password       string    `gorm:"column:Password;not null"`
+	AuthToken      string    `gorm:"column:AuthToken;not null"`
+	Wins           int       `gorm:"column:Wins;default:0"`
+	Attempts       int       `gorm:"column:Attempts;default:0"`
+	CreatedAt      time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CorrectGuesses int       `gorm:"column:correct_guesses;default:0"`
 }
 
 func (User) TableName() string { return "users" }
 
-type dbConf struct {
+type MaxID struct {
+	MaxID string `gorm:"max(ID)"`
+}
+
+/* ---------- DB config ---------- */
+
+type DBConfig struct {
 	DBUser, DBPassword, DBHost, DBPort, DBName string
 }
 
-var db *gorm.DB
+var (
+	db     *gorm.DB
+	logger *zap.Logger
+)
+
+/* ---------- 云原生日志编码器 ---------- */
+
+func newCloudEncoder() zapcore.Encoder {
+	cfg := zapcore.EncoderConfig{
+		TimeKey:       "timestamp",
+		EncodeTime:    zapcore.ISO8601TimeEncoder,
+		LevelKey:      "severity",
+		EncodeLevel:   zapcore.CapitalLevelEncoder,
+		MessageKey:    "service",
+		CallerKey:     "caller",
+		EncodeCaller:  zapcore.ShortCallerEncoder,
+		StacktraceKey: "stack",
+	}
+	return zapcore.NewJSONEncoder(cfg)
+}
+
+func init() {
+	if wd, err := os.Getwd(); err == nil {
+		_ = godotenv.Load(filepath.Join(wd, ".env"))
+	}
+
+	core := zapcore.NewCore(
+		newCloudEncoder(),
+		zapcore.AddSync(os.Stdout),
+		zap.InfoLevel,
+	)
+	logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+}
 
 func initDatabase() {
 	cc := constant.ClientConfig{
@@ -72,33 +92,37 @@ func initDatabase() {
 		Port:        mustUint(os.Getenv("NACOS_SERVER_PORT")),
 	}}
 	cfgCli, err := clients.CreateConfigClient(map[string]interface{}{
-		"serverConfigs": sc, "clientConfig": cc})
+		"serverConfigs": sc, "clientConfig": cc,
+	})
 	if err != nil {
-		logger.Fatal("create config client", zap.Error(err))
+		logger.Fatal("create nacos cfg client", zap.Error(err))
 	}
 
 	raw, err := cfgCli.GetConfig(vo.ConfigParam{DataId: "Prod_DATABASE", Group: "DEFAULT_GROUP"})
 	if err != nil {
-		logger.Fatal("get nacos cfg", zap.Error(err))
-	}
-	var cfg dbConf
-	if err = json.Unmarshal([]byte(raw), &cfg); err != nil {
-		logger.Fatal("parse db cfg", zap.Error(err))
+		logger.Fatal("get db config", zap.Error(err))
 	}
 
+	var dbc DBConfig
+	if err = json.Unmarshal([]byte(raw), &dbc); err != nil {
+		logger.Fatal("parse db config", zap.Error(err))
+	}
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
+		dbc.DBUser, dbc.DBPassword, dbc.DBHost, dbc.DBPort, dbc.DBName)
 	db, err = gorm.Open("mysql", dsn)
 	if err != nil {
 		logger.Fatal("mysql open", zap.Error(err))
 	}
 	db.AutoMigrate(&User{})
+	logger.Info("database connected")
 }
+
+/* ---------- 工具 ---------- */
 
 func mustUint(s string) uint64 {
 	u, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
-		logger.Fatal("parseUint", zap.String("input", s), zap.Error(err))
+		logger.Fatal("parse uint", zap.String("input", s), zap.Error(err))
 	}
 	return u
 }
@@ -109,17 +133,23 @@ func closeDatabase() {
 	}
 }
 
-type MaxID struct {
-	MaxID string `gorm:"max(ID)"`
-}
-
 func getNextUserID() (string, error) {
-	var r MaxID
-	if err := db.Table("users").Select("MAX(ID) as max_id").Scan(&r).Error; err != nil {
+	var res MaxID
+	if err := db.Table("users").Select("MAX(ID) as max_id").Scan(&res).Error; err != nil {
 		return "", err
 	}
-	cur, _ := strconv.Atoi(r.MaxID)
-	return fmt.Sprintf("%06d", cur+1), nil
+	next := 1
+	if res.MaxID != "" {
+		cur, err := strconv.Atoi(res.MaxID)
+		if err != nil {
+			return "", err
+		}
+		next = cur + 1
+	}
+	if next > 999999 {
+		return "", fmt.Errorf("User ID exceeds 6 digits")
+	}
+	return fmt.Sprintf("%06d", next), nil
 }
 
 func getHealthyInstance(instances []model.Instance) *model.Instance {
