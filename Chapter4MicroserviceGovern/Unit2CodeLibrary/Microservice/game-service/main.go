@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // 全局 logger
@@ -73,17 +74,39 @@ func respondWithError(c *gin.Context, code int, message string) {
 	})
 }
 
+// ZapRequestLogger 把 Gin 访问日志写到 zap
+func ZapRequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		latency := time.Since(start)
+
+		traceID := c.GetHeader("traceparent")
+
+		zapLog.Infow("HTTP",
+			"status", c.Writer.Status(),
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"latency", latency.String(),
+			"size", c.Writer.Size(),
+			"ip", c.ClientIP(),
+			"trace_id", traceID,
+		)
+	}
+}
+
 func main() {
 	initLogger()
 	defer zapLog.Sync()
 
-	// 创建 Gin 引擎
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(ZapRequestLogger(), gin.Recovery())
 
-	// CORS 配置
+	// CORS
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "http://micro.roliyal.com") // 前端地址
-		c.Header("Access-Control-Allow-Credentials", "true")                // 允许携带 Cookies
+		c.Header("Access-Control-Allow-Origin", "http://micro.roliyal.com")
+		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-User-ID")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		c.Next()
@@ -183,7 +206,7 @@ func guessHandler(c *gin.Context) {
 		respondWithError(c, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	zapLog.Infof("📥 User guessed number: %d", req.Number)
+	zapLog.Infof("User guessed number: %d", req.Number)
 
 	//  获取或创建游戏记录
 	game, err := getOrCreateGame(&user)
