@@ -2,25 +2,45 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
 // 全局 logger
 var zapLog *zap.SugaredLogger
 
-// 初始化 logger
 func initLogger() {
-	z, err := zap.NewProduction()
-	if err != nil {
-		panic(fmt.Sprintf("cannot initialize zap logger: %v", err))
+	cfg := zap.NewProductionConfig()
+	// 1) 统一时间格式
+	cfg.EncoderConfig.TimeKey = "time"
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	// 2) 不要 caller 全路径，只保留文件名:行号
+	cfg.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	// 3) 用环境变量控制最低级别：INFO | WARN | ERROR | DEBUG
+	level := os.Getenv("LOG_LEVEL")
+	switch strings.ToLower(level) {
+	case "debug":
+		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	case "warn":
+		cfg.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	case "error":
+		cfg.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
+	default:
+		cfg.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
-	zapLog = z.Sugar()
+	// 4) 打开采样，压缩重复日志
+	cfg.Sampling = &zap.SamplingConfig{
+		Initial:    100,
+		Thereafter: 100,
+	}
+	logger, _ := cfg.Build()
+	zapLog = logger.Sugar()
 }
 
 // 定义请求和响应结构体
