@@ -3,6 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
@@ -10,15 +15,9 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
+	"go.uber.org/zap"
 )
 
-// ---------------- 数据模型 ----------------
 type User struct {
 	ID             string    `gorm:"column:ID;primary_key"`
 	Username       string    `gorm:"column:Username;unique;not null"`
@@ -33,12 +32,10 @@ type User struct {
 
 func (User) TableName() string { return "users" }
 
-// 用于查询最大 ID
 type MaxID struct {
 	MaxID string `gorm:"max(ID)"`
 }
 
-// DB JSON 配置
 type DBConfig struct {
 	DBUser     string `json:"DB_USER"`
 	DBPassword string `json:"DB_PASSWORD"`
@@ -48,13 +45,18 @@ type DBConfig struct {
 }
 
 var db *gorm.DB
+var logger *zap.Logger
 
-// ---------------- 初始化 ----------------
 func init() {
 	if wd, err := os.Getwd(); err == nil {
 		_ = godotenv.Load(filepath.Join(wd, ".env"))
 	}
-	rand.Seed(time.Now().UnixNano())
+	// 全局 logger
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initDatabase() {
@@ -71,11 +73,10 @@ func initDatabase() {
 	}}
 
 	cfgCli, err := clients.CreateConfigClient(map[string]interface{}{
-		"serverConfigs": sc,
-		"clientConfig":  cc,
+		"serverConfigs": sc, "clientConfig": cc,
 	})
 	if err != nil {
-		log.Fatalf("create nacos cfg client: %v", err)
+		logger.Fatal("create nacos cfg client", zap.Error(err))
 	}
 
 	raw, err := cfgCli.GetConfig(vo.ConfigParam{
@@ -83,28 +84,28 @@ func initDatabase() {
 		Group:  "DEFAULT_GROUP",
 	})
 	if err != nil {
-		log.Fatalf("get db config: %v", err)
+		logger.Fatal("get db config", zap.Error(err))
 	}
+
 	var dbc DBConfig
 	if err = json.Unmarshal([]byte(raw), &dbc); err != nil {
-		log.Fatalf("parse db config: %v", err)
+		logger.Fatal("parse db config", zap.Error(err))
 	}
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
-		dbc.DBUser, dbc.DBPassword, dbc.DBHost, dbc.DBPort, dbc.DBName,
-	)
+		dbc.DBUser, dbc.DBPassword, dbc.DBHost, dbc.DBPort, dbc.DBName)
 	db, err = gorm.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("mysql open: %v", err)
+		logger.Fatal("mysql open", zap.Error(err))
 	}
 	db.AutoMigrate(&User{})
+	logger.Info("database connected")
 }
 
-// ---------------- 工具函数 ----------------
 func mustUint(s string) uint64 {
 	u, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
-		log.Fatalf("parse uint: %v", err)
+		logger.Fatal("parse uint", zap.String("input", s), zap.Error(err))
 	}
 	return u
 }
@@ -115,13 +116,11 @@ func closeDatabase() {
 	}
 }
 
-// getNextUserID：生成 6 位 ID
 func getNextUserID() (string, error) {
 	var res MaxID
 	if err := db.Table("users").Select("MAX(ID) as max_id").Scan(&res).Error; err != nil {
 		return "", err
 	}
-
 	next := 1
 	if res.MaxID != "" {
 		cur, err := strconv.Atoi(res.MaxID)
@@ -136,7 +135,6 @@ func getNextUserID() (string, error) {
 	return fmt.Sprintf("%06d", next), nil
 }
 
-// getHealthyInstance：原函数保留
 func getHealthyInstance(instances []model.Instance) *model.Instance {
 	for _, ins := range instances {
 		if ins.Healthy {
@@ -144,10 +142,4 @@ func getHealthyInstance(instances []model.Instance) *model.Instance {
 		}
 	}
 	return nil
-}
-
-// generateTargetNumber：原函数保留
-func generateTargetNumber() int {
-	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(100) + 1
 }

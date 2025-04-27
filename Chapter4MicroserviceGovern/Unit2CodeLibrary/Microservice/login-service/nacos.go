@@ -2,20 +2,20 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"os"
+
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
-	"net"
-	"os"
+	"go.uber.org/zap"
 )
 
 var NamingClient naming_client.INamingClient
 var ConfigClient config_client.IConfigClient
 
-// ---------- 初始化 ----------
 func initNacos() {
 	cc := constant.ClientConfig{
 		NamespaceId: os.Getenv("NACOS_NAMESPACE"),
@@ -28,23 +28,20 @@ func initNacos() {
 		ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
 		Port:        mustUint(os.Getenv("NACOS_SERVER_PORT")),
 	}}
-
 	var err error
 	NamingClient, err = clients.CreateNamingClient(map[string]interface{}{
 		"serverConfigs": sc, "clientConfig": cc,
 	})
 	if err != nil {
-		log.Fatalf("create naming client: %v", err)
+		logger.Fatal("create naming client", zap.Error(err))
 	}
 	ConfigClient, err = clients.CreateConfigClient(map[string]interface{}{
 		"serverConfigs": sc, "clientConfig": cc,
 	})
 	if err != nil {
-		log.Fatalf("create config client: %v", err)
+		logger.Fatal("create config client", zap.Error(err))
 	}
 }
-
-// ---------- 工具 ----------
 
 func getHostIP() (string, error) {
 	addrs, _ := net.InterfaceAddrs()
@@ -58,13 +55,8 @@ func getHostIP() (string, error) {
 
 func registerService(c naming_client.INamingClient, name, ip string, port uint64) error {
 	ok, err := c.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          ip,
-		Port:        port,
-		ServiceName: name,
-		Weight:      10,
-		Enable:      true,
-		Healthy:     true,
-		Ephemeral:   true,
+		Ip: ip, Port: port, ServiceName: name,
+		Weight: 10, Enable: true, Healthy: true, Ephemeral: true,
 	})
 	if err != nil {
 		return err
@@ -78,10 +70,8 @@ func registerService(c naming_client.INamingClient, name, ip string, port uint64
 func deregisterLoginService() {
 	hostIP, _ := getHostIP()
 	if _, err := NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip:          hostIP,
-		Port:        8083,
-		ServiceName: "login-service",
+		Ip: hostIP, Port: 8083, ServiceName: "login-service",
 	}); err != nil {
-		log.Printf("deregister error: %v", err)
+		logger.Error("deregister error", zap.Error(err))
 	}
 }

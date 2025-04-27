@@ -1,12 +1,9 @@
-// main.go
 package main
 
 import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,30 +11,28 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-/* ----------- 用到的类型 ----------- */
-
-type loginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type registerRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type loginResponse struct {
-	Success   bool   `json:"success"`
-	AuthToken string `json:"authToken,omitempty"`
-	ID        string `json:"id,omitempty"`
-}
-
-/* ----------- token helpers ----------- */
+type (
+	loginRequest struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	registerRequest struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	loginResponse struct {
+		Success   bool   `json:"success"`
+		AuthToken string `json:"authToken,omitempty"`
+		ID        string `json:"id,omitempty"`
+	}
+)
 
 func generateRandomToken(n int) (string, error) {
 	b := make([]byte, n)
@@ -47,8 +42,6 @@ func generateRandomToken(n int) (string, error) {
 	return hex.EncodeToString(b), nil
 }
 func generateAuthToken() (string, error) { return generateRandomToken(32) }
-
-/* ----------- handlers ----------- */
 
 func loginHandler(c *gin.Context) {
 	var req loginRequest
@@ -115,15 +108,7 @@ func registerHandler(c *gin.Context) {
 	}
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-
-	user := User{
-		ID:        nextID,
-		Username:  req.Username,
-		Password:  string(hash),
-		AuthToken: "",
-		Wins:      0,
-		Attempts:  0,
-	}
+	user := User{ID: nextID, Username: req.Username, Password: string(hash)}
 	if err = db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
@@ -157,11 +142,8 @@ func userHandler(c *gin.Context) {
 		}
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
 }
-
-/* ----------- cookie util ----------- */
 
 func writeAuthCookies(c *gin.Context, token, id string) {
 	age := 7 * 24 * 3600
@@ -170,60 +152,53 @@ func writeAuthCookies(c *gin.Context, token, id string) {
 }
 
 func main() {
-	/* ------- 初始化 Nacos / 数据库 ------- */
 	initNacos()
 	initDatabase()
 	defer closeDatabase()
+	defer logger.Sync()
 
-	/* ------- Gin 路由 ------- */
-	router := gin.Default()
-	router.Use(cors.New(cors.Config{
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+	r.Use(ginzap.RecoveryWithZap(logger, true))
+	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://micro.roliyal.com"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
 		AllowCredentials: true,
 	}))
-	router.POST("/login", loginHandler)
-	router.POST("/register", registerHandler)
-	router.GET("/user", userHandler)
-	router.GET("/health", func(c *gin.Context) { c.String(200, "ok") })
+	r.POST("/login", loginHandler)
+	r.POST("/register", registerHandler)
+	r.GET("/user", userHandler)
+	r.GET("/health", func(c *gin.Context) { c.String(200, "ok") })
 
-	/* ------- HTTP 服务器 ------- */
-	srv := &http.Server{
-		Addr:    ":8083",
-		Handler: router,
-	}
+	srv := &http.Server{Addr: ":8083", Handler: r}
 
-	/* ------- 后台启动 ------- */
 	go func() {
-		fmt.Println("login-service listening :8083")
+		logger.Info("login-service listening", zap.String("addr", ":8083"))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			logger.Fatal("listen err", zap.Error(err))
 		}
 	}()
 
-	/* ------- 注册实例到 Nacos ------- */
 	hostIP, err := getHostIP()
 	if err != nil {
-		log.Fatalf("get host IP: %v", err)
+		logger.Fatal("get host ip", zap.Error(err))
 	}
 	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
-		log.Fatalf("register service: %v", err)
+		logger.Fatal("register service", zap.Error(err))
 	}
 	defer deregisterLoginService()
 
-	/* ------- 捕获 SIGTERM / SIGINT ------- */
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
-	log.Println("received termination signal, shutting down...")
+	logger.Info("termination signal received")
 
-	/* ------- 30 秒内优雅关机 ------- */
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("http shutdown error: %v", err)
+		logger.Error("http shutdown", zap.Error(err))
 	}
-
-	log.Println("server exited gracefully")
+	logger.Info("server exited gracefully")
 }
