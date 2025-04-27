@@ -1,3 +1,4 @@
+// database.go
 package main
 
 import (
@@ -7,7 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
 	"time"
 )
 
@@ -30,7 +30,6 @@ func SetupDatabase(nacosClient config_client.IConfigClient) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return initDB(dbConfig)
 }
 
@@ -40,17 +39,14 @@ func getDatabaseConfigFromNacos(nacosClient config_client.IConfigClient) (map[st
 		DataId: "Prod_DATABASE",
 		Group:  "DEFAULT_GROUP",
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	var dbConfig map[string]string
-	err = json.Unmarshal([]byte(content), &dbConfig)
-	if err != nil {
+	if err = json.Unmarshal([]byte(content), &dbConfig); err != nil {
 		return nil, err
 	}
-
 	return dbConfig, nil
 }
 
@@ -63,10 +59,10 @@ func initDB(dbConfig map[string]string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		return nil, err
 	}
+	zapLog.Infow("Database connected", "dsn", dsn)
 	return db, nil
 }
 
@@ -78,7 +74,6 @@ SELECT game.ID, users.username, game.Attempts, game.TargetNumber
     JOIN users ON game.ID = users.idthis is gary
     ORDER BY game.Attempts ASC
 `
-
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to prepare query: %v", err)
@@ -94,26 +89,22 @@ SELECT game.ID, users.username, game.Attempts, game.TargetNumber
 	var entries []ScoreboardEntry
 	for rows.Next() {
 		var entry ScoreboardEntry
-		err := rows.Scan(&entry.ID, &entry.Username, &entry.Attempts, &entry.TargetNumber)
-		if err != nil {
+		if err = rows.Scan(&entry.ID, &entry.Username, &entry.Attempts, &entry.TargetNumber); err != nil {
 			return nil, fmt.Errorf("Failed to scan row: %v", err)
 		}
 		entries = append(entries, entry)
 	}
-
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("Row iteration error: %v", err)
 	}
-
 	return entries, nil
 }
 
 // closeDatabase 关闭数据库连接
 func closeDatabase(db *sql.DB) {
 	if db != nil {
-		err := db.Close()
-		if err != nil {
-			log.Println("Error closing database:", err)
+		if err := db.Close(); err != nil {
+			zapLog.Errorw("Error closing database", "err", err)
 		}
 	}
 }

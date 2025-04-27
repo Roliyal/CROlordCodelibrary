@@ -1,8 +1,8 @@
+// nacos.go
 package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -20,7 +20,6 @@ var ConfigClient config_client.IConfigClient
 
 // initNacos 初始化 Nacos 客户端
 func initNacos() (naming_client.INamingClient, config_client.IConfigClient, error) {
-	// 读取环境变量
 	timeoutMs, err := strconv.ParseUint(os.Getenv("NACOS_TIMEOUT_MS"), 10, 64)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to parse NACOS_TIMEOUT_MS: %v", err)
@@ -39,16 +38,12 @@ func initNacos() (naming_client.INamingClient, config_client.IConfigClient, erro
 		Username:            os.Getenv("NACOS_USERNAME"),
 		Password:            os.Getenv("NACOS_PASSWORD"),
 	}
+	serverConfigs := []constant.ServerConfig{{
+		IpAddr:      os.Getenv("NACOS_SERVER_IP"),
+		ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
+		Port:        nacosPort,
+	}}
 
-	serverConfigs := []constant.ServerConfig{
-		{
-			IpAddr:      os.Getenv("NACOS_SERVER_IP"),
-			ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
-			Port:        nacosPort,
-		},
-	}
-
-	// 创建命名客户端
 	nc, err := clients.CreateNamingClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
@@ -58,7 +53,6 @@ func initNacos() (naming_client.INamingClient, config_client.IConfigClient, erro
 	}
 	NamingClient = nc
 
-	// 创建配置客户端
 	cc, err := clients.CreateConfigClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
@@ -68,12 +62,9 @@ func initNacos() (naming_client.INamingClient, config_client.IConfigClient, erro
 	}
 	ConfigClient = cc
 
-	// 注册服务
-	err = registerService(NamingClient, "scoreboard-service", 8085)
-	if err != nil {
+	if err = registerService(NamingClient, "scoreboard-service", 8085); err != nil {
 		return nil, nil, fmt.Errorf("Error registering service: %v", err)
 	}
-
 	return nc, cc, nil
 }
 
@@ -83,17 +74,11 @@ func getHostIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	for _, addr := range addrs {
-		ip, _, err := net.ParseCIDR(addr.String())
-		if err != nil {
-			continue
-		}
-		if !ip.IsLoopback() && ip.To4() != nil {
+		if ip, _, _ := net.ParseCIDR(addr.String()); ip != nil && !ip.IsLoopback() && ip.To4() != nil {
 			return ip.String(), nil
 		}
 	}
-
 	return "", fmt.Errorf("No valid IP address found")
 }
 
@@ -104,8 +89,8 @@ func registerService(client naming_client.INamingClient, serviceName string, por
 		return fmt.Errorf("Failed to get host IP address: %w", err)
 	}
 
-	success, err := client.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          hostIP, // 使用动态获取的宿主机 IP 地址
+	ok, err := client.RegisterInstance(vo.RegisterInstanceParam{
+		Ip:          hostIP,
 		Port:        port,
 		ServiceName: serviceName,
 		Weight:      10,
@@ -113,16 +98,13 @@ func registerService(client naming_client.INamingClient, serviceName string, por
 		Healthy:     true,
 		Ephemeral:   true,
 	})
-
 	if err != nil {
 		return fmt.Errorf("registerService error: %w", err)
 	}
-
-	if !success {
+	if !ok {
 		return fmt.Errorf("Failed to register service")
 	}
-
-	log.Printf("Service %s registered successfully at %s:%d", serviceName, hostIP, port)
+	zapLog.Infow("Service registered", "service", serviceName, "ip", hostIP, "port", port)
 	return nil
 }
 
@@ -132,15 +114,14 @@ func deregisterService(serviceName string, port uint64) error {
 	if err != nil {
 		return fmt.Errorf("Failed to get host IP address: %w", err)
 	}
-
-	_, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+	if _, err = NamingClient.DeregisterInstance(vo.DeregisterInstanceParam{
 		Ip:          hostIP,
 		Port:        port,
 		ServiceName: serviceName,
 		GroupName:   "DEFAULT_GROUP",
-	})
-	if err != nil {
+	}); err != nil {
 		return fmt.Errorf("failed to deregister service instance: %w", err)
 	}
+	zapLog.Infow("Service deregistered", "service", serviceName)
 	return nil
 }
