@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // ScoreboardEntry 定义了用户在排行榜中的信息
@@ -31,6 +32,25 @@ func initLogger() {
 	cfg.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	logger, _ := cfg.Build()
 	zapLog = logger.Sugar()
+}
+
+// ---------- zap 访问日志中间件 ----------
+func ZapRequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		latency := time.Since(start)
+		traceID := c.GetHeader("traceparent") // ARMS 可从此处提取
+		zapLog.Infow("HTTP",
+			"status", c.Writer.Status(),
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"latency", latency.String(),
+			"size", c.Writer.Size(),
+			"ip", c.ClientIP(),
+			"trace_id", traceID,
+		)
+	}
 }
 
 // ---------- .env ----------
@@ -63,7 +83,9 @@ func main() {
 	}
 	defer closeDatabase(db)
 
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()                            // 不再自动附带 Gin Logger
+	r.Use(ZapRequestLogger(), gin.Recovery()) // 统一用 zap
 	r.Use(corsMiddleware)
 	r.GET("/scoreboard", getScoreboardHandler)
 
