@@ -16,10 +16,9 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-/* ---------- 数据模型 ---------- */
+/* ----------------- 数据模型 ----------------- */
 
 type User struct {
 	ID             string    `gorm:"column:ID;primary_key"`
@@ -39,44 +38,31 @@ type MaxID struct {
 	MaxID string `gorm:"max(ID)"`
 }
 
-/* ---------- DB config ---------- */
+/* ----------------- DB Config ---------------- */
 
 type DBConfig struct {
-	DBUser, DBPassword, DBHost, DBPort, DBName string
+	DBUser     string `json:"DB_USER"`
+	DBPassword string `json:"DB_PASSWORD"`
+	DBHost     string `json:"DB_HOST"`
+	DBPort     string `json:"DB_PORT"`
+	DBName     string `json:"DB_NAME"`
 }
 
-var (
-	db     *gorm.DB
-	logger *zap.Logger
-)
+var db *gorm.DB
+var logger *zap.Logger
 
-/* ---------- 云原生日志编码器 ---------- */
-
-func newCloudEncoder() zapcore.Encoder {
-	cfg := zapcore.EncoderConfig{
-		TimeKey:       "timestamp",
-		EncodeTime:    zapcore.ISO8601TimeEncoder,
-		LevelKey:      "severity",
-		EncodeLevel:   zapcore.CapitalLevelEncoder,
-		MessageKey:    "service",
-		CallerKey:     "caller",
-		EncodeCaller:  zapcore.ShortCallerEncoder,
-		StacktraceKey: "stack",
-	}
-	return zapcore.NewJSONEncoder(cfg)
-}
+/* ----------------- 初始化 ----------------- */
 
 func init() {
 	if wd, err := os.Getwd(); err == nil {
 		_ = godotenv.Load(filepath.Join(wd, ".env"))
 	}
-
-	core := zapcore.NewCore(
-		newCloudEncoder(),
-		zapcore.AddSync(os.Stdout),
-		zap.InfoLevel,
-	)
-	logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	// 全局 logger
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initDatabase() {
@@ -91,6 +77,7 @@ func initDatabase() {
 		ContextPath: os.Getenv("NACOS_CONTEXT_PATH"),
 		Port:        mustUint(os.Getenv("NACOS_SERVER_PORT")),
 	}}
+
 	cfgCli, err := clients.CreateConfigClient(map[string]interface{}{
 		"serverConfigs": sc, "clientConfig": cc,
 	})
@@ -98,7 +85,10 @@ func initDatabase() {
 		logger.Fatal("create nacos cfg client", zap.Error(err))
 	}
 
-	raw, err := cfgCli.GetConfig(vo.ConfigParam{DataId: "Prod_DATABASE", Group: "DEFAULT_GROUP"})
+	raw, err := cfgCli.GetConfig(vo.ConfigParam{
+		DataId: "Prod_DATABASE",
+		Group:  "DEFAULT_GROUP",
+	})
 	if err != nil {
 		logger.Fatal("get db config", zap.Error(err))
 	}
@@ -107,6 +97,7 @@ func initDatabase() {
 	if err = json.Unmarshal([]byte(raw), &dbc); err != nil {
 		logger.Fatal("parse db config", zap.Error(err))
 	}
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbc.DBUser, dbc.DBPassword, dbc.DBHost, dbc.DBPort, dbc.DBName)
 	db, err = gorm.Open("mysql", dsn)
@@ -117,7 +108,7 @@ func initDatabase() {
 	logger.Info("database connected")
 }
 
-/* ---------- 工具 ---------- */
+/* ----------------- 工具函数 ----------------- */
 
 func mustUint(s string) uint64 {
 	u, err := strconv.ParseUint(s, 10, 64)

@@ -1,11 +1,9 @@
-// main.go — 完整源代码（Go 1.22 可直接编译）
 package main
 
 import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,105 +11,43 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/bcrypt"
 )
 
-/* ------------------------------------------------------------------
-                               常量
--------------------------------------------------------------------*/
+/* ----------------- DTO ----------------- */
 
-const (
-	serviceName = "login-service"  // 顶层字段 service
-	projectID   = "micro-go-login" // trace 字段拼接用
+type (
+	loginRequest struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	registerRequest struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	loginResponse struct {
+		Success   bool   `json:"success"`
+		AuthToken string `json:"authToken,omitempty"`
+		ID        string `json:"id,omitempty"`
+	}
 )
 
-/* ------------------------------------------------------------------
-                               DTO
--------------------------------------------------------------------*/
+/* ----------------- token helpers ----------------- */
 
-type loginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-type registerRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-type loginResponse struct {
-	Success   bool   `json:"success"`
-	AuthToken string `json:"authToken,omitempty"`
-	ID        string `json:"id,omitempty"`
-}
-
-/* ------------------------------------------------------------------
-                         Token / 辅助函数
--------------------------------------------------------------------*/
-
-func generateAuthToken() (string, error) {
-	b := make([]byte, 32)
+func generateRandomToken(n int) (string, error) {
+	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
 }
+func generateAuthToken() (string, error) { return generateRandomToken(32) }
 
-func writeAuthCookies(c *gin.Context, token, id string) {
-	age := 7 * 24 * 3600
-	c.SetCookie("AuthToken", token, age, "/", "", false, true)
-	c.SetCookie("X-User-ID", id, age, "/", "", false, true)
-}
-
-/* ------------------------------------------------------------------
-                        自定义 zap 访问日志
--------------------------------------------------------------------*/
-
-// 返回一个 Gin middleware，把访问日志写成 CNCF / Google Cloud JSON
-func zapLogger(l *zap.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-		c.Next() // 先走后续 handler
-
-		latency := fmt.Sprintf("%.3fs", time.Since(start).Seconds())
-		url := c.Request.URL.Path
-		if q := c.Request.URL.RawQuery; q != "" {
-			url += "?" + q
-		}
-
-		traceID := c.GetHeader("Trace-ID")
-		spanID := c.GetHeader("Span-ID")
-
-		fields := []zap.Field{
-			zap.String("service", serviceName),
-			zap.Object("httpRequest", zapcore.ObjectMarshalerFunc(func(enc zapcore.ObjectEncoder) error {
-				enc.AddString("requestMethod", c.Request.Method)
-				enc.AddString("requestUrl", url)
-				enc.AddInt("status", c.Writer.Status())
-				enc.AddString("latency", latency)
-				enc.AddString("remoteIp", c.ClientIP())
-				enc.AddString("userAgent", c.Request.UserAgent())
-				enc.AddString("protocol", c.Request.Proto)
-				return nil
-			})),
-		}
-		if traceID != "" {
-			fields = append(fields, zap.String("trace",
-				"projects/"+projectID+"/traces/"+traceID))
-		}
-		if spanID != "" {
-			fields = append(fields, zap.String("spanId", spanID))
-		}
-
-		l.Info("", fields...)
-	}
-}
-
-/* ------------------------------------------------------------------
-                          HTTP Handlers
--------------------------------------------------------------------*/
+/* ----------------- handlers ----------------- */
 
 func loginHandler(c *gin.Context) {
 	var req loginRequest
@@ -121,7 +57,7 @@ func loginHandler(c *gin.Context) {
 	}
 
 	var user User
-	if err := db.Select("ID, Username, Password, AuthToken").
+	if err := db.Select("ID, Username, Password, AuthToken, Wins, Attempts").
 		Where("username = ?", req.Username).First(&user).Error; err != nil {
 
 		if gorm.IsRecordNotFoundError(err) {
@@ -179,7 +115,7 @@ func registerHandler(c *gin.Context) {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	user := User{ID: nextID, Username: req.Username, Password: string(hash)}
-	if err := db.Create(&user).Error; err != nil {
+	if err = db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
@@ -197,15 +133,14 @@ func userHandler(c *gin.Context) {
 	if userID == "" {
 		userID, _ = c.Cookie("X-User-ID")
 	}
+
 	if authToken == "" || userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth"})
 		return
 	}
 
 	var user User
-	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).
-		First(&user).Error; err != nil {
-
+	if err := db.Where("AuthToken = ? AND ID = ?", authToken, userID).First(&user).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		} else {
@@ -216,55 +151,58 @@ func userHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-/* ------------------------------------------------------------------
-                               main
--------------------------------------------------------------------*/
+/* ----------------- cookie util ----------------- */
+
+func writeAuthCookies(c *gin.Context, token, id string) {
+	age := 7 * 24 * 3600
+	c.SetCookie("AuthToken", token, age, "/", "", false, true)
+	c.SetCookie("X-User-ID", id, age, "/", "", false, true)
+}
 
 func main() {
-	/* 初始化 Nacos & DB */
+	/* ------- 初始化 ------- */
 	initNacos()
 	initDatabase()
 	defer closeDatabase()
 	defer logger.Sync()
 
-	/* Gin + 中间件 */
+	/* ------- Gin & zap middleware ------- */
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
-	r.Use(zapLogger(logger)) // 访问日志
-	r.Use(gin.Recovery())    // panic 保护
+	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+	r.Use(ginzap.RecoveryWithZap(logger, true))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://micro.roliyal.com"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "X-User-ID"},
 		AllowCredentials: true,
 	}))
-
-	/* 路由 */
 	r.POST("/login", loginHandler)
 	r.POST("/register", registerHandler)
 	r.GET("/user", userHandler)
 	r.GET("/health", func(c *gin.Context) { c.String(200, "ok") })
 
-	/* HTTP server */
 	srv := &http.Server{Addr: ":8083", Handler: r}
+
+	/* ------- HTTP serve ------- */
 	go func() {
-		logger.Info("server listening", zap.String("addr", ":8083"))
+		logger.Info("login-service listening", zap.String("addr", ":8083"))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("listen", zap.Error(err))
+			logger.Fatal("listen err", zap.Error(err))
 		}
 	}()
 
-	/* Nacos 注册 */
+	/* ------- 注册到 Nacos ------- */
 	hostIP, err := getHostIP()
 	if err != nil {
 		logger.Fatal("get host ip", zap.Error(err))
 	}
-	if err = registerService(NamingClient, serviceName, hostIP, 8083); err != nil {
+	if err = registerService(NamingClient, "login-service", hostIP, 8083); err != nil {
 		logger.Fatal("register service", zap.Error(err))
 	}
 	defer deregisterLoginService()
 
-	/* 优雅关机 */
+	/* ------- 优雅关机 ------- */
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit

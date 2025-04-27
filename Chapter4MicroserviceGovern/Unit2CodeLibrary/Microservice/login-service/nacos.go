@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	NamingClient naming_client.INamingClient
-	ConfigClient config_client.IConfigClient
-)
+var NamingClient naming_client.INamingClient
+var ConfigClient config_client.IConfigClient
+
+/* ---------- 初始化 ---------- */
 
 func initNacos() {
 	cc := constant.ClientConfig{
@@ -44,6 +44,8 @@ func initNacos() {
 		logger.Fatal("create config client", zap.Error(err))
 	}
 }
+
+/* ---------- 工具 ---------- */
 
 func getHostIP() (string, error) {
 	addrs, _ := net.InterfaceAddrs()
