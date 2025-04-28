@@ -41,6 +41,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./instgo go build -o main-arm64 .
 # Use the official Alpine image as the base image
 FROM alpine
 
+RUN apk update && apk add --no-cache curl ca-certificates
+
 # Add a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
@@ -70,4 +72,4 @@ EXPOSE 8084
 HEALTHCHECK --interval=60s --timeout=5s --start-period=5s --retries=3 CMD ["/app/start.sh", "check"]
 
 # Run the Go program
-ENTRYPOINT ["/app/start.sh"]
+ENTRYPOINT ["/bin/sh","-c","exec /app/start.sh"]
