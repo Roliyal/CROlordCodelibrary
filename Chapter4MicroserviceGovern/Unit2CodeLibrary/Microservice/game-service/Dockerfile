@@ -5,7 +5,7 @@ FROM golang:1.22.4 AS builder
 WORKDIR /app
 
 # Set Go proxy to Alibaba Cloud Go Proxy for faster module download
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
+#ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
