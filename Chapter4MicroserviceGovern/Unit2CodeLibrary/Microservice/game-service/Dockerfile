@@ -10,9 +10,9 @@ ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
     if [ "$(uname -m)" = "x86_64" ]; then \
-        wget "http://arms-apm-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo; \
+        wget "http://arms-apm-ap-southeast-1.oss-ap-southeast-1.aliyuncs.com/instgo/instgo-linux-amd64" -O instgo; \
     elif [ "$(uname -m)" = "aarch64" ]; then \
-        wget "http://arms-apm-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/instgo/instgo-linux-arm64" -O instgo; \
+        wget "http://arms-apm-ap-southeast-1.oss-ap-southeast-1.aliyuncs.com/instgo/instgo-linux-arm64" -O instgo; \
     else \
         echo "Unsupported architecture"; exit 1; \
     fi && \
