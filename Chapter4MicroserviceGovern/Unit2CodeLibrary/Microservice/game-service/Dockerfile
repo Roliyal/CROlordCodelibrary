@@ -5,8 +5,7 @@ FROM golang:1.22.4 AS builder
 WORKDIR /app
 
 # Set Go proxy to Alibaba Cloud Go Proxy for faster module download
-#ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
-
+ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
 # 下载 instgo 工具并适配架构
 RUN uname -m && \
@@ -17,8 +16,7 @@ RUN uname -m && \
     else \
         echo "Unsupported architecture"; exit 1; \
     fi && \
-    chmod +x instgo \
-
+    chmod +x instgo
 
 # 设置 LicenseKey 和 RegionId
 RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
