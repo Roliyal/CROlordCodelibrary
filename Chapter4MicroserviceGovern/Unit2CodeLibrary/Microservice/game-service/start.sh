@@ -1,15 +1,16 @@
 #!/bin/sh
+set -e
 
-# 检查当前架构，并根据架构启动对应的程序
-ARCH=$(uname -m)
-
-if [ "$ARCH" = "x86_64" ]; then
-    echo "Running AMD64 architecture binary..."
-    /app/main-amd64
-elif [ "$ARCH" = "aarch64" ]; then
-    echo "Running ARM64 architecture binary..."
-    /app/main-arm64
-else
-    echo "Unsupported architecture: $ARCH"
-    exit 1
+if [ "$1" = "check" ]; then
+    curl -sf 127.0.0.1:8084/health || exit 1
+    exit 0
 fi
+
+case "$(uname -m)" in
+  x86_64)  BIN="/app/main-amd64" ;;
+  aarch64) BIN="/app/main-arm64" ;;
+  *) echo "Unsupported arch"; exit 1 ;;
+esac
+
+echo "Launching $BIN ..."
+exec "$BIN"
