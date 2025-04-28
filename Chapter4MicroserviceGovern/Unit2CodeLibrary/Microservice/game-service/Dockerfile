@@ -1,12 +1,11 @@
 # Use the official Golang image as the base image
-FROM golang:1.22 AS builder
+FROM golang:1.22.4 AS builder
 
 # Set the working directory
 WORKDIR /app
 
 # Set Go proxy to Alibaba Cloud Go Proxy for faster module download
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
-ENV OTELTOOL_USE_MSE=false
+#ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 
 
 # 下载 instgo 工具并适配架构
