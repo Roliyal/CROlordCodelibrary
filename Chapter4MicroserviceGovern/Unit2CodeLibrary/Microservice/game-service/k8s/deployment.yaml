@@ -99,7 +99,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /game
+              path: /health
               port: 8084
             initialDelaySeconds: 5
             periodSeconds: 5
@@ -107,7 +107,7 @@ spec:
 
           livenessProbe:
             httpGet:
-              path: /game
+              path: /health
               port: 8084
             initialDelaySeconds: 15
             periodSeconds: 10
