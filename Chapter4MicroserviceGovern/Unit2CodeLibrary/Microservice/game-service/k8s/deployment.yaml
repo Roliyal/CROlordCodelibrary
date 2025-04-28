@@ -54,7 +54,7 @@ spec:
 
           ports:
             - name: http
-              containerPort: 8083
+              containerPort: 8084
               protocol: TCP
 
           env:
@@ -184,6 +184,6 @@ spec:
     app: micro-go-game
   ports:
     - protocol: TCP
-      port: 8083
-      targetPort: 8083
+      port: 8084
+      targetPort: 8084
   type: ClusterIP
