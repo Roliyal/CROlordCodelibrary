@@ -21,8 +21,8 @@ RUN uname -m && \
 
 # 设置 LicenseKey 和 RegionId
 RUN ./instgo set --agentVersion=1.6.1
-RUN ./instgo set -mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
-#RUN ./instgo set --mse djqtzchc9t@b929339d9ac7fb0 ap-southeast-1 --agentVersion=1.6.1
+#RUN ./instgo set -mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
+RUN ./instgo set --mse djqtzchc9t@b929339d9ac7fb0 ap-southeast-1
 
 # 复制 go.mod, go.sum 文件到工作目录
 COPY go.mod go.sum .env ./
