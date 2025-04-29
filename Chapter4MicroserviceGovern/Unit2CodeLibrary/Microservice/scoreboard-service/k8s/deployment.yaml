@@ -34,7 +34,7 @@ spec:
             sizeLimit: 100Mi
 
       containers:
-        - name: micro-go-login
+        - name: micro-go-score
           image: registry.ap-southeast-1.aliyuncs.com/micro1/micro-go-score:1.0.161
           imagePullPolicy: IfNotPresent
 
@@ -54,7 +54,7 @@ spec:
 
           ports:
             - name: http
-              containerPort: 8083
+              containerPort: 8085
               protocol: TCP
 
           env:
