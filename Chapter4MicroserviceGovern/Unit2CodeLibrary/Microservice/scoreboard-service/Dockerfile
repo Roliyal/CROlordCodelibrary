@@ -19,6 +19,7 @@ RUN uname -m && \
     chmod +x instgo
 
 # 设置 LicenseKey 和 RegionId
+RUN ./instgo set --agentVersion=1.6.1
 RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 
 

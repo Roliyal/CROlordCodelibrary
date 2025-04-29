@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: micro-go-score
+        msePilotAutoEnable: "on"
+        mseNamespace: "crolord"
+        msePilotCreateAppName: "micro-go-score"
+        aliyun.com/app-language: golang
     spec:
       containers:
         - name: micro-go-score
