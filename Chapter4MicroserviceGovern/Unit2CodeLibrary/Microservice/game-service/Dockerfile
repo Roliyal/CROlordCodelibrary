@@ -17,11 +17,12 @@ RUN uname -m && \
     else \
         echo "Unsupported architecture"; exit 1; \
     fi && \
-    chmod +x instgo
+    chmod +x ./instgo
 
 # 设置 LicenseKey 和 RegionId
-RUN pwd
 RUN ls -a
+RUN ./instgo set -mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1 --agentVersion=1.6.1
+
 RUN ./instgo set --agentVersion=1.6.1
 RUN ./instgo set -mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 #RUN ./instgo set --mse djqtzchc9t@b929339d9ac7fb0 ap-southeast-1
