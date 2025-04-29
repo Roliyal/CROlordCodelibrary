@@ -40,7 +40,7 @@ func ZapRequestLogger() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		latency := time.Since(start)
-		traceID := c.GetHeader("traceparent") // ARMS 可从此处提取
+		traceID := c.GetHeader("traceparent")
 		zapLog.Infow("HTTP",
 			"status", c.Writer.Status(),
 			"method", c.Request.Method,
@@ -56,6 +56,9 @@ func ZapRequestLogger() gin.HandlerFunc {
 // ---------- .env ----------
 func init() {
 	initLogger()
+
+	_ = os.MkdirAll("/app/log/nacos/cache", 0755)
+
 	pwd, err := os.Getwd()
 	if err != nil {
 		zapLog.Fatalf("Could not determine working directory: %v", err)
@@ -84,8 +87,8 @@ func main() {
 	defer closeDatabase(db)
 
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.New()                            // 不再自动附带 Gin Logger
-	r.Use(ZapRequestLogger(), gin.Recovery()) // 统一用 zap
+	r := gin.New()
+	r.Use(ZapRequestLogger(), gin.Recovery())
 	r.Use(corsMiddleware)
 	r.GET("/scoreboard", getScoreboardHandler)
 

@@ -33,8 +33,8 @@ func initNacos() (naming_client.INamingClient, config_client.IConfigClient, erro
 		NamespaceId:         os.Getenv("NACOS_NAMESPACE"),
 		TimeoutMs:           timeoutMs,
 		NotLoadCacheAtStart: true,
-		LogDir:              "logs",
-		CacheDir:            "cache",
+		LogDir:              "/app/log/nacos",
+		CacheDir:            "/app/log/nacos/cache",
 		Username:            os.Getenv("NACOS_USERNAME"),
 		Password:            os.Getenv("NACOS_PASSWORD"),
 	}
