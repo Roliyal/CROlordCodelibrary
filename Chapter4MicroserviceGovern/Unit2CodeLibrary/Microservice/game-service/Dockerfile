@@ -21,7 +21,8 @@ RUN uname -m && \
 
 # 设置 LicenseKey 和 RegionId
 RUN ls -a
-RUN /app/instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1 --agentVersion=1.6.1
+RUN  /app/instgo version
+RUN /app/instgo set --mse  -licenseKey=djqtzchc9t@b929339d9ac7fb0 -regionId=ap-southeast-1 --agentVersion=1.6.1
 
 #RUN ./instgo set -mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 #RUN ./instgo set --mse djqtzchc9t@b929339d9ac7fb0 ap-southeast-1
