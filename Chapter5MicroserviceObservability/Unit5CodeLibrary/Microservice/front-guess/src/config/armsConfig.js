@@ -69,18 +69,16 @@ export const createArmsConfig = (userId) => {
     },
 
     // 动态配置
-    remoteConfig: {
-        region: "ap-southeast-1"         // 配置所在的Region，例如：ap-southeast-1、cn-hangzhou等
-    },
+    //remoteConfig: {
+    //    region: "ap-southeast-1"         // 配置所在的Region，例如：ap-southeast-1、cn-hangzhou等
+    //},
 
     // 自定义属性配置
     properties: {
-        prop_string: 'example',      // 字符串类型的自定义属性
-        prop_number: 123,            // 数字类型的自定义属性
-        prop_boolean: true,          // 布尔类型的自定义属性
-        more_than_50_key_limit_012345678901234567890123456789: 'long-key-value', // 键名不能超过50个字符
-        more_than_2000_value_limit: new Array(2003).join('1') // 值不能超过2000字符
-    },
+        is_logged_in: true,
+        ser_level: 'premium',
+        app_version: "1.0.0"
+    }
 
     // 事件过滤配置
     filters: {
@@ -98,24 +96,30 @@ export const createArmsConfig = (userId) => {
 
     // 自定义API解析配置
     evaluateApi: async (options, response, error) => {
-        let respText = '';
-        if (response && response.text) {
-            respText = await response.text();
-        }
-        return {
-            name: 'my-custom-api',       // 自定义API名称
-            success: error ? 0 : 1,      // 请求成功状态：0表示失败，1表示成功
-            snapshots: JSON.stringify({
-                params: 'page=1&size=10', // 请求参数
-                response: respText.substring(0, 2000), // 响应内容（截取前2000字符）
-                reqHeaders: '',           // 请求头
-                resHeaders: ''            // 响应头
-            }),
-            properties: {
-                custom_prop: 'custom_value'  // 自定义属性
+            let respText = '';
+            // 如果响应存在且包含文本内容，则获取响应文本
+            if (response && response.text) {
+                respText = await response.text();
             }
-        };
-    },
+
+            // 动态生成 API 名称，这里假设 options.url 包含了完整的 API 路径
+            const apiName = options.url.split('/').pop();  // 获取 URL 中最后一个部分，作为 API 名称
+
+            return {
+                name: apiName,  // 使用动态生成的 API 名称
+                success: error ? 0 : 1,  // 请求成功状态，0表示失败，1表示成功
+                snapshots: JSON.stringify({
+                    params: options.params || '',  // 请求参数
+                    response: respText.substring(0, 2000),  // 响应内容（截取前2000字符）
+                    reqHeaders: JSON.stringify(options.headers || {}),  // 请求头
+                    resHeaders: JSON.stringify(response.headers || {})  // 响应头
+                }),
+                properties: {
+                    custom_prop: 'custom_value'  // 自定义属性
+                }
+            };
+        },
+
 
     // 地理信息配置
     geo: {
