@@ -1,0 +1,62 @@
+http:
+  middlewares:
+    cors:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowOriginList: ["http://micro.roliyal.com"]
+        accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        accessControlAllowHeaders: ["Content-Type", "Authorization", "X-User-ID"]
+        accessControlMaxAge: 100
+  routers:
+    login:
+      entryPoints:
+        - web
+      rule: "Path(`/login`)"
+      service: login-service
+      middlewares:
+        - cors
+    game:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/game`)"
+      service: game-service
+      middlewares:
+        - cors
+    scoreboard:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/scoreboard`)"
+      service: scoreboard-service
+      middlewares:
+        - cors
+    micro:
+      entryPoints:
+        - web
+      rule: "Path(`/`)"
+      service: micro-vue-front-service
+      middlewares:
+        - cors
+    register:
+      entryPoints:
+        - web
+      rule: "Path(`/register`)"
+      service: login-service
+      middlewares:
+        - cors
+  services:
+    login-service:
+      loadBalancer:
+        servers:
+          - url: "http://micro-login-prod-cn-hongkong-prod.svc.cluster.local.cn-hongkong:8083"
+    game-service:
+      loadBalancer:
+        servers:
+          - url: "http://micro-game-prod-cn-hongkong-prod.svc.cluster.local.cn-hongkong:8084"
+    scoreboard-service:
+      loadBalancer:
+        servers:
+          - url: "http://micro-socre-pord-cn-hongkong-prod.svc.cluster.local.cn-hongkong:8085"
+    micro-vue-front-service:
+      loadBalancer:
+        servers:
+          - url: "http://mrico-front-prod-cn-hongkong-prod.svc.cluster.local.cn-hongkong:80"
