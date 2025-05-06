@@ -1,6 +1,7 @@
 // armsConfig.js
 
-export const armsConfig = {
+export const createArmsConfig = (userId) => {
+    return {
     // 必填项
     pid: "djqtzchc9t@a247bc2e041fd12",            // 应用ID，替换为你的实际应用ID
     endpoint: "https://djqtzchc9t-default-sea.rum.aliyuncs.com",      // 上报数据的端点，替换为你的实际上报地址
@@ -11,7 +12,7 @@ export const armsConfig = {
     user: {                         // 用户信息配置
         id: "user_id",                // 用户ID，SDK默认生成，或者可以自定义
         //name: "user_name",            // 用户名称
-        name: store.state.userId || localStorage.getItem('userId'),  // 用户名称可以设置为业务中的 userId
+        name: userId, // 用户名称可以设置为业务中的 userId
         tags: "user_tags",            // 用户标签
     },
     tracing: {
@@ -121,4 +122,5 @@ export const armsConfig = {
         country: 'your  country info', // 自定义国家信息
         city: 'your custom city info'        // 自定义城市信息
     }
+};
 };
