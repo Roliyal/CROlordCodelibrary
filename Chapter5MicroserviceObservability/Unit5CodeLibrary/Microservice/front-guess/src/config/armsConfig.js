@@ -107,7 +107,7 @@ export const armsConfig = {
 
     // 地理信息配置
     geo: {
-        country: 'your custom country info', // 自定义国家信息
+        country: 'your  country info', // 自定义国家信息
         city: 'your custom city info'        // 自定义城市信息
     }
 };
