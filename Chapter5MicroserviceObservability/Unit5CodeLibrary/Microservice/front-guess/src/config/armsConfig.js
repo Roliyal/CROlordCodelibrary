@@ -13,7 +13,17 @@ export const armsConfig = {
         name: "user_name",            // 用户名称
         tags: "user_tags",            // 用户标签
     },
-
+    tracing: {
+        enable: true, // 开启链路追踪，默认关闭
+        sample: 100, // 采样率，默认100%
+        tracestate: true, // 开启tracestate透传，默认开启
+        baggage: true, // 开启baggage透传，默认关闭
+        allowedUrls:[
+            {match: 'https://micro.roliyal.com', propagatorTypes:['tracecontext', 'b3']}, // 字符匹配 https://api.aliyun.com开头，使用w3c标准
+            {match: /micro\.roliyal\.com/i, propagatorTypes:['b3multi']}, // 正则匹配包含roliyal，使用b3multi多头标准
+            {match: (url)=>url.includes('.api'), propagatorTypes:['jaeger']}, // 函数判断包含.api， 使用jaeger标准
+        ]
+    },
     // 上报配置
     reportConfig: {
         flushTime: 3000,              // 上报时间间隔，单位：毫秒
