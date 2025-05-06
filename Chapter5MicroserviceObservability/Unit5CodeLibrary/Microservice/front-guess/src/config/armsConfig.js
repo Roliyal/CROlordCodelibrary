@@ -58,7 +58,7 @@ export const armsConfig = {
 
     // 动态配置
     remoteConfig: {
-        region: "cn-hangzhou"         // 配置所在的Region，例如：ap-southeast-1、cn-hangzhou等
+        region: "ap-southeast-1"         // 配置所在的Region，例如：ap-southeast-1、cn-hangzhou等
     },
 
     // 自定义属性配置
