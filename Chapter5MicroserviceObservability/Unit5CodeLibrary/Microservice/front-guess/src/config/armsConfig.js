@@ -10,7 +10,8 @@ export const armsConfig = {
     version: "1.0.0",               // 应用版本号
     user: {                         // 用户信息配置
         id: "user_id",                // 用户ID，SDK默认生成，或者可以自定义
-        name: "user_name",            // 用户名称
+        //name: "user_name",            // 用户名称
+        name: store.state.userId || localStorage.getItem('userId'),  // 用户名称可以设置为业务中的 userId
         tags: "user_tags",            // 用户标签
     },
     tracing: {
