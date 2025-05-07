@@ -8,17 +8,17 @@ export const createArmsConfig = (userId) => {
         env: "prod",  // 应用环境：prod、gray、pre、daily、local（默认为prod）
         version: "1.0.0",  // 应用版本号
         user: {  // 用户信息配置
-            id: "user_id",  // 用户ID，SDK默认生成，或者可以自定义
+            id: "user_id",  // 用户ID，SDK默认生成，不支持更改
             //name: "user_name",            // 用户名称
             name: userId, // 用户名称可以设置为业务中的 userId
-            tags: "user_tags",  // 用户标签
+            tags: "User_Level_Demo\n",  // 用户属性演示
         },
         tracing: {
             enable: true,  // 开启链路追踪，默认关闭
             sample: 100,  // 采样率，默认100%
             tracestate: true,  // 开启tracestate透传，默认开启
             baggage: true,  // 开启baggage透传，默认关闭
-            allowedUrls:[
+            allowedUrls:[ // 配置需要透传的协议 URL ，根据实际需求选择
                 {match: 'https://micro.roliyal.com', propagatorTypes:['tracecontext', 'b3']}, // 字符匹配 https://api.aliyun.com开头，使用w3c标准
                 {match: /micro\.roliyal\.com/i, propagatorTypes:['b3multi']}, // 正则匹配包含roliyal，使用b3multi多头标准
                 {match: (url)=>url.includes('.api'), propagatorTypes:['jaeger']}, // 函数判断包含.api， 使用jaeger标准
@@ -111,15 +111,16 @@ export const createArmsConfig = (userId) => {
                     resHeaders: JSON.stringify(response.headers || {})  // 响应头
                 }),
                 properties: {
-                    custom_prop: 'custom_value'  // 自定义属性
+                    user_id: userId,  // 当前用户ID
+                    //api_type: apiType  // API 类型（用于区分用户相关和通用API）
                 }
             };
         },
 
         // 地理信息配置
-        geo: {
-            country: 'your country info',  // 自定义国家信息
-            city: 'your custom city info'  // 自定义城市信息
-        }
+        //geo: {
+        //    country: 'your country info',  // 自定义国家信息
+        //    city: 'your custom city info'  // 自定义城市信息
+        //}
     };
 };
