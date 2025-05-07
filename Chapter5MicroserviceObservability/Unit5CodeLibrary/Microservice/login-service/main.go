@@ -16,6 +16,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	_ "google.golang.org/protobuf/proto"
+	_ "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 /* ----------------- DTO ----------------- */
