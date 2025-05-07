@@ -1,8 +1,8 @@
-<!-- src/components/GameComponent.vue -->
+// src/components/GameComponent.vue
 <template>
   <div class="container game-container">
     <h2>猜数字游戏</h2>
-    <p>在这里玩猜数字游戏！</p>
+    <p>Trace ID: {{ traceId }}</p> <!-- 显示 Trace ID -->
     <div v-if="gameStatus === 'idle'">
       <button @click="startGame">开始游戏</button>
     </div>
@@ -24,7 +24,9 @@
 </template>
 
 <script>
-import axiosInstance from "../axiosInstance"; // 引入 axios 实例
+import axiosInstance from '../axiosInstance';  // 确保导入 axiosInstance
+
+import { mapState } from "vuex";  // 引入 mapState 用于映射 state
 
 export default {
   data() {
@@ -35,6 +37,9 @@ export default {
       gameStatus: "idle",
     };
   },
+  computed: {
+    ...mapState(["traceId"]),  // 从 Vuex 获取 traceId
+  },
   methods: {
     async startGame() {
       this.gameStatus = "playing";
@@ -44,10 +49,8 @@ export default {
 
     async submitGuess(guess) {
       try {
-        // 发送请求时需要携带用户信息
-        const response = await axiosInstance.post('/game', {
-          number: guess,
-        });
+        // 提交猜测
+        const response = await axiosInstance.post('/game', { number: guess });
         const resData = response.data;
         if (resData.success) {
           alert(resData.message);
@@ -66,6 +69,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>

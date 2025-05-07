@@ -3,11 +3,15 @@ import { createStore } from 'vuex';
 
 export default createStore({
     state: {
+        traceId: null,  // 存储 traceId
         isLoggedIn: false,
         userId: null,
         authToken: null,
     },
     mutations: {
+        setTraceId(state, traceId) {
+            state.traceId = traceId;
+        },
         setIsLoggedIn(state, isLoggedIn) {
             state.isLoggedIn = isLoggedIn;
         },
@@ -23,8 +27,6 @@ export default createStore({
             state.authToken = null;
             localStorage.removeItem('userId');
             localStorage.removeItem('authToken');
-            // 这里可以删除任何Cookie
-            document.cookie = 'X-User-ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         },
     },
     actions: {
@@ -33,8 +35,9 @@ export default createStore({
         },
     },
     getters: {
-        isLoggedIn: (state) => state.isLoggedIn,
-        userId: (state) => state.userId,
-        authToken: (state) => state.authToken,
+        isLoggedIn: state => state.isLoggedIn,
+        userId: state => state.userId,
+        authToken: state => state.authToken,
+        traceId: state => state.traceId,  // 获取 traceId
     },
 });

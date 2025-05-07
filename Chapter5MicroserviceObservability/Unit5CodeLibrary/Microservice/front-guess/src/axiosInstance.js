@@ -36,4 +36,25 @@ axiosInstance.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
+// 响应拦截器：获取 traceId
+axiosInstance.interceptors.response.use(response => {
+    // 从响应头中获取 traceId
+    const traceId = response.headers['x-b3-traceid'];
+
+    if (traceId) {
+        // 存储 traceId 到 Vuex 或 localStorage
+        store.commit('setTraceId', traceId);
+        localStorage.setItem('traceId', traceId);
+    }
+
+    return response;
+}, error => {
+    // 出错时从响应头中获取 traceId 并打印
+    const traceId = error.response?.headers['x-b3-traceid'];
+    if (traceId) {
+        console.error(`Error occurred, Trace ID: ${traceId}`);
+    }
+    return Promise.reject(error);
+});
+
 export default axiosInstance;
