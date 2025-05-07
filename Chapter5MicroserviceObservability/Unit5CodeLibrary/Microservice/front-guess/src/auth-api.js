@@ -30,6 +30,7 @@ export default {
             return null;
         } catch (error) {
             console.error('Login failed:', error);
+
             return null;
         }
     },

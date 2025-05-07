@@ -2,7 +2,6 @@
 <template>
   <div class="container game-container">
     <h2>猜数字游戏</h2>
-    <p>Trace ID: {{ traceId }}</p> <!-- 显示 Trace ID -->
     <div v-if="gameStatus === 'idle'">
       <button @click="startGame">开始游戏</button>
     </div>
