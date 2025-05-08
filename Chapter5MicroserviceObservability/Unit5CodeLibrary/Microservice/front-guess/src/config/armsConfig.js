@@ -122,19 +122,19 @@ export const createArmsConfig = (userId) => {
             console.log("Before report data:", JSON.stringify(reportData, null, 2));
 
             // 查找 trace_id 在 events 数组中的位置
+            let traceId = 'No traceId available';
             if (reportData && reportData.events && Array.isArray(reportData.events)) {
-                let traceId = 'No traceId available';
-
-                // 从第三个事件对象中提取 trace_id
-                const traceData = reportData.events[3]?.trace_data;
-                if (traceData && traceData.trace_id) {
-                    traceId = traceData.trace_id;
+                // 遍历所有事件，查找 trace_data 中的 trace_id
+                for (let i = 0; i < reportData.events.length; i++) {
+                    const event = reportData.events[i];
+                    if (event.trace_data && event.trace_data.trace_id) {
+                        traceId = event.trace_data.trace_id;
+                        break; // 找到 trace_id 后退出循环
+                    }
                 }
-
-                console.log("Trace ID from events:", traceId);
-            } else {
-                console.log("No events found in beforeReport");
             }
+
+            console.log("Trace ID from events:", traceId); // 打印获取到的 trace_id
 
             return reportData;
         }
