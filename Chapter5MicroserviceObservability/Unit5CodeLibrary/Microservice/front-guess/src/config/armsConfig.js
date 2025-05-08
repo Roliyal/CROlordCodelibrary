@@ -118,17 +118,24 @@ export const createArmsConfig = (userId) => {
         },
         // 在数据上报之前执行的钩子函数
         beforeReport: (reportData) => {
-            console.log("Before report data:", reportData);
+            // 打印 reportData，查看它的结构
+            console.log("Before report data:", JSON.stringify(reportData, null, 2));
 
-            // 从 trace_data 中获取 trace_id
-            if (reportData && reportData.trace_data) {
-                const traceId = reportData.trace_data.trace_id || 'No traceId available';
-                console.log("Trace ID from beforeReport:", traceId);
+            // 查找 trace_id 在 events 数组中的位置
+            if (reportData && reportData.events && Array.isArray(reportData.events)) {
+                let traceId = 'No traceId available';
+
+                // 从第三个事件对象中提取 trace_id
+                const traceData = reportData.events[3]?.trace_data;
+                if (traceData && traceData.trace_id) {
+                    traceId = traceData.trace_id;
+                }
+
+                console.log("Trace ID from events:", traceId);
             } else {
-                console.log("No trace_data found in beforeReport");
+                console.log("No events found in beforeReport");
             }
 
-            // 返回修改后的 reportData（如果需要）
             return reportData;
         }
         // 地理信息配置

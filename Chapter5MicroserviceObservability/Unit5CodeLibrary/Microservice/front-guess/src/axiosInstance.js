@@ -41,8 +41,8 @@ axiosInstance.interceptors.response.use(
         const traceId = response.headers['x-b3-traceid'] || 'No traceId available';
         console.log('Trace ID from response headers:', traceId); // 打印响应头中的 traceId
 
-        // 如果你需要在界面上展示 traceId，可以将其设置到一个全局状态或存储
-        // 比如：store.commit('setTraceId', traceId);
+        // 将 traceId 存储到 Vuex 状态或其他地方（如 localStorage）
+        store.commit('setTraceId', traceId);  // 你需要在 Vuex store 中定义这个 mutation
 
         return response;
     },
@@ -51,6 +51,9 @@ axiosInstance.interceptors.response.use(
         const traceId = error.response?.headers['x-b3-traceid'] || 'No traceId available';
         console.error('Request failed:', error);
         console.log('Trace ID from response headers (on error):', traceId);
+
+        // 如果你希望在失败时也保存 traceId 可以在这里做
+        store.commit('setTraceId', traceId);  // 你需要在 Vuex store 中定义这个 mutation
 
         return Promise.reject(error);
     }
