@@ -116,7 +116,21 @@ export const createArmsConfig = (userId) => {
                 }
             };
         },
+        // 在数据上报之前执行的钩子函数
+        beforeReport: (reportData) => {
+            console.log("Before report data:", reportData);
 
+            // 从 trace_data 中获取 trace_id
+            if (reportData && reportData.trace_data) {
+                const traceId = reportData.trace_data.trace_id || 'No traceId available';
+                console.log("Trace ID from beforeReport:", traceId);
+            } else {
+                console.log("No trace_data found in beforeReport");
+            }
+
+            // 返回修改后的 reportData（如果需要）
+            return reportData;
+        }
         // 地理信息配置
         //geo: {
         //    country: 'your country info',  // 自定义国家信息

@@ -1,19 +1,25 @@
-// src/axiosInstance.js
 import axios from 'axios';
 import store from './store';
 
 const axiosInstance = axios.create({
     baseURL: 'http://micro.roliyal.com',
     timeout: 10000,
-    withCredentials: true,
+    withCredentials: true, // 如果需要携带 Cookies 或认证信息
 });
 
-// 请求拦截器
+// 删除 Cookie 函数
+function deleteCookie(name) {
+    document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+// 请求拦截器：设置请求头
 axiosInstance.interceptors.request.use(config => {
     const userId = store.state.userId || localStorage.getItem('userId');
     const authToken = store.state.authToken || localStorage.getItem('authToken');
 
+    // 设置请求头
     if (userId) {
+        deleteCookie('X-User-ID');
         document.cookie = `X-User-ID=${userId}; path=/;`;
     }
 
@@ -28,22 +34,26 @@ axiosInstance.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
-// 响应拦截器
-axiosInstance.interceptors.response.use(response => {
-    // 从响应头中提取 Trace ID
-    const traceId = response.headers['x-b3-traceid'];
-    if (traceId) {
-        // 存储 Trace ID 到 Vuex 中
-        store.commit('setTraceId', traceId);
+// 响应拦截器：获取响应头中的 X-B3-TraceId
+axiosInstance.interceptors.response.use(
+    response => {
+        // 在响应头中获取 X-B3-TraceId
+        const traceId = response.headers['x-b3-traceid'] || 'No traceId available';
+        console.log('Trace ID from response headers:', traceId); // 打印响应头中的 traceId
+
+        // 如果你需要在界面上展示 traceId，可以将其设置到一个全局状态或存储
+        // 比如：store.commit('setTraceId', traceId);
+
+        return response;
+    },
+    error => {
+        // 如果请求失败，检查请求头中的 X-B3-TraceId
+        const traceId = error.response?.headers['x-b3-traceid'] || 'No traceId available';
+        console.error('Request failed:', error);
+        console.log('Trace ID from response headers (on error):', traceId);
+
+        return Promise.reject(error);
     }
-    return response;
-}, error => {
-    // 如果发生错误，尝试从错误的响应中提取 Trace ID
-    const traceId = error.response?.headers['x-b3-traceid'];
-    if (traceId) {
-        store.commit('setTraceId', traceId);
-    }
-    return Promise.reject(error);
-});
+);
 
 export default axiosInstance;

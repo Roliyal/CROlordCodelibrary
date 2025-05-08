@@ -1,4 +1,3 @@
-// src/auth-api.js
 import axiosInstance from './axiosInstance';
 import store from './store';
 
@@ -29,7 +28,13 @@ export default {
             }
             return null;
         } catch (error) {
-            console.error('Login failed:', error);
+            // Log the error and traceId if available
+            const traceId = error?.response?.data?.traceId || 'No traceId available';
+            console.error('Login failed:', error.message || error);
+            console.log('Trace ID:', traceId);
+
+            // Customize the error message for users
+            this.errorMessage = error?.response?.data?.message || '登录失败，请检查用户名和密码是否正确。';
 
             return null;
         }
@@ -56,8 +61,16 @@ export default {
             }
             return null;
         } catch (error) {
-            console.error('Registration failed:', error);
+            // Log the error and traceId if available
+            const traceId = error?.response?.data?.traceId || 'No traceId available';
+            console.error('Registration failed:', error.message || error);
+            console.log('Trace ID:', traceId);
+
+            // Customize the error message for users
+            this.errorMessage = error?.response?.data?.message || '注册失败，请重试。';
+
             return null;
         }
     },
 };
+
