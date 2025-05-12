@@ -55,7 +55,7 @@ func generateAuthToken() (string, error) { return generateRandomToken(32) }
 func logRequestDetails(c *gin.Context) {
 	method := c.Request.Method
 	path := c.Request.URL.Path
-	queryParams := c.Request.URL.Query().Encode() // 获取请求的查询字符串
+	queryParams := c.Request.URL.Query().Encode() // 获取查询字符串
 
 	// 记录请求的详细信息
 	logger.Info("Request Details",
@@ -131,35 +131,38 @@ func loginHandler(c *gin.Context) {
 func registerHandler(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Invalid JSON", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
 	var exist User
 	if err := db.Where("Username = ?", req.Username).First(&exist).Error; err == nil {
+		logger.Warn("Username exists", zap.String("username", req.Username))
 		c.JSON(http.StatusConflict, gin.H{"error": "username exists"})
 		return
 	} else if !gorm.IsRecordNotFoundError(err) {
+		logger.Error("Database error", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
 
-	// 获取下一个用户ID
 	nextID, err := getNextUserID()
 	if err != nil {
+		logger.Error("ID generation error", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "id error"})
 		return
 	}
 
-	// 加密密码并保存用户
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	user := User{ID: nextID, Username: req.Username, Password: string(hash)}
 	if err = db.Create(&user).Error; err != nil {
+		logger.Error("Database insert error", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
 
-	// 设置 cookies 并返回
+	logger.Info("User registered", zap.String("username", req.Username))
 	writeAuthCookies(c, user.AuthToken, user.ID)
 	c.JSON(http.StatusCreated, loginResponse{Success: true, AuthToken: user.AuthToken, ID: user.ID})
 }
