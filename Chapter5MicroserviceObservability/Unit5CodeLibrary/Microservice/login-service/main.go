@@ -51,6 +51,28 @@ func generateAuthToken() (string, error) { return generateRandomToken(32) }
 
 /* ----------------- handlers ----------------- */
 
+// 记录请求的详细信息
+func logRequestDetails(c *gin.Context) {
+	method := c.Request.Method
+	path := c.Request.URL.Path
+	queryParams := c.Request.URL.Query().Encode() // 获取请求的查询字符串
+
+	// 记录请求的详细信息
+	logger.Info("Request Details",
+		zap.String("method", method),
+		zap.String("path", path),
+		zap.String("query", queryParams))
+
+	// 记录请求体
+	if method == "POST" {
+		var body map[string]interface{}
+		if err := c.ShouldBindJSON(&body); err == nil {
+			logger.Info("Request Body", zap.Any("body", body))
+		}
+	}
+}
+
+// 登录处理
 func loginHandler(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -63,8 +85,10 @@ func loginHandler(c *gin.Context) {
 		Where("username = ?", req.Username).First(&user).Error; err != nil {
 
 		if gorm.IsRecordNotFoundError(err) {
+			logger.Warn("User not found", zap.String("username", req.Username))
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 		} else {
+			logger.Error("DB error", zap.String("username", req.Username), zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		}
 		return
@@ -73,15 +97,18 @@ func loginHandler(c *gin.Context) {
 	passOK := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)) == nil ||
 		user.Password == req.Password
 	if !passOK {
+		logger.Warn("Invalid credentials", zap.String("username", req.Username))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
+	// 登录成功，生成 token
 	token := user.AuthToken
 	if token == "" {
 		var err error
 		token, err = generateAuthToken()
 		if err != nil {
+			logger.Error("Token generation error", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "token error"})
 			return
 		}
@@ -89,10 +116,18 @@ func loginHandler(c *gin.Context) {
 		_ = db.Save(&user).Error
 	}
 
+	// 记录成功的登录日志
+	logger.Info("User logged in",
+		zap.String("username", req.Username),
+		zap.String("authToken", token),
+		zap.String("userID", user.ID))
+
+	// 设置 cookies
 	writeAuthCookies(c, token, user.ID)
 	c.JSON(http.StatusOK, loginResponse{Success: true, AuthToken: token, ID: user.ID})
 }
 
+// 注册处理
 func registerHandler(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -109,12 +144,14 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
+	// 获取下一个用户ID
 	nextID, err := getNextUserID()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "id error"})
 		return
 	}
 
+	// 加密密码并保存用户
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	user := User{ID: nextID, Username: req.Username, Password: string(hash)}
 	if err = db.Create(&user).Error; err != nil {
@@ -122,10 +159,12 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
+	// 设置 cookies 并返回
 	writeAuthCookies(c, user.AuthToken, user.ID)
 	c.JSON(http.StatusCreated, loginResponse{Success: true, AuthToken: user.AuthToken, ID: user.ID})
 }
 
+// 获取用户信息
 func userHandler(c *gin.Context) {
 	authToken := c.GetHeader("Authorization")
 	userID := c.GetHeader("X-User-ID")
@@ -155,6 +194,7 @@ func userHandler(c *gin.Context) {
 
 /* ----------------- cookie util ----------------- */
 
+// 写入认证cookie
 func writeAuthCookies(c *gin.Context, token, id string) {
 	age := 7 * 24 * 3600
 	c.SetCookie("AuthToken", token, age, "/", "", false, true)
@@ -184,6 +224,7 @@ func main() {
 	r.GET("/user", userHandler)
 	r.GET("/health", func(c *gin.Context) { c.String(200, "ok") })
 
+	// 启动 HTTP 服务
 	srv := &http.Server{Addr: ":8083", Handler: r}
 
 	/* ------- HTTP serve ------- */

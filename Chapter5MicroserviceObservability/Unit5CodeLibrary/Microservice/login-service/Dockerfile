@@ -18,26 +18,18 @@ RUN uname -m && \
         echo "Unsupported architecture"; exit 1; \
     fi && \
     chmod +x instgo
-
 # 设置 LicenseKey 和 RegionId
 RUN ./instgo set --agentVersion=1.6.1
-
 RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 RUN ./instgo set   --licenseKey=djqtzchc9t@c754fcd2fcb6a7d --regionId=ap-southeast-1
-
 # 复制 go.mod, go.sum 文件到工作目录
 COPY go.mod go.sum .env ./
-
 # 下载依赖
 RUN go mod download
-
-
 # 复制源代码到工作目录
 COPY . .
-
 # 编译 AMD64 架构的二进制文件
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./instgo go build -o main-amd64 .
-
 # 编译 ARM64 架构的二进制文件
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./instgo go build -o main-arm64 .
 

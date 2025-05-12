@@ -21,7 +21,7 @@ spec:
         app: micro-go-login
         msePilotAutoEnable: "on"
         mseNamespace: "crolord"
-        armsPilotAutoEnable: 'on'
+        armsPilotAutoEnable: "on"
         armsPilotCreateAppName: "micro-go-login"
         msePilotCreateAppName: "micro-go-login"
         aliyun.com/app-language: golang
