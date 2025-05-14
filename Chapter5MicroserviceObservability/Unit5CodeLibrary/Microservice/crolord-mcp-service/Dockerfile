@@ -5,7 +5,7 @@ FROM golang:1.22.4 AS builder
 WORKDIR /app
 
 # Copy the go.mod, go.sum, and .env.production files to the working directory
-COPY go.mod go.sum ./
+COPY * ./
 
 # Download the dependencies
 RUN go mod download
