@@ -1,32 +1,45 @@
-# 使用官方的 Golang 镜像作为基础镜像
+# Use the official Golang image as the base image
 FROM golang:1.22.4 AS builder
 
-# 设置工作目录
+# Set the working directory
 WORKDIR /app
 
-# 将当前目录内容复制到容器中的 /app 目录
+# Copy the go.mod, go.sum, and .env.production files to the working directory
+COPY go.mod go.sum ./
+
+# Download the dependencies
+RUN go mod download
+
+# Copy the source code to the working directory
 COPY . .
 
-# 安装依赖（如果有的话，Go Modules 会自动处理）
-RUN go mod tidy
+# Compile the Go program
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 
-# 编译 Go 程序
-RUN go build -o crolord-mcp-service .
+# Use the official Alpine image as the base image
+FROM alpine
 
-# 创建一个新的轻量级镜像（使用Alpine避免冗余的 Go 环境）
-FROM alpine:latest
+# Add a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# 安装需要的依赖库，Go 构建后可能依赖的共享库
-RUN apk --no-cache add ca-certificates
+# Set the working directory to /app
+WORKDIR /app
 
-# 设置工作目录
-WORKDIR /root/
+# Copy the compiled Go binary and .env.production files
+COPY --from=builder /app/main /app/main
 
-# 从 builder 镜像中复制编译好的二进制文件
-COPY --from=builder /app/crolord-mcp-service .
+# Create the log directory and change its ownership to the non-root user
+RUN mkdir -p /app/log && chown -R appuser:appgroup /app/log
 
-# 暴露容器的 8080 端口
+# Change the ownership of the working directory to the non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to the non-root user
+USER appuser
+
+# Expose the port, make sure it matches the port used by your application
 EXPOSE 8080
 
-# 设置容器启动时运行的命令
-CMD ["./crolord-mcp-service"]
+
+# Run the Go program
+ENTRYPOINT ["/app/main"]
