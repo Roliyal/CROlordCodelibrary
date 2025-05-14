@@ -1,5 +1,5 @@
 # 使用官方的 Golang 镜像作为基础镜像
-FROM golang:1.20-alpine
+FROM golang:1.22.4 AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY . .
 RUN go mod tidy
 
 # 编译 Go 程序
-RUN go build -o crolord-mcp-service-service .
+RUN go build -o crolord-mcp-service .
 
 # 暴露容器的 8080 端口
 EXPOSE 8080
