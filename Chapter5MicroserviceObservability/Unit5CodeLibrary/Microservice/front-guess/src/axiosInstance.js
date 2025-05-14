@@ -34,26 +34,20 @@ axiosInstance.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
-// 响应拦截器：获取响应头中的 X-B3-TraceId
+// 响应拦截器：从请求配置中获取 X-B3-TraceId
 axiosInstance.interceptors.response.use(
     response => {
-        // 在响应头中获取 X-B3-TraceId
-        const traceId = response.headers['x-b3-traceid'] || 'No traceId available';
-        console.log('Trace ID from response headers:', traceId); // 打印响应头中的 traceId
-
-        // 将 traceId 存储到 Vuex 状态或其他地方（如 localStorage）
-        store.commit('setTraceId', traceId);  // 你需要在 Vuex store 中定义这个 mutation
+        // 获取请求头中的 X-B3-TraceId（从 request 配置中）
+        const traceId = response.config.headers['X-B3-TraceId'] || 'No traceId available';
+        console.log('Trace ID from request headers (success):', traceId); // 打印请求头中的 traceId
 
         return response;
     },
     error => {
         // 如果请求失败，检查请求头中的 X-B3-TraceId
-        const traceId = error.response?.headers['x-b3-traceid'] || 'No traceId available';
+        const traceId = error.config?.headers['X-B3-TraceId'] || 'No traceId available';
         console.error('Request failed:', error);
-        console.log('Trace ID from response headers (on error):', traceId);
-
-        // 如果你希望在失败时也保存 traceId 可以在这里做
-        store.commit('setTraceId', traceId);  // 你需要在 Vuex store 中定义这个 mutation
+        console.log('Trace ID from request headers (error):', traceId); // 打印请求头中的 traceId
 
         return Promise.reject(error);
     }

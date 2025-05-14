@@ -116,25 +116,32 @@ export const createArmsConfig = (userId) => {
                 }
             };
         },
-        // 在数据上报之前执行的钩子函数
+ // 在数据上报之前，获取 traceId 并添加到 properties
         beforeReport: (reportData) => {
-            // 打印 reportData，查看它的结构
             console.log("Before report data:", JSON.stringify(reportData, null, 2));
 
-            // 查找 trace_id 在 events 数组中的位置
             let traceId = 'No traceId available';
+
+            // 查找 events 中的 trace_data 并提取 X-B3-TraceId
             if (reportData && reportData.events && Array.isArray(reportData.events)) {
-                // 遍历所有事件，查找 trace_data 中的 trace_id
                 for (let i = 0; i < reportData.events.length; i++) {
                     const event = reportData.events[i];
-                    if (event.trace_data && event.trace_data.trace_id) {
-                        traceId = event.trace_data.trace_id;
+
+                    // 直接从 trace_data 中获取 X-B3-TraceId
+                    if (event.trace_data && event.trace_data.headers) {
+                        traceId = event.trace_data.headers['X-B3-TraceId'] || traceId;
                         break; // 找到 trace_id 后退出循环
                     }
                 }
             }
 
-            console.log("Trace ID from events:", traceId); // 打印获取到的 trace_id
+            // 将 traceId 添加到 properties
+            reportData.properties = {
+                ...reportData.properties,
+                'X-B3-TraceId': traceId,
+            };
+
+            console.log("Trace ID from events:", traceId);
 
             return reportData;
         }
