@@ -24,7 +24,6 @@ RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-so
 RUN ./instgo set   --licenseKey=djqtzchc9t@c754fcd2fcb6a7d --regionId=ap-southeast-1
 # 复制 go.mod, go.sum 文件到工作目录
 COPY go.mod go.sum .env ./
-RUN go mod vendor
 # 下载依赖
 RUN go mod download
 # 复制源代码到工作目录
