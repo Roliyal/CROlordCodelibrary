@@ -21,6 +21,8 @@ spec:
         app: micro-go-game
         msePilotAutoEnable: "on"
         mseNamespace: "crolord"
+        armsPilotAutoEnable: "on"
+        armsPilotCreateAppName: "micro-go-game"
         msePilotCreateAppName: "micro-go-game"
         aliyun.com/app-language: golang
     spec:

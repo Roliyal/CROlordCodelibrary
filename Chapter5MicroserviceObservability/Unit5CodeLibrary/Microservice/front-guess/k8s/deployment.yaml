@@ -176,4 +176,3 @@ data:
             access_log off;
         }
     }
-
