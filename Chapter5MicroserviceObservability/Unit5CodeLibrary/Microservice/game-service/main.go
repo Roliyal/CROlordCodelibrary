@@ -90,7 +90,7 @@ func ZapRequestLogger() gin.HandlerFunc {
 			"latency", latency.String(),
 			"size", c.Writer.Size(),
 			"ip", c.ClientIP(),
-			"trace_id", traceID,
+			//"trace_id", traceID,
 		)
 	}
 }
