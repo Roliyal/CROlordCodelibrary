@@ -1,7 +1,7 @@
 export const createArmsConfig = (userId) => {
     return {
         // 必填项
-        pid: "djqtzchc9t@a247bc2e041fd12",  // 应用ID，替换为你的实际应用ID
+        pid: "djqtzchc9t@a1105b759dc76e2",  // 应用ID，替换为你的实际应用ID
         endpoint: "https://djqtzchc9t-default-sea.rum.aliyuncs.com",  // 上报数据的端点，替换为你的实际上报地址
 
         // 可选项
