@@ -81,7 +81,7 @@ func ZapRequestLogger() gin.HandlerFunc {
 		c.Next()
 		latency := time.Since(start)
 
-		//traceID := c.GetHeader("traceparent")
+		traceID := c.GetHeader("traceparent")
 
 		zapLog.Infow("HTTP",
 			"status", c.Writer.Status(),
