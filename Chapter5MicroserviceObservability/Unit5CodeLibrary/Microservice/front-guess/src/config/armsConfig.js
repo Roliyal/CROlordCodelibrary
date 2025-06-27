@@ -122,5 +122,5 @@ export const createArmsConfig = (userId) => {
         //    country: 'your country info',  // 自定义国家信息
         //    city: 'your custom city info'  // 自定义城市信息
         //}
-
+    };
 };
