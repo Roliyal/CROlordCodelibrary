@@ -19,9 +19,10 @@ export const createArmsConfig = (userId) => {
             tracestate: true,  // 开启tracestate透传，默认开启
             baggage: true,  // 开启baggage透传，默认关闭
             allowedUrls:[ // 配置需要透传的协议 URL ，根据实际需求选择
-                {match: 'https://micro.roliyal.com', propagatorTypes:['tracecontext', 'b3']}, // 字符匹配 https://api.aliyun.com开头，使用w3c标准
-                {match: /micro\.roliyal\.com/i, propagatorTypes:['b3multi']}, // 正则匹配包含roliyal，使用b3multi多头标准
-                {match: (url)=>url.includes('.api'), propagatorTypes:['jaeger']}, // 函数判断包含.api， 使用jaeger标准
+                {match:/.*/i, propagatorTypes:['tracecontext', 'b3']}
+                //{match: 'https://micro.roliyal.com', propagatorTypes:['tracecontext', 'b3']}, // 字符匹配 https://api.aliyun.com开头，使用w3c标准
+                //{match: /micro\.roliyal\.com/i, propagatorTypes:['b3multi']}, // 正则匹配包含roliyal，使用b3multi多头标准
+                //{match: (url)=>url.includes('.api'), propagatorTypes:['jaeger']}, // 函数判断包含.api， 使用jaeger标准
             ]
         },
         // 上报配置
