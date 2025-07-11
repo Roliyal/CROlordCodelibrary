@@ -1,29 +1,29 @@
-# Build stage 
-FROM node:latest AS build-stage
+    # Build stage
+    FROM node:latest AS build-stage
 
-WORKDIR /app
+    WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install --production && npm cache clean --force
-RUN npm install axios
+    # Install dependencies
+    COPY package*.json ./
+    RUN npm install --production && npm cache clean --force
+    RUN npm install axios
 
-# Copy source files
-COPY . .
+    # Copy source files
+    COPY . .
 
-# Build the application
-RUN npm run build
+    # Build the application
+    RUN npm run build
 
-# Production stage
-FROM nginx:1.23.0-alpine
+    # Production stage
+    FROM nginx:1.23.0-alpine
 
-# Copy built files and nginx configuration
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-COPY --from=build-stage /app/nginx.conf /etc/nginx/conf.d/default.conf
+    # Copy built files and nginx configuration
+    COPY --from=build-stage /app/dist /usr/share/nginx/html
+    COPY --from=build-stage /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 
-# Expose port 80
-EXPOSE 80
+    # Expose port 80
+    EXPOSE 80
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+    # Start Nginx
+    CMD ["nginx", "-g", "daemon off;"]

@@ -75,7 +75,7 @@ spec:
               value: "8083"
 
             - name: NACOS_SERVER_IP
-              value: "mse-e0e77d210-nacos-ans.mse.aliyuncs.com"
+              value: "mse-40c332d10-nacos-ans.mse.aliyuncs.com"
 
             - name: NACOS_SERVER_PORT
               value: "8848"
