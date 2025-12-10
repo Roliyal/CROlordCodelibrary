@@ -187,3 +187,27 @@ spec:
       port: 8083
       targetPort: 8083
   type: ClusterIP
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scale-my-app-once
+spec:
+  template:
+    spec:
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # 等待到指定时间再执行
+              while [ "$(date +%s)" -lt "$(date -d '2025-11-14 10:00:00' +%s)" ]; do
+                sleep 60
+              done
+              kubectl scale deployment my-app -n default --replicas=5
+      restartPolicy: Never
+
+
