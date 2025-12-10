@@ -7,7 +7,6 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-# ====== Runtime stage ======
 FROM nginx:1.21-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY default.conf /etc/nginx/conf.d/default.conf
