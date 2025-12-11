@@ -5,13 +5,12 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install --production && npm cache clean --force
-RUN npm install axios
+#RUN npm install --production && npm cache clean --force
+RUN npm ci  # 构建时需要 devDeps，就不要 --production
 
-# Copy source files
+#RUN npm install axios
+
 COPY . .
-
-# Build the application
 RUN npm run build
 
 # Production stage
