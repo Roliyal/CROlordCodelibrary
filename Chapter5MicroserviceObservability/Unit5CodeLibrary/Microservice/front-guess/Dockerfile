@@ -6,7 +6,7 @@ WORKDIR /app
 # Install dependencies
 COPY package*.json ./
 #RUN npm install --production && npm cache clean --force
-RUN npm ci  # 构建时需要 devDeps，就不要 --production
+RUN npm ci  # 构建时需要 devDeps --production
 
 #RUN npm install axios
 
