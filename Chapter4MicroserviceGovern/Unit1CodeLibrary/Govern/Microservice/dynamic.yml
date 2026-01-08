@@ -1,0 +1,45 @@
+# dynamic.yml
+
+http:
+  routers:
+    login:
+      entryPoints:
+        - web
+      rule: "Path(`/login`)"
+      service: login-service
+    game:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/game`)"
+      service: game-service
+    scoreboard:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/scoreboard`)"
+      service: scoreboard-service
+
+  services:
+    login-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8083"
+        healthCheck:
+          path: "/login"
+          interval: "30s"
+          timeout: "5s"
+    game-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8084"
+        healthCheck:
+          path: "/game"
+          interval: "30s"
+          timeout: "5s"
+    scoreboard-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8085"
+        healthCheck:
+          path: "/scoreboard"
+          interval: "30s"
+          timeout: "5s"

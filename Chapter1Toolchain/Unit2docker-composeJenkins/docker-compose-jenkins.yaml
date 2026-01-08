@@ -1,0 +1,40 @@
+  version: '3'
+
+  services:
+    jenkins:
+      hostname: devops.roliyal.com
+      image: jenkins/jenkins:latest
+      container_name: jenkins
+      restart: always
+      ports:
+        - "80:8080"
+        - "443:8443"
+      volumes:
+        - /opt/jenkins/jenkins_data:/var/jenkins_home
+        - /opt/jenkins/certs:/certs
+      user: "1000:1000"
+
+      environment:
+     #  - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+        - JENKINS_OPTS=--prefix=/jenkins
+        - JENKINS_OPTS=-Dorg.apache.commons.jelly.tags.fmt.timeZone=Asia/Shanghai
+        - JENKINS_OPTS=--httpsPort=8443 --httpsCertificate=/certs/roliyal.crt --httpsPrivateKey=/certs/roliyal.key
+      networks:
+        - jenkins-net
+      depends_on:
+        - jenkins-slave
+
+    jenkins-slave:
+      image: jenkins/jnlp-slave:alpine
+      container_name: jenkins-slave
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      networks:
+        - jenkins-net
+
+  volumes:
+    jenkins-data:
+
+  networks:
+    jenkins-net:
+      driver: bridge

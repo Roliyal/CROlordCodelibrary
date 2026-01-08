@@ -1,0 +1,46 @@
+openapi: 3.0.0
+info:
+  title: MCP Service API
+  description: A simple API for processing context data.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /mcp-servers/crolord:
+    post:
+      summary: Process context data
+      operationId: processContextData
+      tags:
+        - MCP
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                context_data:
+                  type: string
+                  description: "Context data sent by the client"
+      responses:
+        '200':
+          description: "Successfully processed context data"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response_data:
+                    type: string
+                    description: "Response data returned after processing"
+        '401':
+          description: "Unauthorized - Invalid API key"
+        '400':
+          description: "Bad Request - Invalid request body"
+      security:
+        - apiKeyAuth: []
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization

@@ -1,0 +1,178 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-vue-front-pvc
+  namespace: crolord
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: alibabacloud-cnfs-nas-x7fxt # 使用初始化配置CNFS文件系统
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-vue-front
+  namespace: crolord
+  labels:
+    app: micro-vue-front
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: micro-vue-front
+  template:
+    metadata:
+      labels:
+        app: micro-vue-front
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 101
+      containers:
+        - name: micro-vue-front
+          image: crolord-uat-registry-vpc.cn-hongkong.cr.aliyuncs.com/micro/micro-front-uat:1.0.17
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "128Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "$(date) postStart hook" >> /var/log/nginx/hook.log
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "$(date) preStop graceful quit" >> /var/log/nginx/hook.log
+                    nginx -s quit
+                    sleep 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+            - name: app-vue-front-storage
+              mountPath: /usr/share/nginx/html/app-vue-front-storage
+            - name: nginx-logs
+              mountPath: /var/log/nginx
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: micro-vue-front-nginx-config
+        - name: app-vue-front-storage
+          persistentVolumeClaim:
+            claimName: app-vue-front-pvc
+        - name: nginx-logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: micro-vue-front-service
+  namespace: crolord
+spec:
+  selector:
+    app: micro-vue-front
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: micro-vue-front-nginx-config
+  namespace: crolord
+data:
+  default.conf: |
+    # put the entire JSON on one multi-line single‑quoted string
+    log_format json escape=json '
+    {
+      "time":"$time_iso8601",
+      "remote_addr":"$remote_addr",
+      "x_forwarded_for":"$http_x_forwarded_for",
+      "request_method":"$request_method",
+      "uri":"$request_uri",
+      "status":$status,
+      "body_bytes_sent":$body_bytes_sent,
+      "request_time":"$request_time",
+      "referer":"$http_referer",
+      "user_agent":"$http_user_agent"
+    }
+    ';
+    access_log  /dev/stdout  json;
+    error_log   /dev/stderr warn;
+    server {
+        listen 80 default_server;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+        #access_log  /var/log/nginx/access.log  main buffer=32k flush=5s;
+        #error_log   /var/log/nginx/error.log   warn;
+        gzip              on;
+        gzip_comp_level   5;
+        gzip_min_length   512;
+        gzip_vary         on;
+        gzip_types        text/plain text/css text/javascript application/javascript \
+                          application/json application/xml font/woff2 image/svg+xml;
+
+        location ~* \.(?:css|js|woff2?|ttf|otf|eot|svg|gif|jpe?g|png|webp)$ {
+            try_files $uri =404;
+
+            if ($uri ~* "\.[0-9a-f]{8,}\.") {
+                expires 365d;
+            }
+            if ($uri !~* "\.[0-9a-f]{8,}\.") {
+                expires 7d;
+            }
+            add_header Cache-Control "public";
+            access_log off;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        location = /healthz {
+            default_type text/plain;
+            return 200 'ok';
+            access_log off;
+        }
+    }

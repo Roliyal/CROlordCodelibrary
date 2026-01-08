@@ -1,0 +1,12 @@
+{
+  "name": "cpp-svc",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "cpp-httplib",
+    "nlohmann-json",
+    {
+      "name": "opentelemetry-cpp",
+      "features": ["otlp-http"]
+    }
+  ]
+}

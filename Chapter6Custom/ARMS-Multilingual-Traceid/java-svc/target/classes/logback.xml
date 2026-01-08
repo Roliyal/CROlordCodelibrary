@@ -1,0 +1,14 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 一行 JSON：保证 trace_id/span_id 每条日志都有 -->
+            <pattern>
+                {"ts":"%date{ISO8601}","level":"%level","service":"java-svc","logger":"%logger{36}","event":"%X{event}","message":"%replace(%msg){'\n','\\n'}","trace_id":"%X{trace_id}","span_id":"%X{span_id}","trace_flags":"%X{trace_flags}"}%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
