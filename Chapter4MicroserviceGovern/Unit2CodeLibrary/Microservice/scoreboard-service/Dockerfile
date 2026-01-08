@@ -23,7 +23,7 @@ RUN ./instgo set --agentVersion=1.6.1
 RUN ./instgo set --mse  --licenseKey=djqtzchc9t@b929339d9ac7fb0 --regionId=ap-southeast-1
 
 
-# Copy the go.mod, go.sum, and .env.production files to the working directory
+# Copy the go.mod, go.sum, and .env.local files to the working directory
 COPY go.mod go.sum .env ./
 
 # Download the dependencies
@@ -50,7 +50,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy the compiled Go binary and .env.production files
+# Copy the compiled Go binary and .env.local files
 COPY --from=builder /app/main-amd64 /app/main-amd64
 COPY --from=builder /app/main-arm64 /app/main-arm64
 COPY --from=builder /app/.env /app/.env

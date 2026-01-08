@@ -1,0 +1,295 @@
+````md
+# ARMS Multilingual TraceId Demo（RUM + OpenTelemetry + OTLP）
+
+该仓库用于演示 **前端 ARMS RUM（W3C TraceContext 注入）** 与 **多语言后端（Go / Python / Java / C++）OpenTelemetry Trace** 的端到端链路打通，并通过 **OTLP/HTTP** 上报到阿里云 ARMS Trace。
+
+---
+
+## 目录结构
+
+```text
+.
+├── frontend      # Vite + Vue3 + ARMS RUM（自动注入 traceparent）
+├── go-gateway    # Go 入口服务（otelhttp server/client + OTLP exporter）
+├── python-svc    # Flask + OTel instrumentation + OTLP exporter
+├── java-svc      # Spark + OTel autoconfigure + 透传 + 日志 MDC
+└── cpp-svc       # httplib + opentelemetry-cpp + OTLP/HTTP exporter
+````
+
+---
+
+## 调用链与端口
+
+调用链：
+
+`Browser(frontend) → /api/hello(go-gateway) → /py/work(python) → /java/work(java) → /cpp/work(cpp)`
+
+默认端口（与 `.env` 一致）：
+
+
+| 模块       |              端口 | 入口                             |
+| ---------- | ----------------: | -------------------------------- |
+| go-gateway |              8080 | `GET /api/hello`、`GET /healthz` |
+| python-svc |              8081 | `GET /py/work`、`GET /healthz`   |
+| java-svc   |              8082 | `GET /java/work`、`GET /healthz` |
+| cpp-svc    |              8083 | `GET /cpp/work`、`GET /healthz`  |
+| frontend   | 5173（Vite 默认） | 浏览器访问                       |
+
+---
+
+## 环境变量（根目录 .env）
+
+根目录 `.env`：
+
+```bash
+# ====== ARMS OpenTelemetry（后端链路）======
+OTEL_EXPORTER_OTLP_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
+
+# ===== Java 专用（ java-svc 用）======
+JAVA_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
+JAVA_OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+JAVA_OTEL_SERVICE_NAME=java-svc
+# JAVA_OTEL_EXPORTER_OTLP_HEADERS=Authentication=xxxxx
+JAVA_OTEL_METRICS_EXPORTER=none
+JAVA_OTEL_LOGS_EXPORTER=none
+JAVA_OTEL_EXPORTER_OTLP_TIMEOUT=15000
+
+# 可选：采样（1.0=100%）
+OTEL_TRACES_SAMPLER=parentbased_traceidratio
+OTEL_TRACES_SAMPLER_ARG=1.0
+
+# ====== 服务端口与链路调用地址 ======
+GO_PORT=8080
+PY_PORT=8081
+JAVA_PORT=8082
+CPP_PORT=8083
+
+PY_URL=http://127.0.0.1:8081
+JAVA_URL=http://127.0.0.1:8082
+CPP_URL=http://127.0.0.1:8083
+
+# ====== 前端 RUM ======
+VITE_ARMS_RUM_PID=djqtzchc9t@5492aebd6e1b7d1
+VITE_ARMS_RUM_ENDPOINT=https://djqtzchc9t-default-us.rum.aliyuncs.com
+VITE_APP_VERSION=1.0.0
+```
+
+### Java 专用变量说明
+
+`java-svc` 使用 `opentelemetry-sdk-extension-autoconfigure` 从 `OTEL_*` 环境变量读取配置。当前 `.env` 里 Java 配置使用了前缀 `JAVA_`，因此启动 `java-svc` 时需要将 `JAVA_OTEL_*` 映射为 `OTEL_*`（见下方启动命令），以确保 autoconfigure 能读取到：
+
+* `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+* `OTEL_EXPORTER_OTLP_PROTOCOL`
+* `OTEL_SERVICE_NAME`
+* `OTEL_METRICS_EXPORTER=none`
+* `OTEL_LOGS_EXPORTER=none`
+* `OTEL_EXPORTER_OTLP_TIMEOUT`
+
+---
+
+# 启动与运行
+
+## 启动顺序（建议）
+
+1. cpp-svc
+2. java-svc
+3. python-svc
+4. go-gateway
+5. frontend
+
+---
+
+## 1）启动 cpp-svc（C++）
+
+### 构建
+
+```bash
+cd cpp-svc
+cmake -S . -B build
+cmake --build build -j
+```
+
+### 运行
+
+```bash
+./build/cpp-svc
+```
+
+验证：
+
+```bash
+curl -s http://127.0.0.1:8083/healthz
+curl -s http://127.0.0.1:8083/cpp/work | head
+```
+
+---
+
+## 2）启动 java-svc（Java）
+
+### 构建
+
+```bash
+cd java-svc
+./mvnw -q -DskipTests package
+```
+
+### 运行（将 JAVA_OTEL_* 映射为 OTEL_*）
+
+```bash
+# 在仓库根目录已有 .env 的情况下，推荐在 java-svc 目录执行：
+cd java-svc
+
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="$JAVA_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" \
+OTEL_EXPORTER_OTLP_PROTOCOL="$JAVA_OTEL_EXPORTER_OTLP_PROTOCOL" \
+OTEL_SERVICE_NAME="$JAVA_OTEL_SERVICE_NAME" \
+OTEL_METRICS_EXPORTER="$JAVA_OTEL_METRICS_EXPORTER" \
+OTEL_LOGS_EXPORTER="$JAVA_OTEL_LOGS_EXPORTER" \
+OTEL_EXPORTER_OTLP_TIMEOUT="$JAVA_OTEL_EXPORTER_OTLP_TIMEOUT" \
+JAVA_PORT="$JAVA_PORT" \
+CPP_URL="$CPP_URL" \
+./mvnw -q -DskipTests exec:java
+```
+
+验证：
+
+```bash
+curl -s http://127.0.0.1:8082/healthz
+curl -s http://127.0.0.1:8082/java/work | head
+```
+
+---
+
+## 3）启动 python-svc（Python）
+
+### 安装依赖
+
+```bash
+cd python-svc
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 运行
+
+```bash
+python app.py
+```
+
+验证：
+
+```bash
+curl -s http://127.0.0.1:8081/healthz
+curl -s http://127.0.0.1:8081/py/work | head
+```
+
+---
+
+## 4）启动 go-gateway（Go）
+
+### 运行
+
+```bash
+cd go-gateway
+go run .
+```
+
+验证：
+
+```bash
+curl -s http://127.0.0.1:8080/healthz
+curl -s http://127.0.0.1:8080/api/hello | head
+```
+
+---
+
+## 5）启动 frontend（Vite + Vue3）
+
+### 安装依赖
+
+```bash
+cd frontend
+npm i
+```
+
+### 本地运行
+
+```bash
+npm run dev
+```
+
+访问：
+
+* [http://127.0.0.1:5173](http://127.0.0.1:5173)
+
+说明：
+
+* `vite.config.js` 已将 `/api` 代理到 `http://127.0.0.1:8080`
+
+### 打包
+
+```bash
+npm run build
+```
+
+产物：
+
+* `frontend/dist`
+
+### 预览
+
+```bash
+npm run preview
+```
+
+---
+
+# 如何使用（演示操作）
+
+## 1）端到端链路演示
+
+1. 浏览器打开前端页面
+2. 点击：`Call /api/hello (Go → Py → Java → C++)`
+3. 页面输出 JSON，包含：
+
+   * `trace_id`、`span_id`（Go 入口 span）
+   * `python_response`（包含 python/java/cpp 的 trace 信息）
+
+## 2）验证 traceparent 注入（前端）
+
+浏览器 DevTools → Network → 选中 `/api/hello` 请求 → Request Headers：
+
+* 存在 `traceparent`
+
+## 3）验证后端透传（trace_id 一致）
+
+* `go-gateway` 返回的 `trace_id` 与 python/java/cpp 返回的 `trace_id` 应一致（同一条 Trace）
+* `java-svc` 返回中的 `traceparent_to_cpp` 不为空，且 `cpp-svc` 返回中的 `traceparent_in` 对齐
+
+---
+
+# 打包命令汇总
+
+
+| 模块       | 安装                              | 运行               | 打包                         |
+| ---------- | --------------------------------- | ------------------ | ---------------------------- |
+| frontend   | `npm i`                           | `npm run dev`      | `npm run build`              |
+| go-gateway | -                                 | `go run .`         | `go build -o go-gateway`     |
+| python-svc | `pip install -r requirements.txt` | `python app.py`    | （按部署方式：容器/zip）     |
+| java-svc   | -                                 | `./mvnw exec:java` | `./mvnw -DskipTests package` |
+| cpp-svc    | -                                 | `./build/cpp-svc`  | `cmake --build build`        |
+
+---
+
+# 常见问题
+
+## 1）/api/hello 调用失败
+
+* 检查下游服务是否启动：8081/8082/8083
+* 检查 `.env` 中 `PY_URL / JAVA_URL / CPP_URL` 是否为本机可达地址
+
+## 2）ARMS 上无 Trace 数据
+
+* 检查 `OTEL_EXPORTER_OTLP_ENDPOINT` 是否可达
+* Java 需要确保 autoconfigure 能读取到 `OTEL_*`（启动命令已完成映射）
+* 若 ARMS 需要鉴权 header，补齐 `JAVA_OTEL_EXPORTER_OTLP_HEADERS` 并映射为 `OTEL_EXPORTER_OTLP_HEADERS`

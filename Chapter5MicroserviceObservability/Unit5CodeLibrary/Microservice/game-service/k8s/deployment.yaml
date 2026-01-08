@@ -25,6 +25,8 @@ spec:
         armsPilotCreateAppName: "micro-go-game"
         msePilotCreateAppName: "micro-go-game"
         aliyun.com/app-language: golang
+        aliyun.ocm/app-tag：gary
+
     spec:
       terminationGracePeriodSeconds: 60
       securityContext:            # 仅保留 fsGroup；不再 runAsNonRoot
@@ -61,7 +63,7 @@ spec:
 
           env:
             - name: ENV_FILE
-              value: "/app/.env.production"
+              value: "/app/.env.local"
 
             - name: POD_IP
               valueFrom:

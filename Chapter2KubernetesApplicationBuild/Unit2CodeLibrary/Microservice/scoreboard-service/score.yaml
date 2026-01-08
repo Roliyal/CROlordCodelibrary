@@ -19,7 +19,7 @@ spec:
             - containerPort: 8085
           env:
             - name: ENV_FILE
-              value: "/app/.env.production"
+              value: "/app/.env.local"
           volumeMounts:
             - name: app-log
               mountPath: /app/log

@@ -61,7 +61,7 @@ spec:
 
           env:
             - name: ENV_FILE
-              value: "/app/.env.production"
+              value: "/app/.env.local"
 
             - name: POD_IP
               valueFrom:
