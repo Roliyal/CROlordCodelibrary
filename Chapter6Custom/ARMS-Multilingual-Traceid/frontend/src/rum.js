@@ -1,7 +1,13 @@
 import armsRum from "@arms/rum-browser";
 
 function getEnv(key, def = "") {
-    return (window.__ENV__ && window.__ENV__[key]) || def;
+    // 生产：由 docker-entrypoint.sh 写入 /usr/share/nginx/html/env.js
+    if (window.__ENV__ && window.__ENV__[key]) return window.__ENV__[key];
+
+    //  开发：vite 注入（可选 fallback）
+    if (import.meta?.env?.[key]) return import.meta.env[key];
+
+    return def;
 }
 
 export function initRum() {
@@ -11,6 +17,13 @@ export function initRum() {
 
     console.log("[rum] pid=", pid);
     console.log("[rum] endpoint=", endpoint);
+    console.log("[rum] appVersion=", appVersion);
+
+    // 没配置就禁用（避免报错）
+    if (!pid || !endpoint) {
+        console.warn("[rum] missing pid/endpoint -> rum disabled");
+        return armsRum;
+    }
 
     armsRum.init({
         pid,
@@ -18,6 +31,7 @@ export function initRum() {
         env: "prod",
         spaMode: "history",
         appVersion,
+
         collectors: {
             perf: true,
             webVitals: true,
@@ -25,15 +39,17 @@ export function initRum() {
             staticResource: true,
             jsError: true,
             consoleError: true,
-            action: true
+            action: true,
         },
+
+
         tracing: {
             enable: true,
             sample: 100,
             allowedUrls: [
-                { match: "/api/", propagatorTypes: ["tracecontext"] }
-            ]
-        }
+                { match: /\/api\//, propagatorTypes: ["tracecontext"] }
+            ],
+        },
     });
 
     return armsRum;
