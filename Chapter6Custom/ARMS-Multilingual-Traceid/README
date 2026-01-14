@@ -1,7 +1,7 @@
 ````md
 # ARMS Multilingual TraceId Demo（RUM + OpenTelemetry + OTLP）
 
-该仓库用于演示 **前端 ARMS RUM（W3C TraceContext 注入）** 与 **多语言后端（Go / Python / Java / C++）OpenTelemetry Trace** 的端到端链路打通，并通过 **OTLP/HTTP** 上报到阿里云 ARMS Trace。
+该仓库用于演示 **前端 ARMS RUM（W3C TraceContext 注入）** 与 **多语言后端（Go / Python / Java / C++）OpenTelemetry Trace** 的端到端链路打通，并通过 **OTLP/HTTP** 上报到阿里云 ARMS 服务。
 
 ---
 
