@@ -16,10 +16,10 @@ cat /usr/share/nginx/html/env.js || true
 export API_UPSTREAM
 
 envsubst '${API_UPSTREAM}' \
-  < /etc/nginx/templates/default.conf.template \
-  > /etc/nginx/conf.d/default.conf
+  < /etc/nginx/templates/nginx.conf \
+  > /etc/nginx/conf.d/nginx.conf
 
 echo "[entrypoint] generated nginx conf:"
-cat /etc/nginx/conf.d/default.conf || true
+cat /etc/nginx/conf.d/nginx.conf || true
 
 exec nginx -g 'daemon off;'
