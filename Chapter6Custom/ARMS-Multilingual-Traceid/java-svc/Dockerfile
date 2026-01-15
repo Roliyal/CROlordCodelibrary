@@ -2,12 +2,11 @@
 FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /src
 
-COPY java-svc/pom.xml /src/pom.xml
-COPY java-svc/src /src/src
+COPY pom.xml /src/pom.xml
+COPY src /src/src
 
 RUN mvn -q -DskipTests package
 
-# ---------- runtime ----------
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 

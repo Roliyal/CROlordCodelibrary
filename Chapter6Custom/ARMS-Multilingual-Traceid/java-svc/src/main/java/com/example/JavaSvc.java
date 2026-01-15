@@ -11,7 +11,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
+import io.opentelemetry.exporter.otlp.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -29,10 +29,8 @@ import java.time.Instant;
 import java.util.*;
 
 public class JavaSvc {
-
     static final ObjectMapper M = new ObjectMapper();
 
-    // ---------- dotenv loading ----------
     static boolean exists(String p) {
         try {
             return p != null && !p.isBlank() && Files.exists(Path.of(p)) && !Files.isDirectory(Path.of(p));
@@ -41,15 +39,6 @@ public class JavaSvc {
         }
     }
 
-    static String quote(String s) {
-        return s == null ? "null" : "\"" + s + "\"";
-    }
-
-    /**
-     * 容器优先从 /app/.env 读（Dockerfile 会 COPY 根目录 .env 到这里）
-     * 可通过 DOTENV_PATH 覆盖。
-
-     */
     static Map<String, String> loadEnv() {
         String dotenv = System.getenv().getOrDefault("DOTENV_PATH", "/app/.env");
         List<String> candidates = List.of(dotenv, ".env", "../.env");
@@ -60,9 +49,9 @@ public class JavaSvc {
         }
 
         Map<String, String> env = new HashMap<>();
-        env.putAll(System.getenv()); // 先放入进程环境变量
+        env.putAll(System.getenv()); // 先读取系统环境变量
 
-        // 文件覆盖 env（符合你“打包进镜像必须生效”的诉求）
+        // 文件覆盖 env：符合你“build 时打进镜像必须生效”
         for (String p : candidates) {
             if (!exists(p)) continue;
             try {
@@ -80,42 +69,20 @@ public class JavaSvc {
             }
         }
 
-        System.out.println("[java] effective OTEL_EXPORTER_OTLP_ENDPOINT=" + quote(env.get("OTEL_EXPORTER_OTLP_ENDPOINT")));
-        System.out.println("[java] effective JAVA_PORT=" + quote(env.getOrDefault("JAVA_PORT", "8082")));
-        System.out.println("[java] effective CPP_URL=" + quote(env.get("CPP_URL")));
+        System.out.println("[java] effective OTEL_EXPORTER_OTLP_ENDPOINT=" + env.get("OTEL_EXPORTER_OTLP_ENDPOINT"));
+        System.out.println("[java] effective JAVA_PORT=" + env.getOrDefault("JAVA_PORT", "8082"));
+        System.out.println("[java] effective CPP_URL=" + env.getOrDefault("CPP_URL", ""));
         return env;
-    }
-
-    // ---------- OTEL ----------
-    static Map<String, String> parseHeaders(String headers) {
-        Map<String, String> out = new HashMap<>();
-        if (headers == null) return out;
-        for (String part : headers.split(",")) {
-            String p = part.trim();
-            if (p.isEmpty() || !p.contains("=")) continue;
-            String[] kv = p.split("=", 2);
-            out.put(kv[0].trim(), kv[1].trim());
-        }
-        return out;
     }
 
     static OpenTelemetry initOtel(Map<String, String> env) {
         String endpoint = env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "");
-        String headers = env.getOrDefault("OTEL_EXPORTER_OTLP_HEADERS", "");
+        if (endpoint.isEmpty()) throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
 
-        if (endpoint.isEmpty()) {
-            throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
-        }
-
-        OtlpHttpSpanExporter.Builder exporterBuilder = OtlpHttpSpanExporter.builder()
-                .setEndpoint(endpoint);
-
-        Map<String, String> headerMap = parseHeaders(headers);
-        if (headerMap.containsKey("Authentication") && !headerMap.get("Authentication").isEmpty()) {
-            exporterBuilder.addHeader("Authentication", headerMap.get("Authentication"));
-        }
-
-        OtlpHttpSpanExporter exporter = exporterBuilder.build();
+        // ✅ OTLP/HTTP traces exporter
+        OtlpHttpSpanExporter exporter = OtlpHttpSpanExporter.builder()
+                .setEndpoint(endpoint)
+                .build();
 
         Resource resource = Resource.getDefault().merge(
                 Resource.create(Attributes.builder().put("service.name", "java-svc").build())
@@ -140,7 +107,6 @@ public class JavaSvc {
         return sc.isValid() ? sc.getTraceId() : "";
     }
 
-    // ---------- HTTP server ----------
     public static void main(String[] args) throws Exception {
         Map<String, String> env = loadEnv();
         OpenTelemetry otel = initOtel(env);
@@ -148,17 +114,15 @@ public class JavaSvc {
         int port = Integer.parseInt(env.getOrDefault("JAVA_PORT", "8082"));
         String cppUrl = env.getOrDefault("CPP_URL", "");
 
-        if (cppUrl.isEmpty()) {
-            System.out.println("[java] WARN: CPP_URL is empty; downstream call will be skipped");
-        }
-
         TextMapPropagator propagator = otel.getPropagators().getTextMapPropagator();
         Tracer tracer = otel.getTracer("java-svc");
 
+        // ✅ 容器/K8s 必须 0.0.0.0
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         server.createContext("/java/work", exchange -> {
             Context extracted = propagator.extract(Context.current(), exchange, new HttpExchangeGetter());
+
             Span serverSpan = tracer.spanBuilder("java /java/work")
                     .setSpanKind(SpanKind.SERVER)
                     .setParent(extracted)
@@ -170,13 +134,13 @@ public class JavaSvc {
                 System.out.println("[java] /java/work trace_id=" + tid + " traceparent_in=" + (tpIn == null ? "" : tpIn));
 
                 Map<String, Object> cppResp = Map.of("warn", "CPP_URL is empty");
-                if (!cppUrl.isEmpty()) {
+                if (cppUrl != null && !cppUrl.isBlank()) {
                     HttpClient client = HttpClient.newHttpClient();
                     HttpRequest.Builder reqB = HttpRequest.newBuilder()
                             .uri(URI.create(cppUrl + "/cpp/work"))
                             .GET();
 
-                    //  注入 traceparent / tracestate
+                    // ✅ 注入 traceparent
                     propagator.inject(Context.current(), reqB, (builder, key, value) -> builder.header(key, value));
 
                     try {

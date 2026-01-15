@@ -11,9 +11,8 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
 
-        <!-- BOM -->
-        <otel.version>1.50.0</otel.version>
-
+        <!-- 选一个稳定组合 -->
+        <otel.version>1.38.0</otel.version>
         <jackson.version>2.17.2</jackson.version>
     </properties>
 
@@ -37,7 +36,7 @@
             <version>${jackson.version}</version>
         </dependency>
 
-        <!-- OpenTelemetry API + SDK -->
+        <!-- OpenTelemetry -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
@@ -46,28 +45,27 @@
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
-
-        <!-- OTLP exporter (HTTP) -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.5.16</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.16</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- 打 fat jar，避免容器运行缺依赖 -->
+            <!-- 只编译 com.example.JavaSvc，避免旧 App.java 影响（即使你忘了删文件也不会编译它） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <includes>
+                        <include>com/example/JavaSvc.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+
+            <!-- fat jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -75,9 +73,7 @@
                 <executions>
                     <execution>
                         <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
+                        <goals><goal>shade</goal></goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
