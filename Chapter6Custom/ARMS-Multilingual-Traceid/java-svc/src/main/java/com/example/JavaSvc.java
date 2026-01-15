@@ -13,7 +13,7 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 
-import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
+import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -44,11 +44,6 @@ public class JavaSvc {
         }
     }
 
-    /**
-     * ✅ 容器/线上：优先读 /app/.env（Dockerfile 会 COPY 根目录 .env 到这里）
-     * 可通过 DOTENV_PATH 覆盖。
-     * 同时合并 System.getenv()，但文件会覆盖 env（满足你“build 时打包进镜像必须生效”）
-     */
     static Map<String, String> loadEnv() {
         String dotenv = System.getenv().getOrDefault("DOTENV_PATH", "/app/.env");
         List<String> candidates = List.of(dotenv, ".env", "../.env");
@@ -84,12 +79,14 @@ public class JavaSvc {
         return env;
     }
 
-    // -------- OTEL --------
+    // -------- OTEL (gRPC) --------
     static OpenTelemetry initOtel(Map<String, String> env) {
         String endpoint = env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "");
         if (endpoint.isEmpty()) throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
 
-        OtlpHttpSpanExporter exporter = OtlpHttpSpanExporter.builder()
+        // ✅ gRPC exporter 需要 host:port 形式（例如 http://xxx:4317 或 xxx:4317）
+        // 如果你给的是 http(s)://.../path，这里会不适配，建议改成 ARMS 的 gRPC endpoint
+        OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter.builder()
                 .setEndpoint(endpoint)
                 .build();
 
@@ -116,7 +113,6 @@ public class JavaSvc {
         return sc.isValid() ? sc.getTraceId() : "";
     }
 
-    // -------- main --------
     public static void main(String[] args) throws Exception {
         Map<String, String> env = loadEnv();
         OpenTelemetry otel = initOtel(env);
@@ -127,12 +123,10 @@ public class JavaSvc {
         TextMapPropagator propagator = otel.getPropagators().getTextMapPropagator();
         Tracer tracer = otel.getTracer("java-svc");
 
-        // ✅ K8s/容器必须 0.0.0.0
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         server.createContext("/java/work", exchange -> {
             Context extracted = propagator.extract(Context.current(), exchange, new HttpExchangeGetter());
-
             Span serverSpan = tracer.spanBuilder("java /java/work")
                     .setSpanKind(SpanKind.SERVER)
                     .setParent(extracted)
@@ -150,7 +144,6 @@ public class JavaSvc {
                             .uri(URI.create(cppUrl + "/cpp/work"))
                             .GET();
 
-                    // ✅ 注入 traceparent / tracestate 到下游
                     propagator.inject(Context.current(), reqB, (builder, key, value) -> builder.header(key, value));
 
                     try {

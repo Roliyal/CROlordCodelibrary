@@ -27,14 +27,12 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
 
-        <!-- OTel -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
@@ -43,17 +41,18 @@
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
-
-        <!-- ✅ 关键：OTLP HTTP Trace exporter -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
     </dependencies>
 
     <build>
+        <!-- ✅ 关键：最终产物名固定为 app.jar -->
+        <finalName>app</finalName>
+
         <plugins>
-            <!-- ✅ 只编译 JavaSvc，避免旧 App.java 影响 -->
+            <!-- 只编译 JavaSvc，避免旧 App.java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -65,7 +64,7 @@
                 </configuration>
             </plugin>
 
-            <!-- fat jar -->
+            <!-- ✅ 关键：shade 把依赖打进去 + 写 Main-Class -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -75,6 +74,8 @@
                         <phase>package</phase>
                         <goals><goal>shade</goal></goals>
                         <configuration>
+                            <!-- 让最终输出就是 app.jar（覆盖原 jar），避免你 COPY 错 jar -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">

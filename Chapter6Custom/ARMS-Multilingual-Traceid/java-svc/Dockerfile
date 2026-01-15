@@ -6,12 +6,13 @@ COPY pom.xml /src/pom.xml
 COPY src /src/src
 
 RUN mvn -q -DskipTests package
+RUN ls -lah /src/target && echo "----" && jar tf /src/target/app.jar | head -n 5
 
 # ---------- runtime ----------
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-COPY --from=build /src/target/*.jar /app/app.jar
+COPY --from=build /src/target/app.jar /app/app.jar
 
 COPY .env /app/.env
 ENV DOTENV_PATH=/app/.env
