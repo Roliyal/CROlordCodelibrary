@@ -8,8 +8,10 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.*;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 
@@ -33,7 +35,7 @@ import java.util.*;
 public class JavaSvc {
     static final ObjectMapper M = new ObjectMapper();
 
-    // -------- dotenv --------
+    // ---------- dotenv ----------
     static boolean exists(String p) {
         try {
             return p != null && !p.isBlank()
@@ -44,6 +46,11 @@ public class JavaSvc {
         }
     }
 
+    /**
+     * ✅ 容器：优先 /app/.env（Dockerfile COPY 进来）
+     * 可用 DOTENV_PATH 覆盖
+     * 文件内容覆盖 System.getenv()，符合你“build 时 baked env”
+     */
     static Map<String, String> loadEnv() {
         String dotenv = System.getenv().getOrDefault("DOTENV_PATH", "/app/.env");
         List<String> candidates = List.of(dotenv, ".env", "../.env");
@@ -79,13 +86,17 @@ public class JavaSvc {
         return env;
     }
 
-    // -------- OTEL (gRPC) --------
+    // ---------- OTEL ----------
+    /**
+     * ✅ 强制 W3C TraceContext propagator（traceparent）
+     * ✅ exporter 用 OTLP gRPC（OtlpGrpcSpanExporter）——依赖一定存在
+     */
     static OpenTelemetry initOtel(Map<String, String> env) {
         String endpoint = env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "");
         if (endpoint.isEmpty()) throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
 
-        // ✅ gRPC exporter 需要 host:port 形式（例如 http://xxx:4317 或 xxx:4317）
-        // 如果你给的是 http(s)://.../path，这里会不适配，建议改成 ARMS 的 gRPC endpoint
+        // 注意：gRPC exporter 通常需要 host:port（如 collector:4317）
+        // 如果你这里仍是 http://.../api/otlp/traces 那是 HTTP ingest，不适配 gRPC。
         OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter.builder()
                 .setEndpoint(endpoint)
                 .build();
@@ -101,6 +112,7 @@ public class JavaSvc {
 
         OpenTelemetrySdk otel = OpenTelemetrySdk.builder()
                 .setTracerProvider(tp)
+                .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .build();
 
         GlobalOpenTelemetry.set(otel);
@@ -113,6 +125,7 @@ public class JavaSvc {
         return sc.isValid() ? sc.getTraceId() : "";
     }
 
+    // ---------- main ----------
     public static void main(String[] args) throws Exception {
         Map<String, String> env = loadEnv();
         OpenTelemetry otel = initOtel(env);
@@ -123,10 +136,18 @@ public class JavaSvc {
         TextMapPropagator propagator = otel.getPropagators().getTextMapPropagator();
         Tracer tracer = otel.getTracer("java-svc");
 
+        // ✅ K8s/容器必须 0.0.0.0
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         server.createContext("/java/work", exchange -> {
+            // debug：确认 header 是否有 traceparent（上线可以删）
+            String tpIn1 = exchange.getRequestHeaders().getFirst("traceparent");
+            String tpIn2 = exchange.getRequestHeaders().getFirst("Traceparent");
+            System.out.println("[java] headers keys=" + exchange.getRequestHeaders().keySet());
+            System.out.println("[java] traceparent_in(raw)=" + (tpIn1 != null ? tpIn1 : tpIn2));
+
             Context extracted = propagator.extract(Context.current(), exchange, new HttpExchangeGetter());
+
             Span serverSpan = tracer.spanBuilder("java /java/work")
                     .setSpanKind(SpanKind.SERVER)
                     .setParent(extracted)
@@ -134,8 +155,7 @@ public class JavaSvc {
 
             try (Scope scope = serverSpan.makeCurrent()) {
                 String tid = traceIdFromContext(Context.current());
-                String tpIn = exchange.getRequestHeaders().getFirst("traceparent");
-                System.out.println("[java] /java/work trace_id=" + tid + " traceparent_in=" + (tpIn == null ? "" : tpIn));
+                System.out.println("[java] /java/work trace_id=" + tid);
 
                 Map<String, Object> cppResp = Map.of("warn", "CPP_URL is empty");
                 if (cppUrl != null && !cppUrl.isBlank()) {
@@ -144,6 +164,7 @@ public class JavaSvc {
                             .uri(URI.create(cppUrl + "/cpp/work"))
                             .GET();
 
+                    // ✅ 注入 traceparent 到下游
                     propagator.inject(Context.current(), reqB, (builder, key, value) -> builder.header(key, value));
 
                     try {
@@ -183,6 +204,9 @@ public class JavaSvc {
         server.start();
     }
 
+    /**
+     * ✅ 关键修复：大小写不敏感拿 header，保证 traceparent 一定 extract 到
+     */
     static class HttpExchangeGetter implements TextMapGetter<HttpExchange> {
         @Override
         public Iterable<String> keys(HttpExchange carrier) {
@@ -191,9 +215,18 @@ public class JavaSvc {
 
         @Override
         public String get(HttpExchange carrier, String key) {
+            if (key == null) return null;
+
             List<String> v = carrier.getRequestHeaders().get(key);
-            if (v == null || v.isEmpty()) return null;
-            return v.get(0);
+            if (v != null && !v.isEmpty()) return v.get(0);
+
+            for (String k : carrier.getRequestHeaders().keySet()) {
+                if (k != null && k.equalsIgnoreCase(key)) {
+                    List<String> vv = carrier.getRequestHeaders().get(k);
+                    if (vv != null && !vv.isEmpty()) return vv.get(0);
+                }
+            }
+            return null;
         }
     }
 }

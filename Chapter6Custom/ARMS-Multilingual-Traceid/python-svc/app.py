@@ -47,18 +47,20 @@ def log(prefix: str, extra: str = ""):
     msg = f"{prefix} trace_id={tid} span_id={sid}"
     if extra:
         msg += f" {extra}"
-    print(msg, flush=True)
+    print(msg)
 
 
-# ---- boot: load env from baked file first ----
-dotenv_path = os.getenv("DOTENV_PATH", "/app/.env")
-loaded = load_dotenv(dotenv_path, override=True)
-print(f"[py] load_dotenv path={dotenv_path} loaded={loaded}", flush=True)
+def load_dotenv_candidates():
+    dotenv_path = os.getenv("DOTENV_PATH", "/app/.env")
+    ok = load_dotenv(dotenv_path, override=True)
+    print(f"[py] load_dotenv path={dotenv_path} loaded={ok}")
 
-# 兼容本地开发：如果你在 python-svc 目录直接跑，也可继续读本地/上级 .env
-load_dotenv(".env", override=True)
-load_dotenv("../.env", override=True)
+    load_dotenv(".env", override=True)
+    load_dotenv("../.env", override=True)
 
+
+# ---- boot ----
+load_dotenv_candidates()
 init_otel("python-svc")
 
 app = Flask(__name__)
@@ -77,6 +79,7 @@ def healthz():
 
 @app.get("/py/work")
 def py_work():
+    # FlaskInstrumentor 会把上游 traceparent extract 成当前 context
     tp_in = request.headers.get("traceparent", "")
     log("[py] /py/work", f"traceparent_in={tp_in}")
 
@@ -84,7 +87,12 @@ def py_work():
     if JAVA_URL:
         try:
             headers = {}
-            propagate.inject(headers)  # inject tracecontext
+            # ✅ 从当前 context 注入 traceparent
+            propagate.inject(headers)
+
+            # debug：确认是否真的带了 traceparent（验证完可删）
+            print("[py] -> java headers:", headers)
+
             r = requests.get(f"{JAVA_URL}/java/work", headers=headers, timeout=5)
             downstream_java = r.json()
         except Exception as e:
