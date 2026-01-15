@@ -44,10 +44,18 @@ def cur_ids():
 
 def log(prefix: str, extra: str = ""):
     tid, sid = cur_ids()
-    print(f"{prefix} trace_id={tid} span_id={sid} {extra}".strip())
+    msg = f"{prefix} trace_id={tid} span_id={sid}"
+    if extra:
+        msg += f" {extra}"
+    print(msg, flush=True)
 
 
-# ---- boot ----
+# ---- boot: load env from baked file first ----
+dotenv_path = os.getenv("DOTENV_PATH", "/app/.env")
+loaded = load_dotenv(dotenv_path, override=True)
+print(f"[py] load_dotenv path={dotenv_path} loaded={loaded}", flush=True)
+
+# 兼容本地开发：如果你在 python-svc 目录直接跑，也可继续读本地/上级 .env
 load_dotenv(".env", override=True)
 load_dotenv("../.env", override=True)
 
@@ -69,7 +77,6 @@ def healthz():
 
 @app.get("/py/work")
 def py_work():
-    # FlaskInstrumentor 已经把上游 tracecontext extract 并设置为 current span
     tp_in = request.headers.get("traceparent", "")
     log("[py] /py/work", f"traceparent_in={tp_in}")
 
@@ -77,12 +84,13 @@ def py_work():
     if JAVA_URL:
         try:
             headers = {}
-            # 双保险：显式注入 traceparent
-            propagate.inject(headers)
+            propagate.inject(headers)  # inject tracecontext
             r = requests.get(f"{JAVA_URL}/java/work", headers=headers, timeout=5)
             downstream_java = r.json()
         except Exception as e:
             downstream_java = {"error": str(e)}
+    else:
+        downstream_java = {"warn": "JAVA_URL is empty"}
 
     tid, sid = cur_ids()
     return jsonify({
@@ -96,4 +104,4 @@ def py_work():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=PY_PORT, debug=False)
+    app.run(host="0.0.0.0", port=PY_PORT, debug=False)
