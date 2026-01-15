@@ -3,6 +3,7 @@ package com.example;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
@@ -11,7 +12,8 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.exporter.otlp.trace.OtlpHttpSpanExporter;
+
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -31,14 +33,22 @@ import java.util.*;
 public class JavaSvc {
     static final ObjectMapper M = new ObjectMapper();
 
+    // -------- dotenv --------
     static boolean exists(String p) {
         try {
-            return p != null && !p.isBlank() && Files.exists(Path.of(p)) && !Files.isDirectory(Path.of(p));
+            return p != null && !p.isBlank()
+                    && Files.exists(Path.of(p))
+                    && !Files.isDirectory(Path.of(p));
         } catch (Exception e) {
             return false;
         }
     }
 
+    /**
+     * ✅ 容器/线上：优先读 /app/.env（Dockerfile 会 COPY 根目录 .env 到这里）
+     * 可通过 DOTENV_PATH 覆盖。
+     * 同时合并 System.getenv()，但文件会覆盖 env（满足你“build 时打包进镜像必须生效”）
+     */
     static Map<String, String> loadEnv() {
         String dotenv = System.getenv().getOrDefault("DOTENV_PATH", "/app/.env");
         List<String> candidates = List.of(dotenv, ".env", "../.env");
@@ -49,9 +59,8 @@ public class JavaSvc {
         }
 
         Map<String, String> env = new HashMap<>();
-        env.putAll(System.getenv()); // 先读取系统环境变量
+        env.putAll(System.getenv());
 
-        // 文件覆盖 env：符合你“build 时打进镜像必须生效”
         for (String p : candidates) {
             if (!exists(p)) continue;
             try {
@@ -69,17 +78,17 @@ public class JavaSvc {
             }
         }
 
-        System.out.println("[java] effective OTEL_EXPORTER_OTLP_ENDPOINT=" + env.get("OTEL_EXPORTER_OTLP_ENDPOINT"));
+        System.out.println("[java] effective OTEL_EXPORTER_OTLP_ENDPOINT=" + env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", ""));
         System.out.println("[java] effective JAVA_PORT=" + env.getOrDefault("JAVA_PORT", "8082"));
         System.out.println("[java] effective CPP_URL=" + env.getOrDefault("CPP_URL", ""));
         return env;
     }
 
+    // -------- OTEL --------
     static OpenTelemetry initOtel(Map<String, String> env) {
         String endpoint = env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "");
         if (endpoint.isEmpty()) throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
 
-        // ✅ OTLP/HTTP traces exporter
         OtlpHttpSpanExporter exporter = OtlpHttpSpanExporter.builder()
                 .setEndpoint(endpoint)
                 .build();
@@ -107,6 +116,7 @@ public class JavaSvc {
         return sc.isValid() ? sc.getTraceId() : "";
     }
 
+    // -------- main --------
     public static void main(String[] args) throws Exception {
         Map<String, String> env = loadEnv();
         OpenTelemetry otel = initOtel(env);
@@ -117,7 +127,7 @@ public class JavaSvc {
         TextMapPropagator propagator = otel.getPropagators().getTextMapPropagator();
         Tracer tracer = otel.getTracer("java-svc");
 
-        // ✅ 容器/K8s 必须 0.0.0.0
+        // ✅ K8s/容器必须 0.0.0.0
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         server.createContext("/java/work", exchange -> {
@@ -140,7 +150,7 @@ public class JavaSvc {
                             .uri(URI.create(cppUrl + "/cpp/work"))
                             .GET();
 
-                    // ✅ 注入 traceparent
+                    // ✅ 注入 traceparent / tracestate 到下游
                     propagator.inject(Context.current(), reqB, (builder, key, value) -> builder.header(key, value));
 
                     try {
