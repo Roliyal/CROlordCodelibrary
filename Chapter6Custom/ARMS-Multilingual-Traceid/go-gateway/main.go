@@ -46,20 +46,58 @@ func mustEnv(key string) string {
 	return v
 }
 
-func loadEnvFromProjectRoot() {
+func fileExists(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && !st.IsDir()
+}
+
+// ✅ 关键：容器里固定从 /app/.env 读取（Dockerfile 会 COPY 进去）
+func loadEnv() {
+	// 1) 容器固定路径（优先）
+	containerEnv := envOr("DOTENV_PATH", "/app/.env")
+
+	// 2) 本地开发路径（fallback）
 	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		log.Fatal("runtime.Caller failed")
+	var gwDir, rootDir string
+	if ok {
+		gwDir = filepath.Dir(thisFile)
+		rootDir = filepath.Dir(gwDir)
 	}
-	gwDir := filepath.Dir(thisFile)
-	rootDir := filepath.Dir(gwDir)
-	rootEnv := filepath.Join(rootDir, ".env")
-	localEnv := filepath.Join(gwDir, ".env")
 
-	log.Printf("[go] env candidates:\n  local=%s\n  root=%s", localEnv, rootEnv)
+	localEnv := ""
+	rootEnv := ""
+	if gwDir != "" {
+		localEnv = filepath.Join(gwDir, ".env")
+	}
+	if rootDir != "" {
+		rootEnv = filepath.Join(rootDir, ".env")
+	}
 
-	// 优先根目录 .env
-	_ = godotenv.Overload(rootEnv, localEnv)
+	candidates := []string{
+		containerEnv, // /app/.env
+		localEnv,     // go-gateway/.env（如果你放了）
+		rootEnv,      // repo 根目录 .env（本地）
+	}
+
+	log.Printf("[go] env candidates:")
+	for _, p := range candidates {
+		if p == "" {
+			continue
+		}
+		log.Printf("  - %s (exists=%v)", p, fileExists(p))
+	}
+
+	// Overload：文件里有值就覆盖（因为你就是要“打进镜像就生效”）
+	for _, p := range candidates {
+		if p != "" && fileExists(p) {
+			if err := godotenv.Overload(p); err != nil {
+				log.Printf("[go] failed to load %s: %v", p, err)
+			} else {
+				log.Printf("[go] loaded env file: %s", p)
+			}
+		}
+	}
+
 	log.Printf("[go] loaded: OTEL=%q", os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	log.Printf("[go] loaded: PY_URL=%q PY_BASE_URL=%q", os.Getenv("PY_URL"), os.Getenv("PY_BASE_URL"))
 }
@@ -102,11 +140,11 @@ func logWithSpan(prefix string, ctx context.Context, extra string) {
 }
 
 func main() {
-	loadEnvFromProjectRoot()
+	loadEnv()
 
 	pyBase := envFirst("PY_BASE_URL", "PY_URL")
 	if pyBase == "" {
-		log.Fatalf("missing env PY_BASE_URL or PY_URL")
+		log.Fatalf("missing env PY_BASE_URL or PY_URL (check /app/.env baked into image)")
 	}
 
 	ctx := context.Background()
@@ -118,7 +156,6 @@ func main() {
 
 	goPort := envOr("GO_PORT", "8080")
 
-	// ✅ client 的 Transport 用 otelhttp，保证 client span + 自动注入不会丢
 	client := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 		Timeout:   5 * time.Second,
@@ -126,16 +163,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// ✅ 入口用 otelhttp.NewHandler 创建 SERVER span
 	mux.Handle("/api/hello", otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 这个 ctx 已经包含 SERVER span
 		ctx := r.Context()
 
 		logWithSpan("[go] /api/hello", ctx, fmt.Sprintf("traceparent_in=%s", r.Header.Get("traceparent")))
 
 		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/py/work", pyBase), nil)
 
-		// ✅ 双保险：显式注入 tracecontext（traceparent）
 		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 		resp, err := client.Do(req)
