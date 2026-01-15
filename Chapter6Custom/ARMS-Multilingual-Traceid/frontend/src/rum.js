@@ -1,27 +1,24 @@
 import armsRum from "@arms/rum-browser";
 
-function getEnv(key, def = "") {
-    // 生产：由 docker-entrypoint.sh 写入 /usr/share/nginx/html/env.js
-    if (window.__ENV__ && window.__ENV__[key]) return window.__ENV__[key];
-
-    //  开发：vite 注入（可选 fallback）
-    if (import.meta?.env?.[key]) return import.meta.env[key];
-
-    return def;
-}
+let inited = false;
 
 export function initRum() {
-    const pid = getEnv("VITE_ARMS_RUM_PID");
-    const endpoint = getEnv("VITE_ARMS_RUM_ENDPOINT");
-    const appVersion = getEnv("VITE_APP_VERSION", "dev");
+    if (inited) return armsRum;
+
+    // ✅ build-time 注入：Vite 会在 npm run build 时写死到产物里
+    const pid = import.meta.env.VITE_ARMS_RUM_PID;
+    const endpoint = import.meta.env.VITE_ARMS_RUM_ENDPOINT;
+    const appVersion = import.meta.env.VITE_APP_VERSION || "dev";
 
     console.log("[rum] pid=", pid);
     console.log("[rum] endpoint=", endpoint);
     console.log("[rum] appVersion=", appVersion);
 
-    // 没配置就禁用（避免报错）
     if (!pid || !endpoint) {
-        console.warn("[rum] missing pid/endpoint -> rum disabled");
+        console.warn(
+            "[rum] missing pid/endpoint at build-time. " +
+            "Did you pass --build-arg VITE_ARMS_RUM_PID / VITE_ARMS_RUM_ENDPOINT ?"
+        );
         return armsRum;
     }
 
@@ -42,16 +39,14 @@ export function initRum() {
             action: true,
         },
 
-
         tracing: {
             enable: true,
             sample: 100,
-            allowedUrls: [
-                { match: /\/api\//, propagatorTypes: ["tracecontext"] }
-            ],
+            allowedUrls: [{ match: "/api/", propagatorTypes: ["tracecontext"] }],
         },
     });
 
+    inited = true;
     return armsRum;
 }
 
