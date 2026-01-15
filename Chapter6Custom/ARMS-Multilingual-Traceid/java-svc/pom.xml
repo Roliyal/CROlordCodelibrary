@@ -11,14 +11,10 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
 
-        <!-- 用 BOM 统一版本，避免类对不上 -->
+        <!-- BOM -->
         <otel.version>1.50.0</otel.version>
 
-        <spark.version>2.9.4</spark.version>
-        <okhttp.version>4.12.0</okhttp.version>
-
-        <logback.version>1.5.16</logback.version>
-        <slf4j.version>2.0.16</slf4j.version>
+        <jackson.version>2.17.2</jackson.version>
     </properties>
 
     <dependencyManagement>
@@ -34,18 +30,11 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- SparkJava -->
+        <!-- JSON -->
         <dependency>
-            <groupId>com.sparkjava</groupId>
-            <artifactId>spark-core</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-
-        <!-- OkHttp -->
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>${okhttp.version}</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
 
         <!-- OpenTelemetry API + SDK -->
@@ -58,49 +47,47 @@
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
 
-        <!-- 自动装配（读取 otel.* system properties / OTEL_* env），创建 exporter/provider/propagators -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
-        </dependency>
-
-        <!-- autoconfigure 需要 OTLP exporter -->
+        <!-- OTLP exporter (HTTP) -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 
-        <!-- ✅ 日志注入 MDC：trace_id/span_id/trace_flags -->
-        <dependency>
-            <groupId>io.opentelemetry.instrumentation</groupId>
-            <artifactId>opentelemetry-logback-mdc-1.0</artifactId>
-            <version>1.32.0-alpha</version>
-        </dependency>
-
-        <!-- ✅ Logback（替代 slf4j-simple，支持 MDC） -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
+            <version>1.5.16</version>
         </dependency>
-
-        <!-- SLF4J API -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
+            <version>2.0.16</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- 打 fat jar，避免容器运行缺依赖 -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.4.1</version>
-                <configuration>
-                    <mainClass>com.example.javasvc.App</mainClass>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.example.JavaSvc</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
