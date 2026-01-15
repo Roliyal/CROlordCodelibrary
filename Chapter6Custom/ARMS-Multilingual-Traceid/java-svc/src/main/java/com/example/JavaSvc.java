@@ -11,11 +11,9 @@ import io.opentelemetry.api.trace.*;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.propagation.ContextPropagators;
-import io.opentelemetry.context.propagation.TextMapGetter;
-import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.*;
 
-import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -24,9 +22,7 @@ import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Instant;
@@ -35,7 +31,6 @@ import java.util.*;
 public class JavaSvc {
     static final ObjectMapper M = new ObjectMapper();
 
-    // ---------- dotenv ----------
     static boolean exists(String p) {
         try {
             return p != null && !p.isBlank()
@@ -46,11 +41,6 @@ public class JavaSvc {
         }
     }
 
-    /**
-     * ✅ 容器：优先 /app/.env（Dockerfile COPY 进来）
-     * 可用 DOTENV_PATH 覆盖
-     * 文件内容覆盖 System.getenv()，符合你“build 时 baked env”
-     */
     static Map<String, String> loadEnv() {
         String dotenv = System.getenv().getOrDefault("DOTENV_PATH", "/app/.env");
         List<String> candidates = List.of(dotenv, ".env", "../.env");
@@ -60,8 +50,7 @@ public class JavaSvc {
             System.out.println("  - " + p + " (exists=" + exists(p) + ")");
         }
 
-        Map<String, String> env = new HashMap<>();
-        env.putAll(System.getenv());
+        Map<String, String> env = new HashMap<>(System.getenv());
 
         for (String p : candidates) {
             if (!exists(p)) continue;
@@ -86,18 +75,12 @@ public class JavaSvc {
         return env;
     }
 
-    // ---------- OTEL ----------
-    /**
-     * ✅ 强制 W3C TraceContext propagator（traceparent）
-     * ✅ exporter 用 OTLP gRPC（OtlpGrpcSpanExporter）——依赖一定存在
-     */
     static OpenTelemetry initOtel(Map<String, String> env) {
         String endpoint = env.getOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "");
         if (endpoint.isEmpty()) throw new RuntimeException("missing OTEL_EXPORTER_OTLP_ENDPOINT");
 
-        // 注意：gRPC exporter 通常需要 host:port（如 collector:4317）
-        // 如果你这里仍是 http://.../api/otlp/traces 那是 HTTP ingest，不适配 gRPC。
-        OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter.builder()
+        // ✅ OTLP over HTTP exporter（匹配你的 http://.../api/otlp/traces）
+        OtlpHttpSpanExporter exporter = OtlpHttpSpanExporter.builder()
                 .setEndpoint(endpoint)
                 .build();
 
@@ -125,7 +108,6 @@ public class JavaSvc {
         return sc.isValid() ? sc.getTraceId() : "";
     }
 
-    // ---------- main ----------
     public static void main(String[] args) throws Exception {
         Map<String, String> env = loadEnv();
         OpenTelemetry otel = initOtel(env);
@@ -136,15 +118,14 @@ public class JavaSvc {
         TextMapPropagator propagator = otel.getPropagators().getTextMapPropagator();
         Tracer tracer = otel.getTracer("java-svc");
 
-        // ✅ K8s/容器必须 0.0.0.0
+        HttpClient client = HttpClient.newHttpClient();
+
+        // ✅ K8s 必须 0.0.0.0
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         server.createContext("/java/work", exchange -> {
-            // debug：确认 header 是否有 traceparent（上线可以删）
-            String tpIn1 = exchange.getRequestHeaders().getFirst("traceparent");
-            String tpIn2 = exchange.getRequestHeaders().getFirst("Traceparent");
             System.out.println("[java] headers keys=" + exchange.getRequestHeaders().keySet());
-            System.out.println("[java] traceparent_in(raw)=" + (tpIn1 != null ? tpIn1 : tpIn2));
+            System.out.println("[java] traceparent_in(raw)=" + firstHeaderCI(exchange, "traceparent"));
 
             Context extracted = propagator.extract(Context.current(), exchange, new HttpExchangeGetter());
 
@@ -159,12 +140,11 @@ public class JavaSvc {
 
                 Map<String, Object> cppResp = Map.of("warn", "CPP_URL is empty");
                 if (cppUrl != null && !cppUrl.isBlank()) {
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest.Builder reqB = HttpRequest.newBuilder()
                             .uri(URI.create(cppUrl + "/cpp/work"))
                             .GET();
 
-                    // ✅ 注入 traceparent 到下游
+                    // ✅ 注入 traceparent -> C++
                     propagator.inject(Context.current(), reqB, (builder, key, value) -> builder.header(key, value));
 
                     try {
@@ -194,6 +174,7 @@ public class JavaSvc {
 
         server.createContext("/healthz", exchange -> {
             byte[] body = "ok".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "text/plain");
             exchange.sendResponseHeaders(200, body.length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(body);
@@ -204,9 +185,17 @@ public class JavaSvc {
         server.start();
     }
 
-    /**
-     * ✅ 关键修复：大小写不敏感拿 header，保证 traceparent 一定 extract 到
-     */
+    static String firstHeaderCI(HttpExchange ex, String name) {
+        String v = ex.getRequestHeaders().getFirst(name);
+        if (v != null) return v;
+        for (String k : ex.getRequestHeaders().keySet()) {
+            if (k != null && k.equalsIgnoreCase(name)) {
+                return ex.getRequestHeaders().getFirst(k);
+            }
+        }
+        return null;
+    }
+
     static class HttpExchangeGetter implements TextMapGetter<HttpExchange> {
         @Override
         public Iterable<String> keys(HttpExchange carrier) {

@@ -10,8 +10,7 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <otel.version>1.38.0</otel.version>
-        <jackson.version>2.17.2</jackson.version>
+        <otel.version>1.50.0</otel.version>
     </properties>
 
     <dependencyManagement>
@@ -27,12 +26,14 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
+            <version>2.17.2</version>
         </dependency>
 
+        <!-- OpenTelemetry -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
@@ -41,6 +42,8 @@
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
+
+        <!-- ✅ OTLP exporter（含 http trace exporter 包） -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
@@ -48,23 +51,8 @@
     </dependencies>
 
     <build>
-        <!-- ✅ 关键：最终产物名固定为 app.jar -->
-        <finalName>app</finalName>
-
         <plugins>
-            <!-- 只编译 JavaSvc，避免旧 App.java -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <includes>
-                        <include>com/example/JavaSvc.java</include>
-                    </includes>
-                </configuration>
-            </plugin>
-
-            <!-- ✅ 关键：shade 把依赖打进去 + 写 Main-Class -->
+            <!-- fat jar + main manifest -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -74,9 +62,8 @@
                         <phase>package</phase>
                         <goals><goal>shade</goal></goals>
                         <configuration>
-                            <!-- 让最终输出就是 app.jar（覆盖原 jar），避免你 COPY 错 jar -->
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <finalName>app</finalName>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.example.JavaSvc</mainClass>
