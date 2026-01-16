@@ -1,4 +1,3 @@
-````md
 # ARMS Multilingual TraceId Demo（RUM + OpenTelemetry + OTLP）
 
 该仓库用于演示 **前端 ARMS RUM（W3C TraceContext 注入）** 与 **多语言后端（Go / Python / Java / C++）OpenTelemetry Trace** 的端到端链路打通，并通过 **OTLP/HTTP** 上报到阿里云 ARMS 服务。
@@ -44,8 +43,6 @@
 ```bash
 # ====== ARMS OpenTelemetry（后端链路）======
 OTEL_EXPORTER_OTLP_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
-
-# ===== Java 专用（ java-svc 用）======
 JAVA_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
 JAVA_OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 JAVA_OTEL_SERVICE_NAME=java-svc
@@ -74,7 +71,7 @@ VITE_ARMS_RUM_ENDPOINT=https://djqtzchc9t-default-us.rum.aliyuncs.com
 VITE_APP_VERSION=1.0.0
 ```
 
-### Java 专用变量说明
+### Java 变量说明
 
 `java-svc` 使用 `opentelemetry-sdk-extension-autoconfigure` 从 `OTEL_*` 环境变量读取配置。当前 `.env` 里 Java 配置使用了前缀 `JAVA_`，因此启动 `java-svc` 时需要将 `JAVA_OTEL_*` 映射为 `OTEL_*`（见下方启动命令），以确保 autoconfigure 能读取到：
 
