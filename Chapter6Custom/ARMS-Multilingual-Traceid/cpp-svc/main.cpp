@@ -2,7 +2,6 @@
 #include <nlohmann/json.hpp>
 
 #include <chrono>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -17,8 +16,6 @@
 
 #include <opentelemetry/trace/provider.h>
 #include <opentelemetry/trace/scope.h>
-#include <opentelemetry/trace/span.h>
-#include <opentelemetry/trace/span_kind.h>
 #include <opentelemetry/trace/span_startoptions.h>
 
 #include <opentelemetry/sdk/resource/resource.h>
@@ -29,7 +26,7 @@
 #include <opentelemetry/exporters/otlp/otlp_http_exporter.h>
 #include <opentelemetry/exporters/otlp/otlp_http_exporter_options.h>
 
-// W3C tracecontext propagator
+// W3C tracecontext propagator (traceparent/tracestate)
 #include <opentelemetry/trace/propagation/http_trace_context.h>
 
 namespace trace = opentelemetry::trace;
@@ -42,9 +39,6 @@ namespace resource = opentelemetry::sdk::resource;
 // -------------------- util: read .env --------------------
 static bool LoadEnvFile(const std::string &path, std::map<std::string, std::string> &env)
 {
-  if (path.empty())
-    return false;
-
   std::ifstream in(path);
   if (!in.is_open())
     return false;
@@ -74,26 +68,16 @@ static bool LoadEnvFile(const std::string &path, std::map<std::string, std::stri
   return true;
 }
 
-static std::map<std::string, std::string> LoadEnv()
+static std::map<std::string, std::string> LoadRootEnv()
 {
   std::map<std::string, std::string> env;
 
-  const char *dotenv = std::getenv("DOTENV_PATH");
   const std::vector<std::string> candidates = {
-      dotenv ? std::string(dotenv) : std::string(),
-      "/app/.env",
+      "/app/.env", // 容器内标准路径
       "./.env",
       "../.env",
       "../../.env",
   };
-
-  std::cout << "[cpp] env candidates:\n";
-  for (const auto &p : candidates)
-  {
-    if (p.empty())
-      continue;
-    std::cout << "  - " << p << "\n";
-  }
 
   for (const auto &p : candidates)
   {
@@ -104,7 +88,7 @@ static std::map<std::string, std::string> LoadEnv()
     }
   }
 
-  std::cerr << "[cpp] WARN: cannot open .env (tried DOTENV_PATH,/app/.env,./.env,../.env,../../.env)\n";
+  std::cerr << "[cpp] WARN: cannot open .env (tried /app/.env, ./.env, ../.env, ../../.env)\n";
   return env;
 }
 
@@ -117,7 +101,7 @@ static std::string GetEnv(const std::map<std::string, std::string> &env, const s
 }
 
 // 解析 "k=v,k2=v2"
-static std::vector<std::pair<std::string, std::string>> ParseHeadersPairs(const std::string &raw)
+static std::vector<std::pair<std::string, std::string>> ParseHeaders(const std::string &raw)
 {
   std::vector<std::pair<std::string, std::string>> out;
   if (raw.empty())
@@ -166,6 +150,37 @@ static std::string HexLower(const uint8_t *data, size_t n)
   return s;
 }
 
+static std::string TraceIdFromTraceparent(const std::string &tp)
+{
+  // traceparent: "00-<traceid 32hex>-<spanid 16hex>-01"
+  if (tp.size() < 55)
+    return "";
+  auto firstDash = tp.find('-');
+  if (firstDash == std::string::npos)
+    return "";
+  auto secondDash = tp.find('-', firstDash + 1);
+  if (secondDash == std::string::npos)
+    return "";
+  return tp.substr(firstDash + 1, secondDash - (firstDash + 1));
+}
+
+static std::string SpanIdFromTraceparent(const std::string &tp)
+{
+  if (tp.size() < 55)
+    return "";
+  // 00-traceid-spanid-xx
+  size_t p1 = tp.find('-');
+  if (p1 == std::string::npos)
+    return "";
+  size_t p2 = tp.find('-', p1 + 1);
+  if (p2 == std::string::npos)
+    return "";
+  size_t p3 = tp.find('-', p2 + 1);
+  if (p3 == std::string::npos)
+    return "";
+  return tp.substr(p2 + 1, p3 - (p2 + 1));
+}
+
 static void LogWithSpan(const std::string &prefix, const trace::Span &span, const std::string &extra)
 {
   auto sc = span.GetContext();
@@ -179,7 +194,7 @@ static void LogWithSpan(const std::string &prefix, const trace::Span &span, cons
   std::cout << std::endl;
 }
 
-// -------------------- carrier for extract (httplib) --------------------
+// -------------------- carrier for extract --------------------
 class HttplibRequestCarrier final : public propagation::TextMapCarrier
 {
 public:
@@ -188,18 +203,15 @@ public:
   nostd::string_view Get(nostd::string_view key) const noexcept override
   {
     std::string k(key.data(), key.size());
-
-    // 直接查
     auto it = req_.headers.find(k);
     if (it != req_.headers.end())
       return nostd::string_view(it->second.data(), it->second.size());
 
-    // 大小写不敏感兜底
+    // case-insensitive fallback
     for (const auto &kv : req_.headers)
     {
       if (kv.first.size() != k.size())
         continue;
-
       bool same = true;
       for (size_t i = 0; i < k.size(); i++)
       {
@@ -238,10 +250,10 @@ static void InitTracer(const std::map<std::string, std::string> &env)
   opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
   opts.url = endpoint;
 
-  // OTEL_EXPORTER_OTLP_HEADERS="k=v,k2=v2"
+  // headers 是 multimap，没有 operator[]，用 insert
   opts.http_headers.clear();
   const std::string rawHeaders = GetEnv(env, "OTEL_EXPORTER_OTLP_HEADERS");
-  for (const auto &kv : ParseHeadersPairs(rawHeaders))
+  for (const auto &kv : ParseHeaders(rawHeaders))
   {
     opts.http_headers.insert(kv);
   }
@@ -251,7 +263,6 @@ static void InitTracer(const std::map<std::string, std::string> &env)
 
   sdktrace::BatchSpanProcessorOptions bsp;
   bsp.schedule_delay_millis = std::chrono::milliseconds(200);
-  bsp.export_timeout = std::chrono::milliseconds(10000);
 
   auto processor = std::unique_ptr<sdktrace::SpanProcessor>(
       new sdktrace::BatchSpanProcessor(std::move(exporter), bsp));
@@ -265,7 +276,7 @@ static void InitTracer(const std::map<std::string, std::string> &env)
 
   trace::Provider::SetTracerProvider(provider);
 
-  // ✅ W3C tracecontext
+  // W3C tracecontext propagator
   propagation::GlobalTextMapPropagator::SetGlobalPropagator(
       nostd::shared_ptr<propagation::TextMapPropagator>(
           new opentelemetry::trace::propagation::HttpTraceContext()));
@@ -275,21 +286,9 @@ static void InitTracer(const std::map<std::string, std::string> &env)
   std::cout << "[cpp] OTEL_SERVICE_NAME=" << GetEnv(env, "OTEL_SERVICE_NAME", "cpp-svc") << "\n";
 }
 
-static std::string CurTraceId(const trace::Span &span)
-{
-  auto tid = span.GetContext().trace_id().Id();
-  return HexLower(tid.data(), tid.size());
-}
-
-static std::string CurSpanId(const trace::Span &span)
-{
-  auto sid = span.GetContext().span_id().Id();
-  return HexLower(sid.data(), sid.size());
-}
-
 int main()
 {
-  auto env = LoadEnv();
+  auto env = LoadRootEnv();
   InitTracer(env);
 
   int port = 8083;
@@ -303,7 +302,6 @@ int main()
   }
 
   auto tracer = trace::Provider::GetTracerProvider()->GetTracer("cpp-svc");
-
   httplib::Server svr;
 
   svr.Get("/healthz", [&](const httplib::Request &, httplib::Response &res) {
@@ -315,46 +313,48 @@ int main()
   });
 
   svr.Get("/cpp/work", [&](const httplib::Request &req, httplib::Response &res) {
-    // 1) extract 上游 context（traceparent）
+    res.set_header("Content-Type", "application/json");
+
     HttplibRequestCarrier carrier(req);
+
+    auto tp_sv = carrier.Get("traceparent");
+    std::string traceparent(tp_sv.data(), tp_sv.size());
+
+    std::string tid_from_tp = TraceIdFromTraceparent(traceparent);
+    std::string sid_from_tp = SpanIdFromTraceparent(traceparent);
+
     auto propagator = propagation::GlobalTextMapPropagator::GetGlobalPropagator();
+    ctx::Context parent_ctx{};
+    parent_ctx = propagator->Extract(carrier, parent_ctx);
 
-    ctx::Context parent = propagator->Extract(carrier, ctx::Context{});
+    trace::StartSpanOptions span_opts;
+    span_opts.kind = trace::SpanKind::kServer;
+    span_opts.parent = parent_ctx;
 
-    trace::StartSpanOptions opt;
-    opt.kind = trace::SpanKind::kServer;
-    opt.parent = parent;
-
-    auto span = tracer->StartSpan("GET /cpp/work", {}, opt);
+    auto span = tracer->StartSpan("GET /cpp/work", {}, span_opts);
     trace::Scope scope(span);
 
-    // 2) 打日志
-    std::string tp_in;
-    {
-      auto tp_sv = carrier.Get("traceparent");
-      tp_in = std::string(tp_sv.data(), tp_sv.size());
-    }
-    LogWithSpan("[cpp] /cpp/work", *span, "traceparent_in=" + tp_in);
+    LogWithSpan("[cpp] /cpp/work", *span, "traceparent_in=" + traceparent);
 
-    // 3) 返回 JSON
+    auto sc = span->GetContext();
+    auto tid_bytes = sc.trace_id().Id();
+    auto sid_bytes = sc.span_id().Id();
+    std::string tid_from_span = HexLower(tid_bytes.data(), tid_bytes.size());
+    std::string sid_from_span = HexLower(sid_bytes.data(), sid_bytes.size());
+
     nlohmann::json j;
     j["message"] = "hello from cpp";
-    j["time"] = std::chrono::duration_cast<std::chrono::seconds>(
-                    std::chrono::system_clock::now().time_since_epoch())
-                    .count();
-    j["traceparent_in"] = tp_in;
-    j["trace_id"] = CurTraceId(*span);
-    j["span_id"] = CurSpanId(*span);
+    j["traceparent_in"] = traceparent;
+    j["trace_id_from_traceparent"] = tid_from_tp;
+    j["span_id_from_traceparent"] = sid_from_tp;
+    j["trace_id"] = tid_from_span;
+    j["span_id"] = sid_from_span;
 
-    res.set_header("Content-Type", "application/json");
     res.set_content(j.dump(2), "application/json");
-
     span->End();
   });
 
-  std::cout << "[cpp] listening on :" << port << std::endl;
-
-  // ✅ K8s/容器必须 0.0.0.0
+  std::cout << "[cpp] listening on 0.0.0.0:" << port << std::endl;
   svr.listen("0.0.0.0", port);
   return 0;
 }
