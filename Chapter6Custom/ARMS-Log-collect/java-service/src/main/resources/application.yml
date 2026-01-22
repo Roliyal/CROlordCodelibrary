@@ -1,0 +1,9 @@
+server:
+  port: ${JAVA_HTTP_PORT:8080}
+
+armslog:
+  env: ${APP_ENV:dev}
+  version: ${APP_VERSION:1.0.0}
+  goHttpBaseUrl: ${GO_HTTP_BASE_URL:http://localhost:8081}
+  goGrpcAddr: ${GO_GRPC_ADDR:localhost:9091}
+  grpcPort: ${JAVA_GRPC_PORT:9090}

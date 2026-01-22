@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package bridge.v1;
+
+option go_package = "armslogcollect/go-service/pb;pb";
+option java_multiple_files = true;
+option java_package = "com.example.bridge.v1";
+option java_outer_classname = "BridgeProto";
+
+message ActionRequest {
+  string trace_id = 1;
+  string action   = 2;
+  string payload  = 3;
+}
+
+message ActionReply {
+  string trace_id = 1;
+  int32  code     = 2;
+  string result   = 3;
+}
+
+service JavaBridge {
+  rpc ValidateUser     (ActionRequest) returns (ActionReply);
+  rpc ReserveInventory (ActionRequest) returns (ActionReply);
+  rpc AuditOrder       (ActionRequest) returns (ActionReply);
+}
+
+service GoBridge {
+  rpc ProcessPayment (ActionRequest) returns (ActionReply);
+  rpc IssueRefund    (ActionRequest) returns (ActionReply);
+  rpc QueryPayment   (ActionRequest) returns (ActionReply);
+}
