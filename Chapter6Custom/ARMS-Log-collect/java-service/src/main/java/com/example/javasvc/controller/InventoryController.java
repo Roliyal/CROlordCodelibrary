@@ -22,25 +22,13 @@ public class InventoryController {
 
   /** 3/3 Java HTTP endpoint: reserve inventory */
   @PostMapping("/reserve")
-  public String reserve(
-      @RequestParam(name = "n", defaultValue = "10") int n,
-      @RequestHeader(value = "X-Caller-Service", required = false) String caller) {
-
-    try (var ctx =
-        CloseableThreadContext.put("source", "InventoryController").put("category", "inventory.reserve")) {
-
+  public String reserve(@RequestParam(name = "n", defaultValue = "10") int n) {
+    try (var ctx = CloseableThreadContext.put("source", "InventoryController").put("category", "inventory.reserve")) {
       for (int i = 0; i < Math.max(1, n); i++) {
         log.info("inventory reserve step idx=" + i);
       }
 
-      boolean calledFromGo = caller != null && caller.equalsIgnoreCase("go-service");
-
-      if (!calledFromGo) {
-        goHttp.post("/api/payment/refund?n=1", "remote.http.refund");
-      } else {
-        log.info("skip go-http callback (calledFromGo=true)");
-      }
-
+      goHttp.post("/api/payment/refund?n=5", "remote.http.refund");
       goGrpc.issueRefund("REFUND", "inventory_reserve");
 
       log.info("inventory reserved");

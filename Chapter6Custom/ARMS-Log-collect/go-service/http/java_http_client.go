@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -15,7 +14,9 @@ type JavaHTTPClient struct {
 func NewJavaHTTPClient(baseURL string) *JavaHTTPClient {
 	return &JavaHTTPClient{
 		BaseURL: baseURL,
-		Client:  &http.Client{Timeout: 3 * time.Second},
+		Client: &http.Client{
+			Timeout: 3 * time.Second,
+		},
 	}
 }
 
@@ -24,21 +25,7 @@ func (c *JavaHTTPClient) Do(ctx context.Context, method, path, traceID string) (
 	if err != nil {
 		return nil, err
 	}
-
-	// trace 透传
 	req.Header.Set("X-Trace-Id", traceID)
-
-	req.Header.Set("X-Caller-Service", "go-service")
-
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= 400 {
-		_ = resp.Body.Close()
-		return nil, fmt.Errorf("java http error: status=%d path=%s", resp.StatusCode, path)
-	}
-
-	return resp, nil
+	req.Header.Set("traceparent", "00-"+traceID+"-0000000000000000-01")
+	return c.Client.Do(req)
 }

@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-service
+  namespace: arms-demo
+  labels:
+    app: go-service
+spec:
+  type: ClusterIP
+  selector:
+    app: go-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+    - name: grpc
+      port: 9091
+      targetPort: 9091
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-service
+  namespace: arms-demo
+  labels:
+    app: go-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-service
+  template:
+    metadata:
+      labels:
+        app: go-service
+    spec:
+      containers:
+        - name: go-service
+          # TODO: replace with your actual image
+          image: your-registry/go-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+              name: http
+            - containerPort: 9091
+              name: grpc
+          env:
+            - name: APP_ENV
+              value: "prod"
+            - name: APP_VERSION
+              value: "1.0.0"
+
+            # Go service listen ports
+            - name: GO_HTTP_PORT
+              value: "8081"
+            - name: GO_GRPC_PORT
+              value: "9091"
+
+            # Downstream Java addresses (same namespace)
+            - name: JAVA_HTTP_BASE_URL
+              value: "http://java-service:8080"
+            - name: JAVA_GRPC_ADDR
+              value: "java-service:9090"
+
+            # Log path inside container
+            - name: GO_LOG_PATH
+              value: "/var/log/arms/app.log"
+          volumeMounts:
+            - name: applog
+              mountPath: /var/log/arms
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: applog
+          emptyDir: {}

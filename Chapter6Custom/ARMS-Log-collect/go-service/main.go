@@ -33,8 +33,6 @@ func getenvInt(key string, def int) int {
 
 func main() {
 	// Config
-	println("go-service started")
-
 	env := getenv("APP_ENV", "dev")
 	version := getenv("APP_VERSION", "1.0.0")
 

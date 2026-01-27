@@ -10,7 +10,9 @@ import (
 	"armslogcollect/go-service/middleware"
 	"armslogcollect/go-service/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func traceIDFromIncomingMD(ctx context.Context) string {
@@ -62,8 +64,11 @@ func UnaryServerInterceptor(l *logger.Logger) grpc.UnaryServerInterceptor {
 					"errorStack", stack,
 					"message", "panic recovered",
 				)
-				panic(rec)
+				// IMPORTANT: never re-panic; return a gRPC error instead.
+				err = status.Error(codes.Internal, "internal error")
+				resp = nil
 			}
+
 			l.Info(
 				"source", "GoGrpcServer",
 				"category", "grpc.inbound.done",

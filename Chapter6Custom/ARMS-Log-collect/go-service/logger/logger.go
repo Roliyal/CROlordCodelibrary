@@ -26,10 +26,10 @@ func New(cfg Config) *Logger {
 
 	w := &lumberjack.Logger{
 		Filename:   cfg.Path,
-		MaxSize:   cfg.MaxSizeMB,
+		MaxSize:    cfg.MaxSizeMB,
 		MaxBackups: cfg.MaxBackups,
-		MaxAge:    cfg.MaxAgeDays,
-		Compress:  false,
+		MaxAge:     cfg.MaxAgeDays,
+		Compress:   false,
 	}
 
 	l := log.NewJSONLogger(log.NewSyncWriter(w))

@@ -16,10 +16,11 @@ import java.time.Duration;
 public class RestTemplateConfig {
 
   @Bean
-  public org.springframework.web.client.RestTemplate restTemplate() {
+  public org.springframework.web.client.RestTemplate restTemplate(ArmsLogProperties props) {
     var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout((int) Duration.ofSeconds(2).toMillis());
-    factory.setReadTimeout((int) Duration.ofSeconds(3).toMillis());
+    int timeoutMs = (int) Math.max(1, props.getHttpTimeoutMillis());
+    factory.setConnectTimeout(timeoutMs);
+    factory.setReadTimeout(timeoutMs);
 
     var rt = new org.springframework.web.client.RestTemplate(factory);
     rt.getInterceptors().add(new TracePropagateInterceptor());

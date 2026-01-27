@@ -2,61 +2,90 @@ package grpcx
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"armslogcollect/go-service/logger"
-	"armslogcollect/go-service/pb"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	_ "google.golang.org/grpc/encoding/proto" // ensure proto codec is registered
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type JavaGRPCClient struct {
-	conn *grpc.ClientConn
-	cl   pb.JavaBridgeClient
+	conn    *grpc.ClientConn
+	timeout time.Duration
 }
 
 func NewJavaGRPCClient(addr string, l *logger.Logger) (*JavaGRPCClient, error) {
-	// Plaintext for demo; for production use mTLS.
-	dialOpts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(UnaryClientInterceptor(l, "java-service")),
+	// Ensure proto descriptor is loadable early so errors are clear.
+	if _, err := getBridgeDesc(); err != nil {
+		return nil, err
 	}
 
-	conn, err := grpc.Dial(addr, dialOpts...)
+	// Dial
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+        grpc.WithChainUnaryInterceptor(UnaryClientInterceptor(l, "java-service")),
+		grpc.WithBlock(),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &JavaGRPCClient{
-		conn: conn,
-		cl:   pb.NewJavaBridgeClient(conn),
-	}, nil
+
+	return &JavaGRPCClient{conn: conn, timeout: 1500 * time.Millisecond}, nil
 }
 
-func (c *JavaGRPCClient) Close() error { return c.conn.Close() }
+func (c *JavaGRPCClient) Close() {
+	_ = c.conn.Close()
+}
 
-func (c *JavaGRPCClient) ValidateUser(ctx context.Context, traceID string) (*pb.ActionReply, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+// ---- typed helpers used by HTTP handlers ----
+
+func (c *JavaGRPCClient) ValidateUser(ctx context.Context, traceID string) (string, error) {
+	return c.call(ctx, traceID, "ValidateUser", "{}", "/bridge.v1.JavaBridge/ValidateUser")
+}
+
+func (c *JavaGRPCClient) ReserveInventory(ctx context.Context, traceID string) (string, error) {
+	return c.call(ctx, traceID, "ReserveInventory", "{}", "/bridge.v1.JavaBridge/ReserveInventory")
+}
+
+func (c *JavaGRPCClient) AuditOrder(ctx context.Context, traceID string) (string, error) {
+	return c.call(ctx, traceID, "AuditOrder", "{}", "/bridge.v1.JavaBridge/AuditOrder")
+}
+
+// call invokes a unary RPC against Java service using runtime descriptors.
+func (c *JavaGRPCClient) call(parent context.Context, traceID, action, payload, fullMethod string) (string, error) {
+	ctx, cancel := context.WithTimeout(parent, c.timeout)
 	defer cancel()
-	return c.cl.ValidateUser(ctx, &pb.ActionRequest{TraceId: traceID, Action: "VALIDATE", Payload: "go_http"})
-}
 
-func (c *JavaGRPCClient) ReserveInventory(ctx context.Context, traceID string) (*pb.ActionReply, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	return c.cl.ReserveInventory(ctx, &pb.ActionRequest{TraceId: traceID, Action: "RESERVE", Payload: "go_http"})
-}
-
-func (c *JavaGRPCClient) AuditOrder(ctx context.Context, traceID string) (*pb.ActionReply, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	return c.cl.AuditOrder(ctx, &pb.ActionRequest{TraceId: traceID, Action: "AUDIT", Payload: "go_http"})
-}
-
-// helper to format addr with default port
-func NormalizeAddr(addr, defaultPort string) string {
-	if strings.Contains(addr, ":") {
-		return addr
+	// outgoing metadata for tracing
+	if traceID != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-trace-id", traceID)
 	}
-	return addr + ":" + defaultPort
+
+	req, err := newActionRequest(traceID, action, payload)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := newActionReply()
+	if err != nil {
+		return "", err
+	}
+
+	if err := c.conn.Invoke(ctx, fullMethod, req, resp); err != nil {
+		return "", err
+	}
+
+	return getStringField(resp, "result"), nil
 }
+
+// compile-time check that we only ever pass proto messages
+var _ = (*dynamicpb.Message)(nil)

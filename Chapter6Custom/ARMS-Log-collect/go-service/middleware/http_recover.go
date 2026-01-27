@@ -8,6 +8,8 @@ import (
 	"armslogcollect/go-service/logger"
 )
 
+// Recover catches panics, logs a single-line JSON error record, and returns 500.
+// NOTE: stack is flattened to one line by replacing newlines with the literal \n sequence.
 func Recover(l *logger.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

@@ -5,79 +5,136 @@ import (
 	"net"
 
 	"armslogcollect/go-service/logger"
-	"armslogcollect/go-service/middleware"
-	"armslogcollect/go-service/pb"
+
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/proto" // ensure proto codec is registered
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-type GoBridgeServer struct {
-	pb.UnimplementedGoBridgeServer
-	log *logger.Logger
+type GoBridgeDynamicServer interface {
+	ProcessPayment(ctx context.Context, req proto.Message) (proto.Message, error)
+	QueryPayment(ctx context.Context, req proto.Message) (proto.Message, error)
+	IssueRefund(ctx context.Context, req proto.Message) (proto.Message, error)
 }
 
-func NewGoBridgeServer(l *logger.Logger) *GoBridgeServer {
-	return &GoBridgeServer{log: l}
+type goBridgeService struct {
+    log *logger.Logger
 }
 
-func (s *GoBridgeServer) ProcessPayment(ctx context.Context, r *pb.ActionRequest) (*pb.ActionReply, error) {
-	traceID := middleware.TraceIDFrom(ctx)
-	s.log.Info(
-		"source", "GoBridgeServer",
-		"category", "grpc.go.process_payment",
-		"traceId", traceID,
-		"protocol", "grpc",
-		"direction", "inbound",
-		"method", "ProcessPayment",
-		"path", "ProcessPayment",
-		"message", "process payment",
-	)
-	// business logs
-	for i := 0; i < 5; i++ {
-		s.log.Info("source", "GoBridgeServer", "category", "payment.step", "traceId", traceID,
-			"protocol", "grpc", "direction", "inbound", "method", "ProcessPayment", "path", "ProcessPayment",
-			"message", "payment step",
-		)
-	}
-	return &pb.ActionReply{TraceId: r.TraceId, Code: 0, Result: "PAY_OK"}, nil
+func (s *goBridgeService) ProcessPayment(ctx context.Context, req proto.Message) (proto.Message, error) {
+	// business: pretend everything is OK
+	bd, _ := getBridgeDesc()
+	reply := dynamicpb.NewMessage(bd.actionReply)
+	setStr(reply, "trace_id", mustGetStr(req.(*dynamicpb.Message), "trace_id"))
+	setStr(reply, "result", "PAY_OK")
+	return reply, nil
 }
 
-func (s *GoBridgeServer) IssueRefund(ctx context.Context, r *pb.ActionRequest) (*pb.ActionReply, error) {
-	traceID := middleware.TraceIDFrom(ctx)
-	s.log.Warn(
-		"source", "GoBridgeServer",
-		"category", "grpc.go.issue_refund",
-		"traceId", traceID,
-		"protocol", "grpc",
-		"direction", "inbound",
-		"method", "IssueRefund",
-		"path", "IssueRefund",
-		"message", "issue refund",
-	)
-	return &pb.ActionReply{TraceId: r.TraceId, Code: 0, Result: "REFUND_OK"}, nil
+func (s *goBridgeService) QueryPayment(ctx context.Context, req proto.Message) (proto.Message, error) {
+	bd, _ := getBridgeDesc()
+	reply := dynamicpb.NewMessage(bd.actionReply)
+	setStr(reply, "trace_id", mustGetStr(req.(*dynamicpb.Message), "trace_id"))
+	setStr(reply, "result", "QUERY_OK")
+	return reply, nil
 }
 
-func (s *GoBridgeServer) QueryPayment(ctx context.Context, r *pb.ActionRequest) (*pb.ActionReply, error) {
-	traceID := middleware.TraceIDFrom(ctx)
-	s.log.Info(
-		"source", "GoBridgeServer",
-		"category", "grpc.go.query_payment",
-		"traceId", traceID,
-		"protocol", "grpc",
-		"direction", "inbound",
-		"method", "QueryPayment",
-		"path", "QueryPayment",
-		"message", "query payment",
-	)
-	return &pb.ActionReply{TraceId: r.TraceId, Code: 0, Result: "PAYMENT_FOUND"}, nil
+func (s *goBridgeService) IssueRefund(ctx context.Context, req proto.Message) (proto.Message, error) {
+	bd, _ := getBridgeDesc()
+	reply := dynamicpb.NewMessage(bd.actionReply)
+	setStr(reply, "trace_id", mustGetStr(req.(*dynamicpb.Message), "trace_id"))
+	setStr(reply, "result", "REFUND_OK")
+	return reply, nil
 }
 
+// StartGRPC starts the Go gRPC server (bridge.v1.GoBridge) and returns the server and listener.
 func StartGRPC(l *logger.Logger, port string) (*grpc.Server, net.Listener, error) {
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryServerInterceptor(l)))
-	pb.RegisterGoBridgeServer(s, NewGoBridgeServer(l))
+	s := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			UnaryServerInterceptor(l),
+		),
+	)
+
+	RegisterGoBridgeDynamicServer(s, &goBridgeService{log: l})
 	return s, lis, nil
+}
+
+// ---- manual registration (no generated code) ----
+
+func RegisterGoBridgeDynamicServer(s grpc.ServiceRegistrar, srv GoBridgeDynamicServer) {
+	s.RegisterService(&GoBridge_ServiceDesc, srv)
+}
+
+var GoBridge_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "bridge.v1.GoBridge",
+	HandlerType: (*GoBridgeDynamicServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{MethodName: "ProcessPayment", Handler: _GoBridge_ProcessPayment_Handler},
+		{MethodName: "QueryPayment", Handler: _GoBridge_QueryPayment_Handler},
+		{MethodName: "IssueRefund", Handler: _GoBridge_IssueRefund_Handler},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "proto/bridge/v1/bridge.proto",
+}
+
+func _GoBridge_ProcessPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	bd, err := getBridgeDesc()
+	if err != nil {
+		return nil, err
+	}
+	in := dynamicpb.NewMessage(bd.actionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoBridgeDynamicServer).ProcessPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/bridge.v1.GoBridge/ProcessPayment"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoBridgeDynamicServer).ProcessPayment(ctx, req.(proto.Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoBridge_QueryPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	bd, err := getBridgeDesc()
+	if err != nil {
+		return nil, err
+	}
+	in := dynamicpb.NewMessage(bd.actionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoBridgeDynamicServer).QueryPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/bridge.v1.GoBridge/QueryPayment"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoBridgeDynamicServer).QueryPayment(ctx, req.(proto.Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoBridge_IssueRefund_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	bd, err := getBridgeDesc()
+	if err != nil {
+		return nil, err
+	}
+	in := dynamicpb.NewMessage(bd.actionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoBridgeDynamicServer).IssueRefund(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/bridge.v1.GoBridge/IssueRefund"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoBridgeDynamicServer).IssueRefund(ctx, req.(proto.Message))
+	}
+	return interceptor(ctx, in, info, handler)
 }

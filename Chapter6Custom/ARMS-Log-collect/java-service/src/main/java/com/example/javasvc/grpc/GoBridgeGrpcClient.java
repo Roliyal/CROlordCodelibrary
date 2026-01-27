@@ -22,10 +22,12 @@ import java.util.concurrent.TimeUnit;
 public class GoBridgeGrpcClient {
   private static final Logger log = LogManager.getLogger(GoBridgeGrpcClient.class);
 
+  private final ArmsLogProperties props;
   private final ManagedChannel channel;
   private final GoBridgeGrpc.GoBridgeBlockingStub stub;
 
   public GoBridgeGrpcClient(ArmsLogProperties props) {
+    this.props = props;
     String addr = props.getGoGrpcAddr();
     String host = addr.contains(":") ? addr.split(":")[0] : addr;
     int port = addr.contains(":") ? Integer.parseInt(addr.split(":")[1]) : 9091;
@@ -64,13 +66,17 @@ public class GoBridgeGrpcClient {
         .put("remoteService", "go-service")) {
 
       log.info("remote grpc call start");
+      String traceId = org.apache.logging.log4j.ThreadContext.get("traceId");
+      if (traceId == null) traceId = "";
       ActionRequest req = ActionRequest.newBuilder()
-          .setTraceId(org.apache.logging.log4j.ThreadContext.get("traceId"))
+          .setTraceId(traceId)
           .setAction(action)
           .setPayload(payload)
           .build();
 
-      ActionReply reply = invoker.invoke(stub.withDeadlineAfter(2, TimeUnit.SECONDS), req);
+      ActionReply reply = invoker.invoke(
+          stub.withDeadlineAfter(props.getGrpcTimeoutMillis(), TimeUnit.MILLISECONDS),
+          req);
 
       long costMs = (System.nanoTime() - start) / 1_000_000;
       try (var ctx2 = CloseableThreadContext.put("costMs", String.valueOf(costMs)).put("status", "OK")) {

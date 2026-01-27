@@ -20,27 +20,19 @@ public class OrderController {
     this.goGrpc = goGrpc;
   }
 
-  /** 1/3 Java HTTP endpoint: create order */
+  /**
+   * 1/3 Java HTTP endpoint: create order
+   * - emits burst logs (n)
+   * - calls Go via HTTP + gRPC
+   */
   @PostMapping("/create")
-  public String create(
-      @RequestParam(name = "n", defaultValue = "10") int n,
-      @RequestHeader(value = "X-Caller-Service", required = false) String caller) {
-
-    try (var ctx =
-        CloseableThreadContext.put("source", "OrderController").put("category", "order.create")) {
-
+  public String create(@RequestParam(name = "n", defaultValue = "10") int n) {
+    try (var ctx = CloseableThreadContext.put("source", "OrderController").put("category", "order.create")) {
       for (int i = 0; i < Math.max(1, n); i++) {
         log.info("order create step idx=" + i);
       }
 
-      boolean calledFromGo = caller != null && caller.equalsIgnoreCase("go-service");
-
-      if (!calledFromGo) {
-        goHttp.post("/api/payment/pay?n=1", "remote.http.pay");
-      } else {
-        log.info("skip go-http callback (calledFromGo=true)");
-      }
-
+      goHttp.post("/api/payment/pay?n=5", "remote.http.pay");
       goGrpc.processPayment("PAY", "order_create");
 
       log.info("order created");

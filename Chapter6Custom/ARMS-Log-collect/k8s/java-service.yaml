@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-service
+  namespace: arms-demo
+  labels:
+    app: java-service
+spec:
+  type: ClusterIP
+  selector:
+    app: java-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-service
+  namespace: arms-demo
+  labels:
+    app: java-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-service
+  template:
+    metadata:
+      labels:
+        app: java-service
+    spec:
+      containers:
+        - name: java-service
+          # TODO: replace with your actual image
+          image: your-registry/java-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: grpc
+          env:
+            - name: APP_ENV
+              value: "prod"
+            - name: APP_VERSION
+              value: "1.0.0"
+
+            # Downstream Go addresses (same namespace)
+            - name: GO_HTTP_BASE_URL
+              value: "http://go-service:8081"
+            - name: GO_GRPC_ADDR
+              value: "go-service:9091"
+
+            # Optional: JVM options
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10

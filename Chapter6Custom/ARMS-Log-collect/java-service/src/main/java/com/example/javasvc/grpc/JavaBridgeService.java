@@ -39,8 +39,6 @@ public class JavaBridgeService extends JavaBridgeGrpc.JavaBridgeImplBase {
     long start = System.nanoTime();
     String traceId = ThreadContext.get("traceId");
     if (traceId == null || traceId.isBlank()) {
-      // Prefer the Context.Key API (key.get()) rather than Context#get(key).
-      // This avoids compilation issues if an older io.grpc:grpc-context ends up on the classpath.
       traceId = GrpcMdcKeys.TRACE_ID_CTX_KEY.get();
       if (traceId != null) ThreadContext.put("traceId", traceId);
     }
