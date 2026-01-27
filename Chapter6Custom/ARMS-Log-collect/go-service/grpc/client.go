@@ -24,16 +24,14 @@ func NewJavaGRPCClient(addr string, l *logger.Logger) (*JavaGRPCClient, error) {
 		return nil, err
 	}
 
-	// Dial
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+	// Dial (non-blocking): in k8s the downstream (java-service) may not be ready
+	// when this pod starts. Avoid exiting the process just because the initial
+	// connection isn't up yet; gRPC will reconnect in the background.
 	conn, err := grpc.DialContext(
-		ctx,
+		context.Background(),
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-        grpc.WithChainUnaryInterceptor(UnaryClientInterceptor(l, "java-service")),
-		grpc.WithBlock(),
+		grpc.WithChainUnaryInterceptor(UnaryClientInterceptor(l, "java-service")),
 	)
 	if err != nil {
 		return nil, err

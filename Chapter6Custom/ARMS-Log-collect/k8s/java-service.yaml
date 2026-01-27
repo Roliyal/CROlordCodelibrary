@@ -37,7 +37,7 @@ spec:
       containers:
         - name: java-service
           # TODO: replace with your actual image
-          image: your-registry/java-service:1.0.0
+          image: registry.cn-hongkong.aliyuncs.com/crolord/java-service:1.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
