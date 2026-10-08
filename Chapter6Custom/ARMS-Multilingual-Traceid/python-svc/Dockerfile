@@ -6,7 +6,6 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY app.py /app/app.py
 
-COPY .env /app/.env
 ENV DOTENV_PATH=/app/.env
 
 EXPOSE 8081

@@ -21,7 +21,6 @@ RUN --mount=type=cache,target=/root/.cache/vcpkg \
     /opt/vcpkg/vcpkg install --x-manifest-root=/src --triplet=x64-linux
 
 COPY main.cpp /src/main.cpp
-COPY .env /src/.env
 
 # build
 RUN cmake -S /src -B /src/build \
@@ -39,7 +38,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /src/build/cpp-svc /app/cpp-svc
-COPY --from=build /src/.env /app/.env
 
 EXPOSE 8083
 

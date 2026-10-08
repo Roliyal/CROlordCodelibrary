@@ -11,9 +11,9 @@
 ├── frontend      # Vite + Vue3 + ARMS RUM（自动注入 traceparent）
 ├── go-gateway    # Go 入口服务（otelhttp server/client + OTLP exporter）
 ├── python-svc    # Flask + OTel instrumentation + OTLP exporter
-├── java-svc      # Spark + OTel autoconfigure + 透传 + 日志 MDC
+├── java-svc      # JDK HttpServer + OTel SDK 手动初始化 + 透传
 └── cpp-svc       # httplib + opentelemetry-cpp + OTLP/HTTP exporter
-````
+```
 
 ---
 
@@ -36,53 +36,15 @@
 
 ---
 
-## 环境变量（根目录 .env）
+## 环境配置
 
-根目录 `.env`：
+在本示例根目录执行 `cp .env.example .env`，填写自己的 ARMS OTLP/HTTP traces 地址和前端 RUM 参数。默认地址指向本机 Collector，不会向已有云实例发送数据。`.env` 不纳入版本控制。
 
-```bash
-# ====== ARMS OpenTelemetry（后端链路）======
-OTEL_EXPORTER_OTLP_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
-JAVA_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://tracing-analysis-dc-usw.aliyuncs.com/adapt_djqtzchc9t@bcd989218adc120_djqtzchc9t@53df7ad2afe8301/api/otlp/traces
-JAVA_OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-JAVA_OTEL_SERVICE_NAME=java-svc
-# JAVA_OTEL_EXPORTER_OTLP_HEADERS=Authentication=xxxxx
-JAVA_OTEL_METRICS_EXPORTER=none
-JAVA_OTEL_LOGS_EXPORTER=none
-JAVA_OTEL_EXPORTER_OTLP_TIMEOUT=15000
+本地从各服务目录启动时，后端读取 `../.env`，Vite 读取示例根目录配置。不要在服务子目录另建 `.env`，避免配置覆盖。Java 当前使用 JDK HttpServer 和手动初始化的 OpenTelemetry SDK；使用 `OTEL_EXPORTER_OTLP_ENDPOINT`，不读取旧的 `JAVA_OTEL_*` 配置。
 
-# 可选：采样（1.0=100%）
-OTEL_TRACES_SAMPLER=parentbased_traceidratio
-OTEL_TRACES_SAMPLER_ARG=1.0
+容器构建不包含 `.env`。运行每个后端容器时，将配置文件只读挂载到 `/app/.env`；容器间的 `PY_URL`、`JAVA_URL`、`CPP_URL` 必须使用可达的服务地址，不能使用指向本容器的 `127.0.0.1`。前端镜像使用 Dockerfile 中的 `VITE_*` build args。
 
-# ====== 服务端口与链路调用地址 ======
-GO_PORT=8080
-PY_PORT=8081
-JAVA_PORT=8082
-CPP_PORT=8083
-
-PY_URL=http://127.0.0.1:8081
-JAVA_URL=http://127.0.0.1:8082
-CPP_URL=http://127.0.0.1:8083
-
-# ====== 前端 RUM ======
-VITE_ARMS_RUM_PID=djqtzchc9t@5492aebd6e1b7d1
-VITE_ARMS_RUM_ENDPOINT=https://djqtzchc9t-default-us.rum.aliyuncs.com
-VITE_APP_VERSION=1.0.0
-```
-
-### Java 变量说明
-
-`java-svc` 使用 `opentelemetry-sdk-extension-autoconfigure` 从 `OTEL_*` 环境变量读取配置。当前 `.env` 里 Java 配置使用了前缀 `JAVA_`，因此启动 `java-svc` 时需要将 `JAVA_OTEL_*` 映射为 `OTEL_*`（见下方启动命令），以确保 autoconfigure 能读取到：
-
-* `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
-* `OTEL_EXPORTER_OTLP_PROTOCOL`
-* `OTEL_SERVICE_NAME`
-* `OTEL_METRICS_EXPORTER=none`
-* `OTEL_LOGS_EXPORTER=none`
-* `OTEL_EXPORTER_OTLP_TIMEOUT`
-
----
+依赖：Go >= 1.22、JDK 17 + Maven 3.9、Python 3.11、Node.js 20；C++ 使用 CMake >= 3.20 和 vcpkg（Dockerfile 固定为 2024.12.16），需安装清单中的依赖并传入 vcpkg toolchain。
 
 # 启动与运行
 
@@ -102,7 +64,7 @@ VITE_APP_VERSION=1.0.0
 
 ```bash
 cd cpp-svc
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
 cmake --build build -j
 ```
 
@@ -127,24 +89,15 @@ curl -s http://127.0.0.1:8083/cpp/work | head
 
 ```bash
 cd java-svc
-./mvnw -q -DskipTests package
+mvn -q -DskipTests package
 ```
 
-### 运行（将 JAVA_OTEL_* 映射为 OTEL_*）
+### 运行
+
+在 `java-svc` 目录构建后执行（入口为 `com.example.JavaSvc`）：
 
 ```bash
-# 在仓库根目录已有 .env 的情况下，推荐在 java-svc 目录执行：
-cd java-svc
-
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="$JAVA_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" \
-OTEL_EXPORTER_OTLP_PROTOCOL="$JAVA_OTEL_EXPORTER_OTLP_PROTOCOL" \
-OTEL_SERVICE_NAME="$JAVA_OTEL_SERVICE_NAME" \
-OTEL_METRICS_EXPORTER="$JAVA_OTEL_METRICS_EXPORTER" \
-OTEL_LOGS_EXPORTER="$JAVA_OTEL_LOGS_EXPORTER" \
-OTEL_EXPORTER_OTLP_TIMEOUT="$JAVA_OTEL_EXPORTER_OTLP_TIMEOUT" \
-JAVA_PORT="$JAVA_PORT" \
-CPP_URL="$CPP_URL" \
-./mvnw -q -DskipTests exec:java
+java -jar target/app.jar
 ```
 
 验证：
@@ -261,7 +214,7 @@ npm run preview
 ## 3）验证后端透传（trace_id 一致）
 
 * `go-gateway` 返回的 `trace_id` 与 python/java/cpp 返回的 `trace_id` 应一致（同一条 Trace）
-* `java-svc` 返回中的 `traceparent_to_cpp` 不为空，且 `cpp-svc` 返回中的 `traceparent_in` 对齐
+* Java 返回中的 `cpp.traceparent_in` 应包含同一 Trace ID；`cpp.trace_id` 应与 Java 的 `trace_id` 一致。
 
 ---
 
@@ -273,7 +226,7 @@ npm run preview
 | frontend   | `npm i`                           | `npm run dev`      | `npm run build`              |
 | go-gateway | -                                 | `go run .`         | `go build -o go-gateway`     |
 | python-svc | `pip install -r requirements.txt` | `python app.py`    | （按部署方式：容器/zip）     |
-| java-svc   | -                                 | `./mvnw exec:java` | `./mvnw -DskipTests package` |
+| java-svc   | -                                 | `java -jar target/app.jar` | `mvn -DskipTests package` |
 | cpp-svc    | -                                 | `./build/cpp-svc`  | `cmake --build build`        |
 
 ---
@@ -288,5 +241,4 @@ npm run preview
 ## 2）ARMS 上无 Trace 数据
 
 * 检查 `OTEL_EXPORTER_OTLP_ENDPOINT` 是否可达
-* Java 需要确保 autoconfigure 能读取到 `OTEL_*`（启动命令已完成映射）
-* 若 ARMS 需要鉴权 header，补齐 `JAVA_OTEL_EXPORTER_OTLP_HEADERS` 并映射为 `OTEL_EXPORTER_OTLP_HEADERS`
+* Java 直接使用 `OTEL_EXPORTER_OTLP_ENDPOINT` 创建 HTTP exporter；当前实现没有配置额外鉴权 header 的入口。

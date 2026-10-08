@@ -19,8 +19,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 FROM alpine:3.20
 
 RUN apk add --no-cache ca-certificates \
-    && addgroup -S app \
-    && adduser -S app -G app
+    && addgroup -S -g 10001 app \
+    && adduser -S -u 10001 app -G app \
+    && mkdir -p /app/logs /var/log/arms \
+    && chown -R app:app /app /var/log/arms
 
 WORKDIR /app
 COPY --from=build /out/go-service /app/go-service

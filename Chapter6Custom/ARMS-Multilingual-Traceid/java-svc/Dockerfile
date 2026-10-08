@@ -11,7 +11,6 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 COPY --from=build /src/target/app.jar /app/app.jar
-COPY .env /app/.env
 ENV DOTENV_PATH=/app/.env
 
 EXPOSE 8082

@@ -1,4 +1,4 @@
-# ARMS-Log-collect (Production-hardened demo)
+# ARMS-Log-collect (HTTP/gRPC structured logging demo)
 
 Two services with **mutual HTTP + gRPC calls** and **unified JSON structured logs**.
 
@@ -11,6 +11,9 @@ Two services with **mutual HTTP + gRPC calls** and **unified JSON structured log
 - go-service   HTTP: `8081`
 - go-service   gRPC: `9091`
 
+## Prerequisites
+Go >= 1.24, JDK 17 and Maven 3.9 are required. Run the two services in separate terminals.
+
 ## Quick Run (local)
 ### 1) Start Go
 ```bash
@@ -22,8 +25,8 @@ go run ./...
 ### 2) Start Java
 ```bash
 cd java-service
-./mvnw -q -DskipTests package
-./mvnw -q spring-boot:run
+mvn -q -DskipTests package
+mvn -q spring-boot:run
 ```
 
 ### 3) Fire traffic (creates lots of structured logs)

@@ -1,25 +1,21 @@
-| 章节   | 主题                            | 描述                                                                                                           |
-| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 第一章 | 始：工具链                      | 配置企业 CI/CD 工具链，包括镜像优化、Yaml 示例、ACR 镜像仓库构建镜像安全等内容。                               |
-| 第二章 | 阿里云 Kubernentes 应用部署     | 配置 ACK CI 环境，提供 Monolithic application 和 Micro services 示例，如 Wordpress 和 bookinfo 部署 ACK 环境。 |
-| 第三章 | 下一代 serverless(SAE) 应用构建 | 配置 SAE CI 环境，提供 Monolithic application 和 Micro services 示例，如 Wordpress 和 bookinfo 部署 SAE 环境。 |
-| 第四章 | 可观测思考与实践                | 配置压力测试、APM 工具、全链路追踪等内容，提高应用的可观测性。                                                 |
-| 第五章 | 微服务治理实践与挑战            | 微服务限流降级、熔断器配置等内容，帮助您实现微服务的优雅上下线和灰度发布。                                     |
-| 第六章 | 两地三中心实践                  | GTM 部署两地三中心实践、应用安全、全链路压测等内容，帮助您了解如何在两地三中心环境下进行应用部署。             |
-| 第七章 | 结语：未来的架构与发展趋势      | 提供最新的架构和发展趋势信息，帮助您更好地了解未来的架构和发展方向，从而帮助您在软件开发领域保持领先地位。     |
+# CROlord Code Library
 
-CROlord Code Library 是一个完整的企业级解决方案代码库，旨在帮助您提高 CI/CD、微服务治理和可观测性水平。
+阿里云容器、微服务治理和可观测性实践示例。各目录是独立场景，不能从根目录统一构建。
 
-首先，本代码库提供了一套全面的企业 CI/CD 工具链配置方案。CI/CD 是持续交付的关键技术，可以帮助提高软件开发的效率和质量。本代码库中的方案包括了镜像优化、利用 ACR 镜像仓库构建镜像安全等内容，可以帮助您更好地配置企业 CI/CD 工具链。
+| 目录 | 用途 | 入口与状态 |
+| --- | --- | --- |
+| [Chapter1Toolchain](Chapter1Toolchain/) | 工具链、Jenkins 配置 | 按子目录使用；未进行端到端验证 |
+| [Chapter2KubernetesApplicationBuild](Chapter2KubernetesApplicationBuild/) | 前后端分离及猜数字微服务部署 | Unit2CodeLibrary；需准备数据库、Nacos 等依赖 |
+| [Chapter4MicroserviceGovern](Chapter4MicroserviceGovern/README.md) | 治理、灰度及上下线实践 | 参见场景差异与验证说明 |
+| [Chapter5MicroserviceObservability](Chapter5MicroserviceObservability/) | 微服务观测、Prometheus 及 MCP 示例 | Unit5CodeLibrary；未进行端到端验证 |
+| [Chapter6Custom/ARMS-Log-collect](Chapter6Custom/ARMS-Log-collect/README.md) | Java/Go HTTP、gRPC 与结构化日志 | README + VALIDATION.md；需 Go 1.24、JDK 17、Maven |
+| [Chapter6Custom/ARMS-Multilingual-Traceid](Chapter6Custom/ARMS-Multilingual-Traceid/README.md) | RUM 与四种语言的链路透传 | 先复制 .env.example，再按语言启动 |
+| [Chapter6Custom/ARMS-SourceMap-Demo](Chapter6Custom/ARMS-SourceMap-Demo/) | 前端 SourceMap 示例 | frontend、backend；未进行端到端验证 |
 
-其次，本代码库还提供了 ACK 和 SAE 环境下的应用部署示例。ACK 是阿里云的容器编排服务，可以帮助您部署和管理应用。SAE 则是阿里云的下一代 Serverless 应用构建服务，可以帮助您构建高效、可扩展的应用。本代码库中的应用部署示例包括了 Wordpress 和 bookinfo 等多种应用，可以帮助您快速上手。
+仓库目前没有第三、第七章对应目录。示例中的镜像、域名、命名空间和云资源需按自己的环境配置。
 
-此外，本代码库还提供了全面的可观测性实践。可观测性是软件开发中的关键技术，可以帮助您更好地了解应用的运行状况。本代码库中的可观测性实践包括了配置压力测试、APM 工具、全链路追踪等内容，可以帮助您提高应用的可观测性。例如，通过配置 APM 工具，您可以收集和展示应用的性能数据，从而更好地了解应用的运行情况。
+## 维护约定
 
-同时，本代码库也涵盖了微服务治理的实践和挑战。微服务治理是一项关键技术，可以帮助您提高微服务的治理水平。本代码库中的微服务治理实践包括了微服务限流降级、熔断器配置等内容，可以帮助您实现微服务的优雅上下线和灰度发布 。
-
-代码库还提供了两地三中心实践的示例。两地三中心是一种高可用的部署模式，可以帮助您提高应用的可靠性。本代码库中的两地三中心实践示例包括了 GTM 部署、应用安全、全链路压测等内容，可以帮助您了解如何在两地三中心环境下进行应用部署。
-
-代码库还提供了未来的架构和发展趋势的展望。架构和发展趋势是软件开发的关键因素，可以帮助您预测未来的发展方向。本代码库中的未来的架构和发展趋势展望将为您提供最新的技术和趋势信息，帮助您更好地了解未来的架构和发展方向，从而帮助您在软件开发领域保持领先地位。
-
-本代码库是一个全面、专业的解决方案代码库，旨在帮助您提高 CI/CD、微服务治理、可观测性和应用部署等方面的技能。通过本代码库，您将能够掌握较全的技术和方法，快速提高软件开发的效率和质量.
+- 运行日志、Nacos 缓存、Java target、前端依赖和本地配置不提交。历史提交仍可能保留旧产物，本次清理不改写 Git 历史。
+- 教学版本差异先记录再抽取，公共修复需对照第二、四、五章检查。
+- 提交信息说明具体模块和行为变化；验证说明区分静态检查、构建和真实环境验收。
