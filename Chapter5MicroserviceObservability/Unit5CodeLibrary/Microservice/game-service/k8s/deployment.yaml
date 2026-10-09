@@ -25,7 +25,7 @@ spec:
         armsPilotCreateAppName: "micro-go-game"
         msePilotCreateAppName: "micro-go-game"
         aliyun.com/app-language: golang
-        aliyun.ocm/app-tag：gary
+        aliyun.ocm/app-tag: gary
 
     spec:
       terminationGracePeriodSeconds: 60

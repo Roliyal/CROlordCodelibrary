@@ -24,8 +24,8 @@ go run ./...
 2. Start Java:
 ```bash
 cd java-service
-./mvnw -q -DskipTests package
-./mvnw -q spring-boot:run
+mvn -q -DskipTests package
+mvn -q spring-boot:run
 ```
 
 ### A2. Smoke traffic

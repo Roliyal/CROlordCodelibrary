@@ -70,7 +70,7 @@ spec:
               value: "game-service"
 
             - name: SERVICE_PORT
-              value: "8083"
+              value: "8084"
 
             - name: NACOS_SERVER_IP
               value: "mse-95bb82810-nacos-ans.mse.aliyuncs.com"

@@ -1,3 +1,14 @@
-
-# macOS
+# OS and generated artifacts
 .DS_Store
+*.log
+*.log.*
+node_modules/
+dist/
+target/
+.venv/
+__pycache__/
+# Local configuration (keep examples versioned)
+.env
+.env.local
+# Nacos runtime cache
+**/scoreboard-service/cache/

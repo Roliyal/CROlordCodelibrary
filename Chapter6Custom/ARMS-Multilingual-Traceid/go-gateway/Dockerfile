@@ -16,7 +16,6 @@ WORKDIR /app
 
 COPY --from=build /out/go-gateway /app/go-gateway
 
-COPY .env /app/.env
 ENV DOTENV_PATH=/app/.env
 
 EXPOSE 8080
