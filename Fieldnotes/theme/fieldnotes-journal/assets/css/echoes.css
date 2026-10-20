@@ -1,0 +1,29 @@
+/* Gate and workspace have different headers; the plugin remains the authority. */
+body.echoes-gate .site-header .site-search { display: block !important; }
+body.echoes-gate .site-header .header-navigation { opacity: 1; visibility: visible; transform: none; }
+body.echoes-logo-only .article-logo-only { height: 76px; }
+@media (max-width:680px) { body.echoes-logo-only .article-logo-only { height:68px; } }
+
+/* Same type, weight and ink as the Journal rooms, including the wordmark. */
+.fieldnotes-ui .fnchat { font-family:var(--sans); font-size:16px; line-height:1.8; letter-spacing:-.015em; }
+.fieldnotes-ui .fnchat :is(h2,h3,h4,p,button,input,textarea,label,small,strong) { font-family:var(--sans); }
+.fieldnotes-ui .fnchat-signature { font-family:var(--sans); font-size:28px; font-weight:500; line-height:1.3; letter-spacing:-.055em; }
+.fieldnotes-ui .fnchat-gate h2 { font-size:clamp(38px,4.8vw,60px); font-weight:500; line-height:1.3; letter-spacing:-.055em; }
+.fieldnotes-ui .fnchat-welcome h2 { font-size:clamp(30px,3.8vw,44px); font-weight:500; line-height:1.4; letter-spacing:-.045em; }
+.fieldnotes-ui .fnchat-gate-copy,.fieldnotes-ui .fnchat-welcome>p { font-size:15px; line-height:1.95; color:#86868b; }
+.fieldnotes-ui .fnchat-unlock h3 { font-size:26px; font-weight:500; line-height:1.5; letter-spacing:-.035em; }
+.fieldnotes-ui .fnchat-prompts strong { font-size:15px; font-weight:500; letter-spacing:-.02em; }
+.fieldnotes-ui .fnchat-prompts span { font-size:13px; line-height:1.8; }
+.fieldnotes-ui .fnchat :is(.fnchat-icon-button,.fnchat-connections-toggle) { font-size:13px; }
+.fieldnotes-ui .fnchat-product small { font-size:12px; }
+.fieldnotes-ui .fnchat-message { font-size:16px; line-height:1.9; }
+.fieldnotes-ui .fnchat-message :is(pre,code) { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+.fieldnotes-ui .fnchat-bottom-line { font-size:11px; line-height:1.8; }
+.fieldnotes-ui .fnchat-gate-caption>* { flex:none; white-space:nowrap; }
+@media(max-width:680px) {
+ .fieldnotes-ui .fnchat-gate { gap:38px; padding-inline:0; }
+ .fieldnotes-ui .fnchat-gate h2 { font-size:40px; }
+ .fieldnotes-ui .fnchat-signature { font-size:26px; }
+ .fieldnotes-ui .fnchat-prompts strong { font-size:14px; }
+ .fieldnotes-ui .fnchat-prompts span { font-size:12px; }
+}

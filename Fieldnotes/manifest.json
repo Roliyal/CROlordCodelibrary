@@ -1,0 +1,32 @@
+{
+  "packages": [
+    {
+      "name": "Journal",
+      "version": "1.9.0",
+      "file": "fieldnotes-journal-1.9.0.zip",
+      "bytes": 1052429,
+      "sha256": "7cc5833c91ce707858a1e21e2ea181abf3a55c4859601b7062bf2ea771eab354"
+    },
+    {
+      "name": "Echoes",
+      "version": "1.5.0",
+      "file": "fieldnotes-chatgpt-1.5.0.zip",
+      "bytes": 52634,
+      "sha256": "0dd31454d515979f592bdffef1a659adc1f61ba53dd7599b1134e957fcb57088"
+    },
+    {
+      "name": "Wayfarer",
+      "version": "1.4.0",
+      "file": "fieldnotes-travel-map-1.4.0.zip",
+      "bytes": 218822,
+      "sha256": "86d91112a432bd331a94ede05365a9fe2bc901bee46601bda72316547bb8c61d"
+    },
+    {
+      "name": "Comment Tools",
+      "version": "1.6.0",
+      "file": "fieldnotes-comment-tools-1.6.0.zip",
+      "bytes": 1263110,
+      "sha256": "bc1110440cabed3d770a3a68178f9c5b583b201448c7da8dd15972137e0681ae"
+    }
+  ]
+}

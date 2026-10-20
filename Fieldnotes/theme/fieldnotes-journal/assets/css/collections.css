@@ -1,0 +1,140 @@
+/* Independent rooms on the same quiet paper. */
+.page-shell.boughs-page { max-width:1200px; padding:66px 48px 100px; color:#1d1d1f; font-family:var(--sans); letter-spacing:-.015em; }
+.boughs-page *, .boughs-page *::before, .boughs-page *::after { box-sizing:border-box; }
+.boughs-page :where(h1,h2,h3,p,figure,dl) { margin:0; }
+.boughs-page :where(button,input,textarea,select) { font:inherit; }
+.boughs-page :focus-visible { outline:1px solid #929299; outline-offset:5px; }
+.boughs-page a:hover { color:#1d1d1f; }
+.boughs-index-heading { display:flex; justify-content:space-between; align-items:end; gap:40px; margin:18px 0 60px; }
+.boughs-index-heading h1 { font-size:clamp(58px,7vw,88px); font-weight:500; line-height:1.05; letter-spacing:-.075em; }
+.boughs-index-heading h1>span { color:#b3b3b9; }
+.boughs-index-heading>p { flex:none; max-width:100%; width:310px; color:#515156; font-size:20px; line-height:1.8; }
+.boughs-index-heading>p>span { color:#929298; font-size:15px; }
+.boughs-index-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.boughs-index-item { display:flex; flex-direction:column; min-width:0; overflow:hidden; border-radius:22px; background:#f5f5f7; color:#1d1d1f; transition:background-color .2s; }
+.boughs-index-item:hover { background:#eeeef1; }
+.boughs-index-copy { position:relative; padding:32px 34px 26px; }
+.boughs-index-copy h2 { font-size:30px; font-weight:500; line-height:1.45; letter-spacing:-.04em; }
+.boughs-index-copy p { max-width:380px; margin-top:12px; color:#86868b; font-size:14px; line-height:1.9; }
+.boughs-index-open { display:inline-flex; align-items:center; gap:24px; margin-top:26px; white-space:nowrap; color:#6e6e73; font-size:12px; }
+.boughs-index-open>span { color:#929298; font-size:17px; }
+.boughs-index-image { width:100%; height:235px; margin-top:auto !important; overflow:hidden; }
+.boughs-index-image img { display:block; width:100%; height:100%; object-fit:cover; filter:saturate(.72); }
+.boughs-index-cities { grid-column:span 2; display:grid; grid-template-columns:1fr 1.3fr; min-height:360px; }
+.boughs-index-cities .boughs-index-copy { align-self:center; padding:46px; }
+.boughs-index-cities h2 { font-size:42px; }
+.boughs-index-cities .boughs-index-image { height:100%; min-height:360px; }
+.boughs-software-art { height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:#515156; background:radial-gradient(ellipse at 50% 80%,#fff 0,transparent 65%); }
+.boughs-software-art>span { font:500 120px/1 var(--sans); letter-spacing:-.08em; }
+.boughs-software-art>span>span { color:#b7b7bc; }
+.boughs-software-art small { color:#929298; font-size:11px; white-space:nowrap; }
+.boughs-market-art { display:flex; height:100%; align-items:center; justify-content:center; background:linear-gradient(145deg,#eeeef2,#fafafb); }
+.boughs-market-art>span { font-size:36px; font-weight:500; line-height:1.4; letter-spacing:-.05em; white-space:nowrap; }
+.boughs-market-art i { color:#a1a1a6; font-style:normal; }
+.boughs-heading { display:grid; grid-template-columns:1.2fr 1fr; align-items:end; gap:70px; margin:18px 0 64px; }
+.boughs-heading h1 { font-size:clamp(36px,4.8vw,60px); line-height:1.3; font-weight:500; letter-spacing:-.055em; overflow-wrap:anywhere; }
+.boughs-heading-detail { display:block; margin-top:12px; color:#86868b; font-size:.52em; letter-spacing:-.025em; }
+.boughs-heading>p { max-width:440px; padding-bottom:4px; color:#86868b; font-size:15px; line-height:1.95; }
+.boughs-room-subtitle { margin-top:14px !important; color:#929298; font-size:16px; }
+.boughs-section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:24px; margin-bottom:28px; }
+.boughs-section-heading h2 { white-space:nowrap; font-size:30px; line-height:1.5; font-weight:500; letter-spacing:-.045em; }
+.boughs-section-heading p { margin-top:10px; color:#929298; font-size:14px; line-height:1.85; }
+.boughs-section-heading>span { flex:none; white-space:nowrap; color:#929298; font-size:12px; }
+.boughs-city-intro { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:46px; color:#929298; font-size:14px; }
+.boughs-text-link { flex:none; color:#6e6e73; font-size:13px; white-space:nowrap; }
+.boughs-city-intro+.boughs-entries { margin-top:0; }
+.boughs-entries { margin-top:76px; }
+.boughs-entry-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:48px 28px; }
+.boughs-entry { min-width:0; }
+.boughs-entry-link { display:block; color:#1d1d1f; }
+.boughs-entry-link>figure { aspect-ratio:1.6; overflow:hidden; border-radius:16px; background:#f5f5f7; }
+.boughs-entry-link>figure img { display:block; width:100%; height:100%; object-fit:cover; }
+.boughs-entry-copy { position:relative; padding:24px 26px 0 0; }
+.boughs-entry-copy time { color:#a1a1a6; font-size:11px; font-variant-numeric:tabular-nums; }
+.boughs-entry-copy h3 { margin-top:10px; font-size:24px; font-weight:500; line-height:1.55; letter-spacing:-.035em; overflow-wrap:anywhere; }
+.boughs-entry-copy p { margin-top:14px; color:#86868b; font-size:14px; line-height:1.95; }
+.boughs-entry-copy>span { position:absolute; right:0; top:28px; color:#a1a1a6; }
+.boughs-entry.is-featured { grid-column:span 2; margin-bottom:12px; }
+.boughs-entry.is-featured .boughs-entry-link { display:grid; grid-template-columns:1.3fr 1fr; gap:40px; align-items:center; }
+.boughs-entry.is-featured h3 { font-size:32px; }
+.boughs-entry.is-featured .boughs-entry-copy { padding:0 16px 0 0; }
+.boughs-entry.is-featured .boughs-entry-copy>span { display:none; }
+.boughs-empty { padding:38px 0; color:#929298; font-size:15px; line-height:1.95; }
+.boughs-page .page-numbers { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; margin:26px 4px 0 0; padding:5px 10px; border-radius:8px; color:#86868b; font-size:12px; }
+.boughs-page .page-numbers.current { background:#f0f0f3; color:#1d1d1f; }
+.boughs-custom-copy { margin-bottom:36px; color:#6e6e73; font-size:15px; line-height:1.95; }
+.boughs-software-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.boughs-software { display:flex; flex-direction:column; min-width:0; padding:36px; border-radius:22px; background:#f5f5f7; }
+.boughs-software-mark { margin-bottom:30px; color:#b5b5bb; font:500 64px/1 var(--sans); letter-spacing:-.07em; }
+.boughs-software-meta { display:flex; gap:12px; align-items:baseline; color:#86868b; font-size:11px; }
+.boughs-software-meta span { color:#a1a1a6; }
+.boughs-software h2 { margin-top:12px; font-size:36px; line-height:1.3; font-weight:500; letter-spacing:-.055em; }
+.boughs-software h3 { margin-top:18px; color:#515156; font-size:17px; line-height:1.8; font-weight:500; }
+.boughs-software-copy { margin:14px 0 28px; color:#86868b; font-size:14px; line-height:1.95; }
+.boughs-software-details { margin:auto 0 18px; color:#6e6e73; font-size:12px; }
+.boughs-software-details summary { min-height:32px; cursor:pointer; }
+.boughs-software-details ul { padding-left:18px; line-height:1.95; }
+.boughs-software-details p { margin-top:12px; line-height:1.95; }
+.boughs-download { display:inline-flex; align-self:start; align-items:center; gap:20px; min-height:38px; padding:7px 15px; border-radius:999px; background:#1d1d1f; color:#fff; font-size:12px; }
+.boughs-page .boughs-download:hover { background:#414145; color:#fff; }
+.boughs-software-caption { color:#929298; font-size:11px; }
+.boughs-practice-opening { display:grid; grid-template-columns:1.2fr 1fr; align-items:end; gap:60px; padding:0 0 48px; }
+.boughs-small-label { color:#929298; font-size:11px; line-height:1.8; }
+.boughs-practice-opening h2 { margin-top:20px; font-size:38px; font-weight:500; line-height:1.45; letter-spacing:-.045em; }
+.boughs-practice-opening h2 span { color:#929298; }
+.boughs-practice-opening>p { color:#86868b; font-size:14px; line-height:2; }
+.boughs-repositories { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.boughs-repository { position:relative; display:block; min-width:0; padding:32px; border-radius:20px; background:#f5f5f7; transition:background-color .2s; }
+.boughs-repository:hover { background:#eeeef1; }
+.boughs-repository-icon { display:inline-flex; margin-bottom:38px; color:#86868b; }
+.boughs-repository-icon svg { width:30px; height:30px; }
+.boughs-repository h2 { margin-top:10px; font-size:clamp(21px,2.4vw,29px); line-height:1.4; font-weight:500; letter-spacing:-.045em; overflow-wrap:anywhere; }
+.boughs-repository p { margin-top:14px; color:#86868b; font-size:13px; line-height:1.8; }
+.boughs-repository-arrow { position:absolute; right:30px; top:28px; color:#929298; font-size:18px; }
+.boughs-practice-method { display:flex; flex-wrap:wrap; justify-content:space-between; gap:20px; margin-top:32px; color:#929298; font-size:12px; line-height:1.9; }
+.boughs-practice-method>* { flex:none; white-space:nowrap; }
+.boughs-practice-method i { margin-inline:14px; font-style:normal; color:#c4c4c9; }
+.boughs-fave-filters { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 40px -10px; }
+.boughs-fave-filters a { flex:none; white-space:nowrap; padding:9px 12px; border-radius:9px; color:#929298; font-size:13px; }
+.boughs-fave-filters a[aria-current="page"] { color:#1d1d1f; background:#f0f0f3; }
+.boughs-fave-filters a:hover { color:#1d1d1f; background:#f6f6f8; }
+.boughs-keepsakes .faves-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:44px 24px; }
+.boughs-keepsakes .fave-card { min-width:0; padding:0; border:0; background:transparent; }
+.boughs-keepsakes .fave-card-image { aspect-ratio:1.15; overflow:hidden; border-radius:16px; }
+.boughs-keepsakes .fave-card-image img { width:100%; height:100%; aspect-ratio:auto; margin:0; object-fit:cover; }
+.boughs-keepsakes .fave-card-copy { padding:20px 0 0; }
+.boughs-keepsakes .fave-card-kind { color:#a1a1a6; font-size:11px; }
+.boughs-keepsakes .fave-card-copy h3 { margin:10px 0 12px; font-size:22px; font-weight:500; line-height:1.5; letter-spacing:-.03em; }
+.boughs-keepsakes .fave-card-description { color:#86868b; font-size:14px; line-height:1.95; }
+@media(max-width:800px) {
+ .page-shell.boughs-page { padding:44px 28px 76px; }
+ .boughs-index-heading>p { width:245px; font-size:17px; }.boughs-index-heading>p>span { font-size:13px; }
+ .boughs-index-cities { min-height:300px; }.boughs-index-cities .boughs-index-image { min-height:300px; }.boughs-index-cities .boughs-index-copy { padding:30px; }.boughs-index-cities h2 { font-size:34px; }
+ .boughs-index-copy { padding:26px; }.boughs-index-copy h2 { font-size:25px; }.boughs-index-image { height:200px; }
+ .boughs-heading { grid-template-columns:1fr; gap:22px; margin-bottom:46px; }.boughs-heading>p { max-width:620px; }
+ .boughs-entry.is-featured .boughs-entry-link { gap:28px; }.boughs-entry.is-featured h3 { font-size:26px; }
+ .boughs-software { padding:28px; }.boughs-practice-opening { grid-template-columns:1fr; gap:24px; }
+ .boughs-keepsakes .faves-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:580px) {
+ .page-shell.boughs-page { padding:36px 22px 64px; }.boughs-index-heading { display:block; margin:16px 0 38px; }.boughs-index-heading h1 { font-size:66px; }.boughs-index-heading>p { width:auto; margin-top:24px; font-size:18px; }
+ .boughs-index-list { grid-template-columns:1fr; gap:20px; }.boughs-index-cities { display:flex; grid-column:auto; }.boughs-index-cities .boughs-index-copy { padding:30px 28px; }.boughs-index-cities h2 { font-size:30px; }.boughs-index-cities .boughs-index-image { min-height:0; height:235px; }.boughs-index-copy { padding:28px; }.boughs-index-copy h2 { font-size:27px; }.boughs-index-image { height:215px; }
+ .boughs-heading { margin-top:12px; gap:20px; }.boughs-heading h1 { font-size:39px; }.boughs-heading>p { font-size:14px; }.boughs-room-subtitle { font-size:14px; }
+ .boughs-city-intro { display:block; margin-bottom:32px; font-size:13px; }.boughs-city-intro a { display:inline-block; margin-top:14px; }
+ .boughs-section-heading { gap:16px; }.boughs-section-heading h2 { white-space:nowrap; font-size:27px; }.boughs-section-heading p { font-size:13px; }.boughs-section-heading>span { font-size:10px; }
+ .boughs-entry-list { grid-template-columns:1fr; gap:36px; }.boughs-entry.is-featured { grid-column:auto; margin:0; }.boughs-entry.is-featured .boughs-entry-link { display:block; }.boughs-entry.is-featured .boughs-entry-copy { padding-top:22px; }.boughs-entry.is-featured h3,.boughs-entry-copy h3 { font-size:24px; }.boughs-entry-copy p { font-size:13px; }
+ .boughs-entries { margin-top:54px; }.boughs-software-grid,.boughs-repositories { grid-template-columns:1fr; gap:18px; }.boughs-software { padding:30px 28px; }.boughs-software h2 { font-size:34px; }.boughs-practice-opening h2 { font-size:32px; }.boughs-repository { padding:28px; }.boughs-repository h2 { font-size:25px; }.boughs-practice-method { font-size:10px; }.boughs-practice-method i { margin-inline:9px; }
+ .boughs-keepsakes .faves-grid { grid-template-columns:1fr; gap:36px; }.boughs-keepsakes .fave-card-image { aspect-ratio:1.4; }.boughs-fave-filters { gap:3px; }.boughs-fave-filters a { font-size:12px; padding:8px 10px; }
+}
+@media(prefers-reduced-motion:reduce) { .boughs-page *, .boughs-page *::after { transition:none!important; animation:none!important; } }
+
+/* The same typographic scale as Echoes and the independent rooms. */
+.boughs-page :is(h1,h2,h3) { font-family:var(--sans); }
+.boughs-index-heading h1 { font-size:clamp(38px,4.8vw,60px); font-weight:500; line-height:1.3; letter-spacing:-.055em; }
+.boughs-index-heading { margin-bottom:54px; }
+.boughs-index-heading>p { font-size:18px; line-height:1.95; }
+.boughs-index-heading>p>span { font-size:15px; }
+.boughs-software-actions { display:flex; flex-wrap:wrap; align-items:center; gap:16px 22px; margin-top:4px; }
+.boughs-source { color:#86868b; font-size:13px; }
+.boughs-software-caption { margin-top:14px!important; line-height:1.8; }
+@media(max-width:580px) { .boughs-index-heading h1 { font-size:40px; }.boughs-index-heading { margin-bottom:36px; }.boughs-index-heading>p { font-size:17px; }.boughs-index-heading>p>span { font-size:14px; } }
